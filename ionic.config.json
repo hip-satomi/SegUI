@@ -1,0 +1,7 @@
+{
+  "name": "segmentation",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
