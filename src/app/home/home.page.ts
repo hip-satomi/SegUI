@@ -1,4 +1,6 @@
-import { Component } from '@angular/core';
+import { ImageViewComponent } from './../components/image-view/image-view.component';
+import { ToastController } from '@ionic/angular';
+import { Component, ViewChild } from '@angular/core';
 
 @Component({
   selector: 'app-home',
@@ -7,6 +9,27 @@ import { Component } from '@angular/core';
 })
 export class HomePage {
 
-  constructor() {}
+  @ViewChild('imageView') imageView: ImageViewComponent;
+
+  constructor(private toastController: ToastController) {}
+
+  async undo() {
+    /*const toast = await this.toastController.create({
+      message: 'TODO: Undo last segmentation',
+      duration: 2000
+    });
+    toast.present();*/
+    this.imageView.undo();
+  }
+
+  async done() {
+    this.imageView.save();
+
+    /*const toast = await this.toastController.create({
+      message: 'TODO: Save segmentation',
+      duration: 2000
+    });
+    toast.present();*/
+  }
 
 }

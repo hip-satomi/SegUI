@@ -3,6 +3,14 @@
     <ion-title>
       Blank
     </ion-title>
+      <ion-buttons slot="end">
+          <ion-button (click)="undo()" style="padding-right:10px">
+            <ion-icon name="arrow-undo-outline"></ion-icon>
+          </ion-button>
+          <ion-button (click)="done()">
+            <ion-icon name="checkmark-outline"></ion-icon>
+          </ion-button>
+      </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -11,10 +19,9 @@
     <ion-toolbar>
       <ion-title size="large">Blank</ion-title>
     </ion-toolbar>
+
   </ion-header>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-  </div>
+  
+  <app-image-view #imageView></app-image-view>
 </ion-content>

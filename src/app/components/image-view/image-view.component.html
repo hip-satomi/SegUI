@@ -1,0 +1,8 @@
+<div (resized)="onResized($event)" style="width:100%; height:100%">
+    <!--<canvas class="canvas"></canvas>-->
+    <canvas #myCanvas class="canvas"
+        (touchmove)="mousemove($event)" (mousemove)="mousemove($event)"
+        (mousedown)="mousedown($event)" (touchstart)="mousedown($event)"
+        (mouseup)="stopdrag($event)" (touchend)="stopdrag($event)">
+    </canvas>
+</div>
