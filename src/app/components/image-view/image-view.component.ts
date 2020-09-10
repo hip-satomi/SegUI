@@ -392,15 +392,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   draw() {
     this.ctx.canvas.width = this.ctx.canvas.width;
-    if(this.points && this.points.length > 0) {
-      this.drawSingle(this.points[this.active], this.active);
-    }
-    for(let p = 0; p < this.points.length; ++p) {
-      let points = this.points[p];
-      if (points.length == 0 || this.active == p) {
-        continue;
-      }
-      this.drawSingle(points, p);
+
+    for (const [index, polygon] of this.points.entries()) {
+      this.drawSingle(polygon, index);
     }
     this.ctx.drawImage(this.image, this.xImage, this.yImage, this.image.width * this.scale, this.image.height * this.scale);
 
