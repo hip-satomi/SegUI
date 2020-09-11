@@ -62,10 +62,8 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   actions: Action[] = [];
 
-  pos1; pos2; pos3; pos4;
-
   constructor(private renderer: Renderer2,
-      private toastController: ToastController) {
+              private toastController: ToastController) {
     this.enabled = true;
     const image_src = '../assets/1.png'//'https://cloud.githubusercontent.com/assets/6464002/22788262/182d8192-ef01-11e6-8da0-903c1ddfa70f.png'
     this.imageUrl = image_src;
