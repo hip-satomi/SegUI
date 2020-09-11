@@ -10,7 +10,26 @@ enum CursorType {
   Standard = 'crosshair'
 }
 
+interface Position {
+  x, y
+}
+
 var inside = require('point-in-polygon');
+
+function transformToMatrix(t) {
+  return [[t.a, t.c, t.e], [t.b, t.d, t.f], [0, 0, 1]];
+}
+
+function matrixToTransform(m) {
+  return {
+    a: m[0][0],
+    b: m[1][0],
+    c: m[0][1],
+    d: m[1][1],
+    e: m[0][2],
+    f: m[1][2]
+  };
+}
 
 @Component({
   selector: 'app-image-view',
@@ -20,7 +39,7 @@ var inside = require('point-in-polygon');
 export class ImageViewComponent implements OnInit, AfterViewInit {
 
   @ViewChild('myCanvas', {static: false}) canvas: ElementRef;
-  //@ViewChild('parentContainer', {static: false}) container: ElementRef;
+
   context: any;
   imageUrl: string;
   enabled: boolean;
@@ -38,6 +57,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   xImage = 0;
   yImage = 0;
   scale = 1.;
+  currentMousePos;
 
   originX = 0;
   originY = 0;
@@ -98,36 +118,55 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   @HostListener('document:keydown.+')
   scaleUp() {
-    this.ctx.scale(this.zoomFactor, this.zoomFactor);
+    //this.ctx.scale(this.zoomFactor, this.zoomFactor);
+    this.zoom(this.zoomFactor, this.currentMousePos);
     this.draw();
   }
 
   @HostListener('document:keydown.-')
   scaleDown() {
-    this.ctx.scale(1. / this.zoomFactor, 1. / this.zoomFactor);
+    this.zoom(1. / this.zoomFactor, this.currentMousePos);
+    this.draw();
+  }
+
+  zoom(factor, mousePos: Position) {
+    const mousex = mousePos.x;
+    const mousey = mousePos.y;
+    const transform = this.ctx.getTransform();
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.translate(mousex, mousey);
+
+    this.ctx.scale(factor, factor);
+
+    this.ctx.translate(-mousex, -mousey);
+
+    const transformNew = this.ctx.getTransform();
+
+    const tNM = transformToMatrix(transformNew);
+
+    const fixedPoint = multiply(tNM, [mousex, mousey, 1]);
+
+    const fullTransform = multiply(transformToMatrix(transform), transformToMatrix(transformNew));
+    const t = matrixToTransform(fullTransform);
+
+    this.context.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
+
+    //this.scale *= zoom;
+
     this.draw();
   }
 
   mousewheel(event) {
     console.log("wheel");
     event.preventDefault();
-    const mousepos = this.getMousePos(this.element, event);
+    const mousepos = this.getMousePos(this.element, event, false);
     const mousex = mousepos.x;
     const mousey = mousepos.y;
 
-    const zoom = event.deltaY * -0.01 * 1e-2;
+    const zoom = event.deltaY * -1e-3 + 1.;
 
-    this.context.translate(this.originX, this.originY);
-    this.originX -= mousex / (this.scale * zoom) - mousex / this.scale;
-    this.originY -= mousey / (this.scale * zoom) - mousey / this.scale;
+    this.zoom(zoom, mousepos);
 
-    this.context.scale(zoom, zoom);
-
-    this.context.translate(-this.originX, -this.originY);
-
-    this.scale *= zoom;
-
-    this.draw();
   }
 
   @HostListener('document:keydown.enter', ['$event'])
@@ -205,8 +244,10 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   }
 
   move(e) {
-      e.preventDefault();
-      if (this.enabled && this.dragging) {
+    e.preventDefault();
+    const mousePos = this.getMousePos(this.element, e);
+    this.currentMousePos = mousePos;
+    if (this.enabled && this.dragging) {
         /*if (!e.offsetX) {
           e.offsetX = (e.pageX - e.target.offsetLeft);
           e.offsetY = (e.pageY - e.target.offsetTop);
@@ -216,8 +257,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
           e.offsetY = e.target.offsetTop; //(e.pageY - e.target.offsetTop);
         }
         let points = this.points[this.active];
-
-        const mousePos = this.getMousePos(this.element, e);
   
         points[this.activePoint][0] = mousePos.x;
         points[this.activePoint][1] = mousePos.y;
@@ -225,7 +264,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
         this.draw();
       } else {
         // we want to select the correct cursor type
-        const mousePos = this.getMousePos(this.element, e);
         const localPoints = this.points[this.active];
 
         let cursorSelected = false;
@@ -315,7 +353,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     } : null;
   }
 
-  getMousePos(canvas, evt) {
+  getMousePos(canvas, evt, onScreen=false): Position {
     // special handling for touch events
     if (evt.touches) {
       evt = evt.touches[0];
@@ -325,15 +363,17 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     let x = evt.clientX - rect.left;
     let y = evt.clientY - rect.top;
 
-    const t = this.ctx.getTransform();
+    if (!onScreen) {
+      // convert to geometry coordnate space
+      const t = this.ctx.getTransform();
 
-    const transformMatrix = inv([[t.a, t.c, t.e], [t.b, t.d, t.f], [0, 0, 1]]);
+      const transformMatrix = inv(transformToMatrix(t));
 
-    const transformedMouse = multiply(transformMatrix, [x, y, 1]);
+      const transformedMouse = multiply(transformMatrix, [x, y, 1]);
 
-    x = transformedMouse[0];
-    y = transformedMouse[1];
-
+      x = transformedMouse[0];
+      y = transformedMouse[1];
+    }
     return {
       x, y
       };
