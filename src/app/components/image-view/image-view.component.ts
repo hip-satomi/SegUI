@@ -13,8 +13,6 @@ enum CursorType {
   Standard = 'crosshair'
 }
 
-var inside = require('point-in-polygon');
-
 function transformToMatrix(t) {
   return [[t.a, t.c, t.e], [t.b, t.d, t.f], [0, 0, 1]];
 }
@@ -43,8 +41,8 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   imageUrl: string;
   enabled: boolean;
   element: any;
-  points: [number, number][][];
-  active: number;
+  polygons: Polygon[] = [new Polygon()];
+  activePolygon: number;
   activePoint: number;
   ctx: any;
   palette: any;
@@ -68,8 +66,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     const image_src = '../assets/1.png'//'https://cloud.githubusercontent.com/assets/6464002/22788262/182d8192-ef01-11e6-8da0-903c1ddfa70f.png'
     this.imageUrl = image_src;
 
-    this.points = [[]];
-    this.active = 0;
+    this.activePolygon = 0;
     this.activePoint = 0;
 
     this.palette = ['#ff0000'];
@@ -173,7 +170,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   }
 
   async save() {
-    if (this.points[this.active].length === 0) {
+    if (this.polygons[this.activePolygon].numPoints === 0) {
       const toast = await this.toastController.create({
         message: 'Please perform a segmentation!',
         duration: 2000
@@ -181,11 +178,11 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       toast.present();
     } else {
       // insert new empty polygon at the end if needed
-      if (this.points[this.points.length - 1].length > 0) {
-        this.points.push([]);
+      if (this.polygons[this.polygons.length - 1].numPoints > 0) {
+        this.polygons.push(new Polygon());
       }
       // make the last polygon (empty one) active
-      this.active = this.points.length - 1;
+      this.activePolygon = this.polygons.length - 1;
       this.draw();
     }
   }
@@ -220,27 +217,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.actions.push(action);
   }
 
-  /**
-   * returns [min distance index, min distance value]
-   * @param pos single position (e.g. mouse)
-   * @param positions list of positions (e.g. target points)
-   */
-  pairwiseDistanceMin(pos: number[], positions: number[][]) {
-    const x = pos[0];
-    const y = pos[1];
-    let minDisIndex = -1;
-    let minDis = 0;
-    for (const [index, point] of positions.entries()) {
-      const dis = Math.sqrt(Math.pow(x - point[0], 2) + Math.pow(y - point[1], 2));
-      if (minDisIndex === -1 || minDis > dis) {
-        minDis = dis;
-        minDisIndex = index;
-      }
-    }
-
-    return {index: minDisIndex, distance: minDis};
-  }
-
   move(e) {
     e.preventDefault();
     const mousePos = this.getMousePos(this.element, e);
@@ -255,20 +231,21 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
           e.offsetY = e.target.offsetTop; //(e.pageY - e.target.offsetTop);
         }
 
-        const points = this.points[this.active];
-  
-        points[this.activePoint][0] = mousePos.x;
-        points[this.activePoint][1] = mousePos.y;
+        const polygon = this.polygons[this.activePolygon];
+
+        polygon.setPoint(this.activePoint, [mousePos.x, mousePos.y]);
+
         this.draw();
       } else {
         // we want to select the correct cursor type
-        const localPoints = this.points[this.active];
+
+        const polygon = this.polygons[this.activePolygon];
 
         let cursorSelected = false;
 
-        if (localPoints.length > 0) {
+        if (polygon.numPoints > 0) {
           // compute distance to next active point
-          const closestDistanceInfo = this.pairwiseDistanceMin([mousePos.x, mousePos.y], localPoints);
+          const closestDistanceInfo = polygon.closestPointDistanceInfo([mousePos.x, mousePos.y]);
           const closestDistance = closestDistanceInfo.distance;
 
           if (closestDistance < this.distanceThreshold) {
@@ -331,7 +308,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     e.preventDefault();
 
     if (this.dragging) {
-      const act = new MovedPointAction(this.points[this.active][this.activePoint], this.draggingOrigPoint);
+      const act = new MovedPointAction(this.polygons[this.activePolygon].getPoint(this.activePoint), this.draggingOrigPoint);
       this.addAction(act);
 
       this.activePoint = null;
@@ -346,8 +323,8 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     //alert('Mouse down');
     e.preventDefault();
     if (this.enabled && !this.dragging) {
-      let points = this.points[this.active];
-      let x, y, dis, lineDis, insertAt = points.length;
+      let poly = this.polygons[this.activePolygon];
+      let x, y, insertAt = poly.numPoints;
 
       if (e.which === 3) {
         return false;
@@ -363,43 +340,36 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
 
       // compute closest distance to the polygon (in case of dragging a point)
-      const distanceInfo = this.pairwiseDistanceMin([x,y], points);
+      const distanceInfo = poly.closestPointDistanceInfo([x, y]);
       const minDis = distanceInfo.distance;
       const minDisIndex = distanceInfo.index;
       if (minDis < 10 && minDisIndex >= 0) {
         this.activePoint = minDisIndex;
         this.dragging = true; // enable dragging mode
 
-        this.draggingOrigPoint = [...this.points[this.active][this.activePoint]];
+        this.draggingOrigPoint = [...this.polygons[this.activePolygon].getPoint(this.activePoint)];
 
         return false;
       }
 
       // compute closest distance to line (in case of inserting a point in between)
+
       let lineInsert = false;
-      for (let i = 1; i < points.length; i++) {
-          lineDis = dotLineLength(
-            x, y,
-            points[i][0], points[i][1],
-            points[i - 1][0], points[i - 1][1],
-            true
-          );
-          if (lineDis < this.distanceThreshold) {
-            insertAt = i;
-            lineInsert = true;
-            break;
-          }
+      const di = poly.distanceToOuterShape([x, y]);
+      if (di.distance < this.distanceThreshold) {
+        insertAt = di.index;
+        lineInsert = true;
       }
 
       if (!lineInsert) {
         // check whether you did click onto another polygon
-        for (const [index, polygon] of this.points.entries()) {
-          if (index === this.active) {
+        for (const [index, polygon] of this.polygons.entries()) {
+          if (index === this.activePolygon) {
             continue;
           }
-          if (inside([x,y], polygon)) {
+          if (polygon.isInside([x,y])) {
             // clicke inside a non active polygon
-            this.active = index;
+            this.activePolygon = index;
             this.draw();
             return false;
           }
@@ -408,7 +378,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       }
 
       // place at correct place (maybe close to line --> directly on the line)
-      const act = new AddPointAction([Math.round(x), Math.round(y)], insertAt, this.points[this.active]);
+      const act = new AddPointAction([Math.round(x), Math.round(y)], insertAt, this.polygons[this.activePolygon]);
       this.addAction(act);
       //points.splice(insertAt, 0, [Math.round(x), Math.round(y)]);
       this.activePoint = insertAt;
@@ -430,16 +400,11 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     // Restore the transform
     this.ctx.restore();
 
-    for (const [index, polygon] of this.points.entries()) {
-      this.drawSingle(polygon, index);
+    for (const [index, polygon] of this.polygons.entries()) {
+      this.drawSingle(polygon.points, index);
     }
     this.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
 
-  }
-
-  onResized(event: ResizedEvent) {
-    alert(event.newWidth);
-    alert(event.newHeight);
   }
 
   /**
@@ -489,7 +454,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     // create the path for polygon
     this.ctx.beginPath();
     for (const point of points) {
-      if (this.active ===  p && this.enabled) {
+      if (this.activePolygon ===  p && this.enabled) {
         this.ctx.fillRect(point[0] - 2, point[1] - 2, 4, 4);
         this.ctx.strokeRect(point[0] - 2, point[1] - 2, 4, 4);
       }

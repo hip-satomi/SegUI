@@ -1,3 +1,4 @@
+import { Polygon } from 'src/app/models/geometry';
 export abstract class Action {
 
     lastPerformedTime: Date;
@@ -14,9 +15,9 @@ export class AddPointAction extends Action {
 
     private point: [number, number];
     private index: number;
-    private polygon: number[][];
+    private polygon: Polygon;
 
-    constructor(point: [number, number], index: number, polygon: number[][]) {
+    constructor(point: [number, number], index: number, polygon: Polygon) {
         super();
         this.point = point;
         this.index = index;
@@ -24,13 +25,13 @@ export class AddPointAction extends Action {
     }
 
     perform() {
-        this.polygon.splice(this.index, 0, this.point);
+        this.polygon.addPoint(this.index, this.point);
 
         this.updatePerformedTime();
     }
 
     reverse() {
-        this.polygon.splice(this.index, 1);
+        this.polygon.removePoint(this.index);
     }
 }
 

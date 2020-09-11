@@ -29,3 +29,25 @@ export const hexToRgb = function(hex) {
       b: parseInt(result[3], 16)
     } : null;
   }
+
+/**
+* returns [min distance index, min distance value]
+* @param pos single position (e.g. mouse)
+* @param positions list of positions (e.g. target points)
+*/
+export const pairwiseDistanceMin = function(pos: number[], positions: number[][]) {
+ const x = pos[0];
+ const y = pos[1];
+ let minDisIndex = -1;
+ let minDis = 0;
+ for (const [index, point] of positions.entries()) {
+   const dis = Math.sqrt(Math.pow(x - point[0], 2) + Math.pow(y - point[1], 2));
+   if (minDisIndex === -1 || minDis > dis) {
+     minDis = dis;
+     minDisIndex = index;
+   }
+ }
+
+ return {index: minDisIndex, distance: minDis};
+}
+
