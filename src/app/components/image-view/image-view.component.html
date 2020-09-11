@@ -3,6 +3,7 @@
     <canvas #myCanvas class="canvas"
         (touchmove)="mousemove($event)" (mousemove)="mousemove($event)"
         (mousedown)="mousedown($event)" (touchstart)="mousedown($event)"
-        (mouseup)="stopdrag($event)" (touchend)="stopdrag($event)">
+        (mouseup)="stopdrag($event)" (touchend)="stopdrag($event)"
+        (wheel)="mousewheel($event)">
     </canvas>
 </div>

@@ -2,6 +2,7 @@ import { AddPointAction, Action, MovedPointAction, JointAction } from './../../m
 import { ToastController } from '@ionic/angular';
 import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener } from '@angular/core';
 import { ResizedEvent } from 'angular-resize-event';
+import { multiply, inv } from 'mathjs';
 
 enum CursorType {
   Drag = 'move',
@@ -38,6 +39,10 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   yImage = 0;
   scale = 1.;
 
+  originX = 0;
+  originY = 0;
+  zoomFactor = 1.25;
+
   draggingOrigPoint: [number, number];
 
   actions: Action[] = [];
@@ -65,37 +70,63 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   @HostListener('document:keydown.arrowleft')
   moveLeft(event) {
-    this.xImage -= 25;
+    //this.xImage -= 25;
+    this.ctx.translate(-25, 0);
     this.draw();
+    //this.draw();
   }
 
   @HostListener('document:keydown.arrowright')
   moveRight() {
-    this.xImage += 25;
+    //this.xImage += 25;
+    this.ctx.translate(25, 0);
     this.draw();
+    //this.draw();
   }
 
   @HostListener('document:keydown.arrowdown')
   moveDown() {
-    this.yImage += 25;
+    this.ctx.translate(0, 25);
     this.draw();
   }
 
   @HostListener('document:keydown.arrowup')
   moveUp() {
-    this.yImage -= 25;
+    this.ctx.translate(0, -25);
     this.draw();
   }
 
   @HostListener('document:keydown.+')
   scaleUp() {
-    this.scale += 0.25;
+    this.ctx.scale(this.zoomFactor, this.zoomFactor);
     this.draw();
   }
 
   @HostListener('document:keydown.-')
   scaleDown() {
-    this.scale -= 0.25;
+    this.ctx.scale(1. / this.zoomFactor, 1. / this.zoomFactor);
+    this.draw();
+  }
+
+  mousewheel(event) {
+    console.log("wheel");
+    event.preventDefault();
+    const mousepos = this.getMousePos(this.element, event);
+    const mousex = mousepos.x;
+    const mousey = mousepos.y;
+
+    const zoom = event.deltaY * -0.01 * 1e-2;
+
+    this.context.translate(this.originX, this.originY);
+    this.originX -= mousex / (this.scale * zoom) - mousex / this.scale;
+    this.originY -= mousey / (this.scale * zoom) - mousey / this.scale;
+
+    this.context.scale(zoom, zoom);
+
+    this.context.translate(-this.originX, -this.originY);
+
+    this.scale *= zoom;
+
     this.draw();
   }
 
@@ -291,10 +322,21 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     }
 
     const rect = canvas.getBoundingClientRect();
+    let x = evt.clientX - rect.left;
+    let y = evt.clientY - rect.top;
+
+    const t = this.ctx.getTransform();
+
+    const transformMatrix = inv([[t.a, t.c, t.e], [t.b, t.d, t.f], [0, 0, 1]]);
+
+    const transformedMouse = multiply(transformMatrix, [x, y, 1]);
+
+    x = transformedMouse[0];
+    y = transformedMouse[1];
+
     return {
-      x: evt.clientX - rect.left,
-      y: evt.clientY - rect.top
-    };
+      x, y
+      };
   }
 
   stopdrag(event) {
@@ -391,7 +433,15 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   }
 
   draw() {
-    this.ctx.canvas.width = this.ctx.canvas.width;
+    // Store the current transformation matrix
+    this.ctx.save();
+
+    // Use the identity matrix while clearing the canvas
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.clearRect(0, 0, this.element.width, this.element.height);
+
+    // Restore the transform
+    this.ctx.restore();
 
     for (const [index, polygon] of this.points.entries()) {
       this.drawSingle(polygon, index);
@@ -423,6 +473,8 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       // ...then set the internal size to match
       canvas.width  = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
+
+      //this.ctx.canvas.width = this.ctx.canvas.width;
 
       changed = true;
     }
