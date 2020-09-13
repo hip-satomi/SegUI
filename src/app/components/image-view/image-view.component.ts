@@ -423,7 +423,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
       let lineInsert = false;
       const di = poly.distanceToOuterShape([x, y]);
-      if (di.distance < this.distanceThreshold) {
+      if (di.index !== -1 && di.distance < this.distanceThreshold) {
         insertAt = di.index;
         lineInsert = true;
       }
