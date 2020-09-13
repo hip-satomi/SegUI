@@ -445,9 +445,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       }
 
       // place at correct place (maybe close to line --> directly on the line)
-      const act = new AddPointAction([Math.round(x), Math.round(y)], insertAt, this.polygons[this.activePolygon]);
+      const act = new AddPointAction([x, y], insertAt, this.polygons[this.activePolygon]);
       this.addAction(act);
-      //points.splice(insertAt, 0, [Math.round(x), Math.round(y)]);
+      
       this.activePoint = insertAt;
 
       // redraw
