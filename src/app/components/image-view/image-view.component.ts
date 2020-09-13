@@ -276,6 +276,26 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.init();
   }
 
+  /**
+   * Converts positions between screen and model coordinates (applies the inverse transformation matrix)
+   * @param pos screen position
+   */
+  screenPosToModelPos(pos: Position): Position {
+    let x = pos.x;
+    let y = pos.y;
+
+    // convert to geometry coordnate space
+    const t = this.ctx.getTransform();
+
+    const transformMatrix = inv(transformToMatrix(t));
+
+    const transformedMouse = multiply(transformMatrix, [x, y, 1]);
+
+    x = transformedMouse[0];
+    y = transformedMouse[1];
+
+    return {x, y};
+  }
 
   getMousePos(canvas, evt, onScreen=false): Position {
     // special handling for touch events
@@ -289,14 +309,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
     if (!onScreen) {
       // convert to geometry coordnate space
-      const t = this.ctx.getTransform();
-
-      const transformMatrix = inv(transformToMatrix(t));
-
-      const transformedMouse = multiply(transformMatrix, [x, y, 1]);
-
-      x = transformedMouse[0];
-      y = transformedMouse[1];
+      const modelPos = this.screenPosToModelPos({x, y});
+      x = modelPos.x;
+      y = modelPos.y;
     }
     return {
       x, y
