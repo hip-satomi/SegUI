@@ -56,7 +56,10 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   imageRect: Rectangle;
   indicators;
 
-  pinchScale = null;
+  pinchInfo = {
+    pinchScale: 0,
+    pinchPos: {x: 0, y: 0}
+  };
 
   zoomFactor = 1.25;
 
@@ -90,21 +93,30 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.indicators.gestureIndicators[0].size = 50 * evt.scale;
 
     // compute additional zoom
-    const zoom = evt.scale / this.pinchScale;
+    const zoom = evt.scale / this.pinchInfo.pinchScale;
 
     // computer center position w.r.t. canvas element
     const rect = this.element.getBoundingClientRect();
     const x: number = evt.center.x - rect.left;
     const y: number = evt.center.y - rect.top;
 
+    const oldPos = this.pinchInfo.pinchPos;
+
     // go from screen to model coordinates
     const modelPos = this.screenPosToModelPos({x, y});
+
+    const x_translate = x - oldPos.x;
+    const y_translate = y - oldPos.y;
+
+    this.ctx.translate(x_translate, y_translate);
+    this.pinchInfo.pinchPos = {x, y};
+    this.draw();
 
     // apply additional zoom
     this.zoom(zoom, modelPos);
 
     // update the current pinch scale (should be equal to evt.scale)
-    this.pinchScale *= zoom;
+    this.pinchInfo.pinchScale *= zoom;
   }
 
   /**
@@ -114,7 +126,12 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   onPinchStart(evt) {
     this.indicators.gestureIndicators = [];
     this.indicators.display(evt.center.x, evt.center.y, 50);
-    this.pinchScale = 1.;
+
+    const rect = this.element.getBoundingClientRect();
+    const x: number = evt.center.x - rect.left;
+    const y: number = evt.center.y - rect.top;
+    this.pinchInfo.pinchScale = 1.;
+    this.pinchInfo.pinchPos = {x, y};
   }
 
   /**
@@ -123,7 +140,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
    */
   onPinchEnd(evt) {
     this.indicators.hide(this.indicators.gestureIndicators[0]);
-    this.pinchScale = null;
+    //this.pin = null;
   }
 
   setCursor(cursor: CursorType) {
