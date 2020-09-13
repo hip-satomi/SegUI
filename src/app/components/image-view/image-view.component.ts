@@ -1,7 +1,7 @@
 import { Indicator } from './indicators';
 import { Rectangle } from './../../models/geometry';
 import { Position, dotLineLength, hexToRgb } from './../../models/utils';
-import { AddPointAction, Action, MovedPointAction, JointAction } from './../../models/action';
+import { AddPointAction, Action, MovedPointAction, JointAction, ActionManager } from './../../models/action';
 import { ToastController } from '@ionic/angular';
 import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener } from '@angular/core';
 import { ResizedEvent } from 'angular-resize-event';
@@ -56,6 +56,8 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   imageRect: Rectangle;
   indicators;
 
+  actionManager: ActionManager;
+
   pinchInfo = {
     pinchScale: 0,
     pinchPos: {x: 0, y: 0}
@@ -79,6 +81,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.palette = ['#ff0000'];
 
     this.indicators = new Indicator();
+    this.actionManager = new ActionManager(this.actionTimeSplitThreshold);
   }
 
   ngOnInit() {}
@@ -183,6 +186,11 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.draw();
   }
 
+  addAction(action: Action) {
+    this.actionManager.addAction(action);
+    this.draw();
+  }
+
   /**
    * Apply zoom at current mouse pointer position
    * @param factor zoom factor (< 1: shring, > 1 enlarge)
@@ -257,33 +265,29 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   }
 
   async undo() {
-    if (this.actions.length > 0) {
-      const lastAction = this.actions[this.actions.length - 1];
-      lastAction.reverse();
-      this.actions.pop();
+    if (this.actionManager.canUndo) {
+      this.actionManager.undo();
       this.draw();
+    } else {
+      const toast = await this.toastController.create({
+        message: 'There are no actions to undo',
+        duration: 2000
+      });
+      toast.present();
     }
   }
 
-  /**
-   * Adds an action to the action list
-   * @param action 
-   * @param toPerform 
-   */
-  addAction(action: Action, toPerform: boolean = true) {
-    if (toPerform) {
-      action.perform();
+  async redo() {
+    if (this.actionManager.canRedo) {
+      this.actionManager.redo();
+      this.draw();
+    } else {
+      const toast = await this.toastController.create({
+        message: 'There are no actions to redo',
+        duration: 2000
+      });
+      toast.present();
     }
-
-  
-    if (this.actions.length > 0
-      && (+(new Date()) - +this.actions[this.actions.length - 1].lastPerformedTime) / 1000 < this.actionTimeSplitThreshold) {
-        const jact = new JointAction(this.actions.pop(), action);
-        jact.updatePerformedTime();
-        action = jact;
-    }
-
-    this.actions.push(action);
   }
 
   move(e) {
@@ -464,7 +468,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       // place at correct place (maybe close to line --> directly on the line)
       const act = new AddPointAction([x, y], insertAt, this.polygons[this.activePolygon]);
       this.addAction(act);
-      
+
       this.activePoint = insertAt;
 
       // redraw

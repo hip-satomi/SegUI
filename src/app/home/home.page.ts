@@ -22,6 +22,10 @@ export class HomePage {
     this.imageView.undo();
   }
 
+  async redo() {
+    this.imageView.redo();
+  }
+
   async done() {
     this.imageView.save();
 

@@ -84,3 +84,81 @@ export class JointAction extends Action{
         }
     }
 }
+
+export class ActionManager {
+
+    actions: Action[] = [];
+    actionTimeSplitThreshold: number;
+    currentActionPointer: number;
+
+    constructor(actionTimeSplitThreshold: number) {
+        this.actionTimeSplitThreshold = actionTimeSplitThreshold;
+        this.currentActionPointer = 0;
+    }
+
+    /**
+     * Adds an action to the action list
+     * @param action the current action
+     * @param toPerform if true action is performed before adding to list
+     */
+    addAction(action: Action, toPerform: boolean = true) {
+        if (toPerform) {
+
+            action.perform();
+        }
+
+
+        if (this.actions.length > 0
+            && (+(new Date()) - +this.actions[this.actions.length - 1].lastPerformedTime) / 1000 < this.actionTimeSplitThreshold) {
+            const jact = new JointAction(this.actions.pop(), action);
+            jact.updatePerformedTime();
+            action = jact;
+        }
+
+        this.actions.splice(this.currentActionPointer, this.actions.length, action);
+        this.currentActionPointer++;
+    }
+
+  /**
+   * Undos last action
+   * 
+   * if there is no last action, does nothing
+   */
+  undo() {
+    if (!this.canUndo) {
+        return;
+    }
+    const lastAction = this.actions[this.currentActionPointer - 1];
+    lastAction.reverse();
+    this.currentActionPointer--;
+  }
+
+  /**
+   * Redos next possible action
+   * 
+   * If there are no actions, nothing happens
+   */
+  redo() {
+    if (!this.canRedo) {
+        return;
+    }
+    const nextAction = this.actions[this.currentActionPointer];
+    nextAction.perform();
+    this.currentActionPointer++;
+  }
+
+  /**
+   * returns true iff there is action that can be undone
+   */
+  get canUndo() {
+      return this.actions.length > 0;
+  }
+
+  /**
+   * returns true iff there is an action that can be redone
+   */
+  get canRedo() {
+      return this.actions.length > this.currentActionPointer;
+  }
+
+}
