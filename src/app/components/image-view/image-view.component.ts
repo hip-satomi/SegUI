@@ -1,3 +1,4 @@
+import { Indicator } from './indicators';
 import { Rectangle } from './../../models/geometry';
 import { Position, dotLineLength, hexToRgb } from './../../models/utils';
 import { AddPointAction, Action, MovedPointAction, JointAction } from './../../models/action';
@@ -53,6 +54,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   scale = 1.;
   currentMousePos: Position;
   imageRect: Rectangle;
+  indicators;
+
+  pinchScale = null;
 
   zoomFactor = 1.25;
 
@@ -70,9 +74,57 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.activePoint = 0;
 
     this.palette = ['#ff0000'];
+
+    this.indicators = new Indicator();
   }
 
   ngOnInit() {}
+
+  /**
+   * This function is called during the pinch event and updates the zoom of the canvas element
+   * correspondingly
+   * @param evt the pinch event
+   */
+  onPinch(evt) {
+    // adjust size of indicator
+    this.indicators.gestureIndicators[0].size = 50 * evt.scale;
+
+    // compute additional zoom
+    const zoom = evt.scale / this.pinchScale;
+
+    // computer center position w.r.t. canvas element
+    const rect = this.element.getBoundingClientRect();
+    const x: number = evt.center.x - rect.left;
+    const y: number = evt.center.y - rect.top;
+
+    // go from screen to model coordinates
+    const modelPos = this.screenPosToModelPos({x, y});
+
+    // apply additional zoom
+    this.zoom(zoom, modelPos);
+
+    // update the current pinch scale (should be equal to evt.scale)
+    this.pinchScale *= zoom;
+  }
+
+  /**
+   * Notifies the start of the pinch event
+   * @param evt pinch event
+   */
+  onPinchStart(evt) {
+    this.indicators.gestureIndicators = [];
+    this.indicators.display(evt.center.x, evt.center.y, 50);
+    this.pinchScale = 1.;
+  }
+
+  /**
+   * Notifies the end of the pinch event
+   * @param evt pinch event
+   */
+  onPinchEnd(evt) {
+    this.indicators.hide(this.indicators.gestureIndicators[0]);
+    this.pinchScale = null;
+  }
 
   setCursor(cursor: CursorType) {
     this.renderer.setStyle(this.element, 'cursor', cursor);
@@ -117,7 +169,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   /**
    * Apply zoom at current mouse pointer position
    * @param factor zoom factor (< 1: shring, > 1 enlarge)
-   * @param mousePos current mouse position
+   * @param mousePos current mouse position (in model coordinates)
    */
   zoom(factor, mousePos: Position) {
     const mousex = mousePos.x;

@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
+import { BrowserModule, HammerModule } from '@angular/platform-browser';
 import { RouteReuseStrategy } from '@angular/router';
 
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
@@ -14,7 +14,7 @@ import { AngularResizedEventModule } from 'angular-resize-event';
 @NgModule({
   declarations: [AppComponent],
   entryComponents: [],
-  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, AngularResizedEventModule],
+  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, AngularResizedEventModule, HammerModule],
   providers: [
     StatusBar,
     SplashScreen,

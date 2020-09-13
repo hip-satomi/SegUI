@@ -1,9 +1,24 @@
 <div (resized)="onResized($event)" style="width:100%; height:100%">
     <!--<canvas class="canvas"></canvas>-->
     <canvas #myCanvas class="canvas"
-        (touchmove)="mousemove($event)" (mousemove)="mousemove($event)"
-        (mousedown)="mousedown($event)" (touchstart)="mousedown($event)"
-        (mouseup)="stopdrag($event)" (touchend)="stopdrag($event)"
-        (wheel)="mousewheel($event)">
+        (mousedown)="mousedown($event)" (mousemove)="mousemove($event)" (mouseup)="stopdrag($event)" (wheel)="mousewheel($event)"
+        (pinchstart)="onPinchStart($event)"
+        (pinchend)="onPinchEnd($event)"
+        (pinch)="onPinch($event)">
+
+        >
     </canvas>
+
+    <div
+        class="gesture__indicator"
+        *ngFor="let indicator of indicators.gestureIndicators"
+        [style.top.px]="indicator.y - (indicator.size/2)"
+        [style.left.px]="indicator.x - (indicator.size/2)"
+        [style.width.px]="indicator.size"
+        [style.height.px]="indicator.size"
+        [style.transform]="indicator.transform"
+        [@indicatorState]="indicator.state"></div>
+
 </div>
+
+<!--(touchmove)="mousemove($event)" (touchstart)="mousedown($event)" (touchend)="stopdrag($event)"-->
