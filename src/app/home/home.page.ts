@@ -36,4 +36,20 @@ export class HomePage {
     toast.present();*/
   }
 
+  get canRedo() {
+    if (this.imageView) {
+      return this.imageView.actionManager.canRedo;
+    }
+
+    return false;
+  }
+
+  get canUndo() {
+    if (this.imageView) {
+      return this.imageView.actionManager.canUndo;
+    }
+    
+    return false;
+  }
+
 }
