@@ -85,6 +85,9 @@ export class JointAction extends Action{
     }
 }
 
+/**
+ * Handles actions with do and undo operations
+ */
 export class ActionManager {
 
     actions: Action[] = [];
@@ -110,13 +113,14 @@ export class ActionManager {
 
         if (this.actions.length > 0
             && (+(new Date()) - +this.actions[this.actions.length - 1].lastPerformedTime) / 1000 < this.actionTimeSplitThreshold) {
+            // join with existing action due to time correspondence
             const jact = new JointAction(this.actions.pop(), action);
             jact.updatePerformedTime();
             action = jact;
+        } else {
+            this.actions.splice(this.currentActionPointer, this.actions.length, action);
+            this.currentActionPointer++;
         }
-
-        this.actions.splice(this.currentActionPointer, this.actions.length, action);
-        this.currentActionPointer++;
     }
 
   /**
