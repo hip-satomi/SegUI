@@ -1,3 +1,5 @@
+import { multiply, inv } from 'mathjs';
+
 export interface Position {
     x, y
 }
@@ -51,3 +53,80 @@ export const pairwiseDistanceMin = function(pos: number[], positions: number[][]
  return {index: minDisIndex, distance: minDis};
 }
 
+export class Utils {
+
+  /**
+   * Converts a canvas transform to a 3x3 transformation matrix
+   * @param t 
+   */
+  static transformToMatrix(t) {
+    return [[t.a, t.c, t.e], [t.b, t.d, t.f], [0, 0, 1]];
+  }
+  
+  /**
+   * Converts a 3x3 transformation matrix to a canvas transform named dictionary.
+   * @param m 
+   */
+  static matrixToTransform(m) {
+    return {
+      a: m[0][0],
+      b: m[1][0],
+      c: m[0][1],
+      d: m[1][1],
+      e: m[0][2],
+      f: m[1][2]
+    };
+  }
+
+  /**
+   * Converts positions between screen and model coordinates (applies the inverse transformation matrix)
+   * @param pos screen position
+   */
+  static screenPosToModelPos(pos: Position, canvasCtx): Position {
+    let x = pos.x;
+    let y = pos.y;
+
+    // convert to geometry coordnate space
+    const t = canvasCtx.getTransform();
+
+    const transformMatrix = inv(Utils.transformToMatrix(t));
+
+    const transformedMouse = multiply(transformMatrix, [x, y, 1]);
+
+    x = transformedMouse[0];
+    y = transformedMouse[1];
+
+    return {x, y};
+  }
+
+  static getMousePos(canvas, evt, onScreen=false): Position {
+    // special handling for touch events
+    if (evt.touches) {
+      evt = evt.touches[0];
+    }
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    let x = 0;
+    let y = 0;
+
+    if (evt.center) {
+      // if this is a tap or press event (from hammer js)
+      x = evt.center.x - rect.left;
+      y = evt.center.y - rect.top;
+    } else {
+      // otherwise (native browser event)
+      x = evt.clientX - rect.left;
+      y = evt.clientY - rect.top;
+    }
+
+    if (!onScreen) {
+      // convert to geometry coordnate space
+      const modelPos = Utils.screenPosToModelPos({x, y}, ctx);
+      x = modelPos.x;
+      y = modelPos.y;
+    }
+    return {
+      x, y
+      };
+  }
+}

@@ -6,7 +6,7 @@
         (mousedown)="mousedown($event, true)" (mousemove)="move($event)" (mouseup)="stopdrag($event)" (wheel)="mousewheel($event)"
         (pinchstart)="onPinchStart($event)" (pinchend)="onPinchEnd($event)" (pinch)="onPinch($event)"
         (tap)="onTap($event)" (press)="onPress($event)"
-        (touchstart)="mousedown($event, true)" (touchend)="onTouchEnd($event)" (touchmove)="move($event)"
+        (touchstart)="mousedown($event, true)" (touchend)="stopdrag($event)" (touchmove)="move($event)"
         >
     </canvas>
 

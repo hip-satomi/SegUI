@@ -1,11 +1,10 @@
 import { Indicator } from './indicators';
 import { Rectangle } from './../../models/geometry';
-import { Position, dotLineLength, hexToRgb } from './../../models/utils';
-import { AddPointAction, Action, MovedPointAction, JointAction, ActionManager } from './../../models/action';
+import { Position, hexToRgb, Utils } from './../../models/utils';
+import { AddPointAction, Action, MovedPointAction, ActionManager } from './../../models/action';
 import { ToastController } from '@ionic/angular';
 import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener } from '@angular/core';
-import { ResizedEvent } from 'angular-resize-event';
-import { multiply, inv } from 'mathjs';
+import { multiply} from 'mathjs';
 import { Polygon } from 'src/app/models/geometry';
 
 enum CursorType {
@@ -13,21 +12,6 @@ enum CursorType {
   Select = 'crosshair',
   Standard = 'crosshair',
   Panning = 'move'
-}
-
-function transformToMatrix(t) {
-  return [[t.a, t.c, t.e], [t.b, t.d, t.f], [0, 0, 1]];
-}
-
-function matrixToTransform(m) {
-  return {
-    a: m[0][0],
-    b: m[1][0],
-    c: m[0][1],
-    d: m[1][1],
-    e: m[0][2],
-    f: m[1][2]
-  };
 }
 
 @Component({
@@ -88,17 +72,35 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   ngOnInit() {}
 
-  async onTap(event) {
-    const toast = await this.toastController.create({
-      message: 'You tapped it!',
-      duration: 2000
-    });
-    toast.present();
+  ngAfterViewInit(): void {
+    this.context = this.canvas.nativeElement.getContext('2d');
+    this.ctx = this.context;
+    this.element = this.canvas.nativeElement;
+    // activate delayed fit container function
+    setTimeout( () => {
+      this.fitToContainer(this.element);
+    }, 500);
 
+    // load the image
+    this.image = new Image();
+
+    this.image.onload = () => {
+      this.imageRect = new Rectangle(0, 0, this.image.width, this.image.height);
+      this.draw();
+    };
+
+    this.image.src = this.imageUrl;
+  }
+
+  // ----- Basic touch/click events -----
+
+  async onTap(event) {
+    // handle a tap like a mousedown event
     this.mousedown(event);
   }
 
   async onPress(event) {
+    // TODO useful functionality for press event
     const toast = await this.toastController.create({
       message: 'You pressed it!',
       duration: 2000
@@ -106,11 +108,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     toast.present();
   }
 
-  onTouchEnd() {
-    if (this.dragging) {
-      this.dragging = false;
-    }
-  }
   /**
    * This function is called during the pinch event and updates the zoom of the canvas element
    * correspondingly
@@ -134,7 +131,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     const oldPos = this.pinchInfo.pinchPos;
 
     // go from screen to model coordinates
-    const modelPos = this.screenPosToModelPos({x, y});
+    const modelPos = Utils.screenPosToModelPos({x, y}, this.ctx);
 
     const xTranslate = x - oldPos.x;
     const yTranslate = y - oldPos.y;
@@ -174,9 +171,28 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.pinchInfo.pinching = false;
   }
 
+  /**
+   * Handles mouse wheel movement (up/down) to zoom in and out
+   * @param event mousewheel event
+   */
+  mousewheel(event) {
+    event.preventDefault();
+    const mousepos = Utils.getMousePos(this.element, event, false);
+    const mousex = mousepos.x;
+    const mousey = mousepos.y;
+
+    const zoom = event.deltaY * -1e-2 + 1.;
+
+    this.zoom(zoom, mousepos);
+
+  }
+
+
   setCursor(cursor: CursorType) {
     this.renderer.setStyle(this.element, 'cursor', cursor);
   }
+
+  // ----- Keyboard events -----
 
   @HostListener('document:keydown.arrowleft')
   moveLeft(event) {
@@ -214,9 +230,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.draw();
   }
 
-  addAction(action: Action) {
-    this.actionManager.addAction(action);
-    this.draw();
+  @HostListener('document:keydown.enter', ['$event'])
+  saveKey(event) {
+    this.save();
   }
 
   /**
@@ -247,31 +263,14 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     const transformNew = this.ctx.getTransform();
 
     // compute the joint transform from old and new
-    const fullTransform = multiply(transformToMatrix(transform), transformToMatrix(transformNew));
-    const t = matrixToTransform(fullTransform);
+    const fullTransform = multiply(Utils.transformToMatrix(transform), Utils.transformToMatrix(transformNew));
+    const t = Utils.matrixToTransform(fullTransform);
 
     // set the new transform to canvas
     this.context.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
 
     // redraw
     this.draw();
-  }
-
-  mousewheel(event) {
-    event.preventDefault();
-    const mousepos = this.getMousePos(this.element, event, false);
-    const mousex = mousepos.x;
-    const mousey = mousepos.y;
-
-    const zoom = event.deltaY * -1e-2 + 1.;
-
-    this.zoom(zoom, mousepos);
-
-  }
-
-  @HostListener('document:keydown.enter', ['$event'])
-  saveKey(event) {
-    this.save();
   }
 
   async save() {
@@ -292,39 +291,13 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async undo() {
-    if (this.actionManager.canUndo) {
-      this.actionManager.undo();
-      this.draw();
-    } else {
-      const toast = await this.toastController.create({
-        message: 'There are no actions to undo',
-        duration: 2000
-      });
-      toast.present();
-    }
-  }
-
-  async redo() {
-    if (this.actionManager.canRedo) {
-      this.actionManager.redo();
-      this.draw();
-    } else {
-      const toast = await this.toastController.create({
-        message: 'There are no actions to redo',
-        duration: 2000
-      });
-      toast.present();
-    }
-  }
-
   /**
    * Handles dragging or cursor selection
    * @param e is the event parameter
    */
   move(e) {
     e.preventDefault();
-    const mousePos = this.getMousePos(this.element, e);
+    const mousePos = Utils.getMousePos(this.element, e);
     this.currentMousePos = mousePos;
     if (this.enabled && this.dragging) {
       // get active polygon and point and update position
@@ -359,70 +332,13 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       }
     }
   }
-  
-  ngAfterViewInit(): void {
-    this.context = this.canvas.nativeElement.getContext('2d');
-    this.ctx = this.context;
-    this.element = this.canvas.nativeElement;
-    // activate delayed fit container function
-    setTimeout( () => {
-      this.fitToContainer(this.element);
-    }, 500);
-    this.init();
-  }
 
   /**
-   * Converts positions between screen and model coordinates (applies the inverse transformation matrix)
-   * @param pos screen position
+   * Handles end of dragging event
+   * 
+   * Creates the corresponding movement action
+   * @param event 
    */
-  screenPosToModelPos(pos: Position): Position {
-    let x = pos.x;
-    let y = pos.y;
-
-    // convert to geometry coordnate space
-    const t = this.ctx.getTransform();
-
-    const transformMatrix = inv(transformToMatrix(t));
-
-    const transformedMouse = multiply(transformMatrix, [x, y, 1]);
-
-    x = transformedMouse[0];
-    y = transformedMouse[1];
-
-    return {x, y};
-  }
-
-  getMousePos(canvas, evt, onScreen=false): Position {
-    // special handling for touch events
-    if (evt.touches) {
-      evt = evt.touches[0];
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    let x = 0;
-    let y = 0;
-
-    if (evt.center) {
-      // if this is a tap or press event (from hammer js)
-      x = evt.center.x - rect.left;
-      y = evt.center.y - rect.top;
-    } else {
-      // otherwise (native browser event)
-      x = evt.clientX - rect.left;
-      y = evt.clientY - rect.top;
-    }
-
-    if (!onScreen) {
-      // convert to geometry coordnate space
-      const modelPos = this.screenPosToModelPos({x, y});
-      x = modelPos.x;
-      y = modelPos.y;
-    }
-    return {
-      x, y
-      };
-  }
-
   stopdrag(event) {
     const e = event;
     e.preventDefault();
@@ -466,7 +382,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
         e.offsetX = e.target.offsetLeft; //(e.pageX - e.target.offsetLeft);
         e.offsetY = e.target.offsetTop; //(e.pageY - e.target.offsetTop);
       }
-      const mousePos = this.getMousePos(this.element, e);
+      const mousePos = Utils.getMousePos(this.element, e);
       x = mousePos.x;
       y = mousePos.y;
 
@@ -605,16 +521,37 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.ctx.stroke();
   }
 
-  init(){
-    // load the image
-    this.image = new Image();
-
-    this.image.onload = () => {
-      this.imageRect = new Rectangle(0, 0, this.image.width, this.image.height);
-      this.draw();
-    };
-
-    this.image.src = this.imageUrl;
+  // ----- pure data manipulation -----
+  addAction(action: Action) {
+    this.actionManager.addAction(action);
+    this.draw();
   }
-  
+
+
+  async undo() {
+    if (this.actionManager.canUndo) {
+      this.actionManager.undo();
+      this.draw();
+    } else {
+      const toast = await this.toastController.create({
+        message: 'There are no actions to undo',
+        duration: 2000
+      });
+      toast.present();
+    }
+  }
+
+  async redo() {
+    if (this.actionManager.canRedo) {
+      this.actionManager.redo();
+      this.draw();
+    } else {
+      const toast = await this.toastController.create({
+        message: 'There are no actions to redo',
+        duration: 2000
+      });
+      toast.present();
+    }
+  }
+
 }
