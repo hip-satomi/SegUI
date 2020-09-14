@@ -86,6 +86,51 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   ngOnInit() {}
 
+  async onTap(event) {
+    const toast = await this.toastController.create({
+      message: 'You tapped it!',
+      duration: 2000
+    });
+    toast.present();
+
+    this.mousedown(event);
+  }
+
+  async onPress(event) {
+    const toast = await this.toastController.create({
+      message: 'You pressed it!',
+      duration: 2000
+    });
+    toast.present();
+  }
+
+  async onPanStart(event) {
+    const toast = await this.toastController.create({
+      message: 'Started panning!',
+      duration: 2000
+    });
+    toast.present();
+
+    this.mousedown(event);
+  }
+
+  async onPan(event) {
+    this.mousemove(event);
+  }
+
+  async onPanEnd(event) {
+    const toast = await this.toastController.create({
+      message: 'Stopped panning!',
+      duration: 2000
+    });
+    toast.present();
+  }
+
+  onTouchEnd() {
+    if (this.dragging) {
+      this.dragging = false;
+    }
+  }
   /**
    * This function is called during the pinch event and updates the zoom of the canvas element
    * correspondingly
@@ -108,10 +153,10 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     // go from screen to model coordinates
     const modelPos = this.screenPosToModelPos({x, y});
 
-    const x_translate = x - oldPos.x;
-    const y_translate = y - oldPos.y;
+    const xTranslate = x - oldPos.x;
+    const yTranslate = y - oldPos.y;
 
-    this.ctx.translate(x_translate, y_translate);
+    this.ctx.translate(xTranslate, yTranslate);
     this.pinchInfo.pinchPos = {x, y};
     this.draw();
 
@@ -377,8 +422,18 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     }
 
     const rect = canvas.getBoundingClientRect();
-    let x = evt.clientX - rect.left;
-    let y = evt.clientY - rect.top;
+    let x = 0;
+    let y = 0;
+
+    if (evt.center) {
+      // if this is a tap or press event (from hammer js)
+      x = evt.center.x - rect.left;
+      y = evt.center.y - rect.top;
+    } else {
+      // otherwise (native browser event)
+      x = evt.clientX - rect.left;
+      y = evt.clientY - rect.top;
+    }
 
     if (!onScreen) {
       // convert to geometry coordnate space
@@ -455,7 +510,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
           if (index === this.activePolygon) {
             continue;
           }
-          if (polygon.isInside([x,y])) {
+          if (polygon.isInside([x, y])) {
             // clicke inside a non active polygon
             this.activePolygon = index;
             this.draw();

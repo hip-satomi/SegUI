@@ -1,11 +1,12 @@
 <div (resized)="onResized($event)" style="width:100%; height:100%">
     <!--<canvas class="canvas"></canvas>-->
+    <!--(mousedown)="mousedown($event)"-->
+    <!--(panstart)="onPanStart($event)" (pan)="onPan($event)"-->
     <canvas #myCanvas class="canvas"
         (mousedown)="mousedown($event)" (mousemove)="mousemove($event)" (mouseup)="stopdrag($event)" (wheel)="mousewheel($event)"
-        (pinchstart)="onPinchStart($event)"
-        (pinchend)="onPinchEnd($event)"
-        (pinch)="onPinch($event)">
-
+        (pinchstart)="onPinchStart($event)" (pinchend)="onPinchEnd($event)" (pinch)="onPinch($event)"
+        (tap)="onTap($event)" (press)="onPress($event)"
+        (touchstart)="mousedown($event)" (touchend)="onTouchEnd($event)" (touchmove)="mousemove($event)"
         >
     </canvas>
 
