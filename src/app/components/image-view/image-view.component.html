@@ -3,10 +3,10 @@
     <!--(mousedown)="mousedown($event)"-->
     <!--(panstart)="onPanStart($event)" (pan)="onPan($event)"-->
     <canvas #myCanvas class="canvas"
-        (mousedown)="mousedown($event)" (mousemove)="mousemove($event)" (mouseup)="stopdrag($event)" (wheel)="mousewheel($event)"
+        (mousedown)="mousedown($event)" (mousemove)="move($event)" (mouseup)="stopdrag($event)" (wheel)="mousewheel($event)"
         (pinchstart)="onPinchStart($event)" (pinchend)="onPinchEnd($event)" (pinch)="onPinch($event)"
         (tap)="onTap($event)" (press)="onPress($event)"
-        (touchstart)="mousedown($event)" (touchend)="onTouchEnd($event)" (touchmove)="mousemove($event)"
+        (touchstart)="mousedown($event)" (touchend)="onTouchEnd($event)" (touchmove)="move($event)"
         >
     </canvas>
 

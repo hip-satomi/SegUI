@@ -104,28 +104,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     toast.present();
   }
 
-  async onPanStart(event) {
-    const toast = await this.toastController.create({
-      message: 'Started panning!',
-      duration: 2000
-    });
-    toast.present();
-
-    this.mousedown(event);
-  }
-
-  async onPan(event) {
-    this.mousemove(event);
-  }
-
-  async onPanEnd(event) {
-    const toast = await this.toastController.create({
-      message: 'Stopped panning!',
-      duration: 2000
-    });
-    toast.present();
-  }
-
   onTouchEnd() {
     if (this.dragging) {
       this.dragging = false;
@@ -188,7 +166,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
    */
   onPinchEnd(evt) {
     this.indicators.hide(this.indicators.gestureIndicators[0]);
-    //this.pin = null;
   }
 
   setCursor(cursor: CursorType) {
@@ -335,54 +312,48 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Handles dragging or cursor selection
+   * @param e is the event parameter
+   */
   move(e) {
     e.preventDefault();
     const mousePos = this.getMousePos(this.element, e);
     this.currentMousePos = mousePos;
     if (this.enabled && this.dragging) {
-        /*if (!e.offsetX) {
-          e.offsetX = (e.pageX - e.target.offsetLeft);
-          e.offsetY = (e.pageY - e.target.offsetTop);
-        }*/
-        if (!e.offsetX) {
-          e.offsetX = e.target.offsetLeft; //(e.pageX - e.target.offsetLeft);
-          e.offsetY = e.target.offsetTop; //(e.pageY - e.target.offsetTop);
-        }
+      // get active polygon and point and update position
+      const polygon = this.polygons[this.activePolygon];
+      polygon.setPoint(this.activePoint, [mousePos.x, mousePos.y]);
 
-        const polygon = this.polygons[this.activePolygon];
+      // redraw the canvas
+      this.draw();
+    } else {
+      // we want to select the correct cursor type
 
-        polygon.setPoint(this.activePoint, [mousePos.x, mousePos.y]);
+      const polygon = this.polygons[this.activePolygon];
 
-        this.draw();
-      } else {
-        // we want to select the correct cursor type
+      let cursorSelected = false;
 
-        const polygon = this.polygons[this.activePolygon];
+      // check if we are close to a polygon point ---> drag cursor
+      if (polygon.numPoints > 0) {
+        // compute distance to next active point
+        const closestDistanceInfo = polygon.closestPointDistanceInfo([mousePos.x, mousePos.y]);
+        const closestDistance = closestDistanceInfo.distance;
 
-        let cursorSelected = false;
-
-        if (polygon.numPoints > 0) {
-          // compute distance to next active point
-          const closestDistanceInfo = polygon.closestPointDistanceInfo([mousePos.x, mousePos.y]);
-          const closestDistance = closestDistanceInfo.distance;
-
-          if (closestDistance < this.distanceThreshold) {
-            // if the distance is within threshold --> display drag cursor
-            this.setCursor(CursorType.Drag);
-            cursorSelected = true;
-          }
-        }
-
-        if (!cursorSelected) {
-          this.setCursor(CursorType.Standard);
+        if (closestDistance < this.distanceThreshold) {
+          // if the distance is within threshold --> display drag cursor
+          this.setCursor(CursorType.Drag);
+          cursorSelected = true;
         }
       }
+
+      // if no drag cursor --> standard cross cursor
+      if (!cursorSelected) {
+        this.setCursor(CursorType.Standard);
+      }
+    }
   }
   
-  mousemove(event) {
-    this.move(event);
-  }
-
   ngAfterViewInit(): void {
     this.context = this.canvas.nativeElement.getContext('2d');
     this.ctx = this.context;
