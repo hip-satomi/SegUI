@@ -11,7 +11,8 @@ import { Polygon } from 'src/app/models/geometry';
 enum CursorType {
   Drag = 'move',
   Select = 'crosshair',
-  Standard = 'crosshair'
+  Standard = 'crosshair',
+  Panning = 'move'
 }
 
 function transformToMatrix(t) {
@@ -59,6 +60,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   actionManager: ActionManager;
 
   pinchInfo = {
+    pinching: false,
     pinchScale: 0,
     pinchPos: {x: 0, y: 0}
   };
@@ -125,6 +127,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     const rect = this.element.getBoundingClientRect();
     const x: number = evt.center.x - rect.left;
     const y: number = evt.center.y - rect.top;
+    /*const mousePos = this.getMousePos(this.element, evt);
+    const x = mousePos.x;
+    const y = mousePos.y;*/
 
     const oldPos = this.pinchInfo.pinchPos;
 
@@ -166,6 +171,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
    */
   onPinchEnd(evt) {
     this.indicators.hide(this.indicators.gestureIndicators[0]);
+    this.pinchInfo.pinching = false;
   }
 
   setCursor(cursor: CursorType) {
@@ -431,9 +437,21 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   }
 
   
-  mousedown(event) {
+  mousedown(event, dragOnly=false) {
+
+    if (this.pinchInfo.pinching) {
+      // if we are pinching we will not recognize any mousedown events
+      return false;
+    }
+
     console.log("touch start");
     const e = event;
+
+    if (event.button === 1) {
+      // wheel mouse button --> TODO add some panning here
+     return false;
+    }
+
     //alert('Mouse down');
     e.preventDefault();
     if (this.enabled && !this.dragging) {
@@ -467,38 +485,39 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       }
 
       // compute closest distance to line (in case of inserting a point in between)
-
-      let lineInsert = false;
-      const di = poly.distanceToOuterShape([x, y]);
-      if (di.index !== -1 && di.distance < this.distanceThreshold) {
-        insertAt = di.index;
-        lineInsert = true;
-      }
-
-      if (!lineInsert) {
-        // check whether you did click onto another polygon
-        for (const [index, polygon] of this.polygons.entries()) {
-          if (index === this.activePolygon) {
-            continue;
-          }
-          if (polygon.isInside([x, y])) {
-            // clicke inside a non active polygon
-            this.activePolygon = index;
-            this.draw();
-            return false;
-          }
+      if (!dragOnly) {
+        let lineInsert = false;
+        const di = poly.distanceToOuterShape([x, y]);
+        if (di.index !== -1 && di.distance < this.distanceThreshold) {
+          insertAt = di.index;
+          lineInsert = true;
         }
 
+        if (!lineInsert) {
+          // check whether you did click onto another polygon
+          for (const [index, polygon] of this.polygons.entries()) {
+            if (index === this.activePolygon) {
+              continue;
+            }
+            if (polygon.isInside([x, y])) {
+              // clicke inside a non active polygon
+              this.activePolygon = index;
+              this.draw();
+              return false;
+            }
+          }
+
+        }
+
+        // place at correct place (maybe close to line --> directly on the line)
+        const act = new AddPointAction([x, y], insertAt, this.polygons[this.activePolygon]);
+        this.addAction(act);
+
+        this.activePoint = insertAt;
+
+        // redraw
+        this.draw();
       }
-
-      // place at correct place (maybe close to line --> directly on the line)
-      const act = new AddPointAction([x, y], insertAt, this.polygons[this.activePolygon]);
-      this.addAction(act);
-
-      this.activePoint = insertAt;
-
-      // redraw
-      this.draw();
     }
     return false;
   }
