@@ -1,6 +1,11 @@
 import { Polygon } from 'src/app/models/geometry';
+import 'reflect-metadata';
+import { jsonArrayMember, jsonMember, jsonObject, toJson, TypedJSON } from 'typedjson';
+
+@jsonObject
 export abstract class Action {
 
+    @jsonMember
     lastPerformedTime: Date;
 
     abstract perform(): void;
@@ -11,39 +16,86 @@ export abstract class Action {
     }
 }
 
-export class AddPointAction extends Action {
+@jsonObject
+export abstract class SegmentationAction extends Action {
 
-    private point: [number, number];
-    private index: number;
-    private polygon: Polygon;
+    protected polygonList: Polygon[];
 
-    constructor(point: [number, number], index: number, polygon: Polygon) {
+    constructor(polygonList: Polygon[]) {
         super();
-        this.point = point;
-        this.index = index;
-        this.polygon = polygon;
+        this.polygonList = polygonList;
+    }
+
+    setPolygonList(polygonList: Polygon[]) {
+        this.polygonList = polygonList;
+    }
+}
+
+@jsonObject
+export class AddEmptyPolygon extends SegmentationAction {
+
+    constructor(polygonList: Polygon[]) {
+        super(polygonList);
     }
 
     perform() {
-        this.polygon.addPoint(this.index, this.point);
+        this.polygonList.push(new Polygon());
 
         this.updatePerformedTime();
     }
 
     reverse() {
-        this.polygon.removePoint(this.index);
+        this.polygonList.pop();
+    }
+
+}
+
+@jsonObject
+export class AddPointAction extends SegmentationAction {
+
+    @jsonArrayMember(Number)
+    private point: [number, number];
+    @jsonMember
+    private index: number;
+    @jsonMember
+    private polygonIndex: number;
+
+    constructor(point: [number, number], index: number, polygonIndex: number, polygonList: Polygon[]) {
+        super(polygonList);
+        this.point = point;
+        this.index = index;
+        this.polygonIndex = polygonIndex;
+        this.polygonList = polygonList;
+    }
+
+    perform() {
+        this.polygonList[this.polygonIndex].addPoint(this.index, this.point);
+
+        this.updatePerformedTime();
+    }
+
+    reverse() {
+        this.polygonList[this.polygonIndex].removePoint(this.index);
     }
 }
 
-export class MovedPointAction extends Action {
+@jsonObject
+export class MovedPointAction extends SegmentationAction {
 
-    private point: [number, number];
+    @jsonArrayMember(Number)
     private newPoint: [number, number];
+    @jsonArrayMember(Number)
     private oldPoint: [number, number];
+    @jsonMember
+    private polygonIndex: number;
+    @jsonMember
+    private pointIndex: number;
 
-    constructor(point: [number, number], oldPoint: [number, number]) {
-        super();
-        this.point = point;
+    constructor(oldPoint: [number, number], pointIndex: number, polygonIndex: number, polygonList: Polygon[]) {
+        super(polygonList);
+        this.polygonIndex = polygonIndex;
+        this.pointIndex = pointIndex;
+        const point = this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
         this.newPoint = [...point];
         this.oldPoint = [...oldPoint];
     }
@@ -59,10 +111,15 @@ export class MovedPointAction extends Action {
         this.point[0] = this.oldPoint[0];
         this.point[1] = this.oldPoint[1];
     }
+
+    private get point() {
+        return this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
+    }
 }
 
 export class JointAction extends Action{
 
+    @jsonArrayMember(Action)
     actions: Action[];
 
     constructor(...actions: Action[]) {
@@ -87,11 +144,16 @@ export class JointAction extends Action{
 
 /**
  * Handles actions with do and undo operations
+ * 
+ * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions
  */
+@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction]})
 export class ActionManager {
 
+    @jsonArrayMember(Action)
     actions: Action[] = [];
-    actionTimeSplitThreshold: number;
+    @jsonMember actionTimeSplitThreshold: number;
+    @jsonMember
     currentActionPointer: number;
 
     constructor(actionTimeSplitThreshold: number) {
@@ -106,7 +168,6 @@ export class ActionManager {
      */
     addAction(action: Action, toPerform: boolean = true) {
         if (toPerform) {
-
             action.perform();
         }
 
@@ -165,4 +226,15 @@ export class ActionManager {
       return this.actions.length > this.currentActionPointer;
   }
 
+  reapplyActions(polygonList: Polygon[]) {
+      for (let i = 0; i < this.currentActionPointer; i++) {
+          const action = this.actions[i];
+
+          if (action instanceof SegmentationAction) {
+              action.setPolygonList(polygonList);
+          }
+
+          action.perform();
+      }
+  }
 }

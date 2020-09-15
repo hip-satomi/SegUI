@@ -1,11 +1,16 @@
 import { Indicator } from './indicators';
 import { Rectangle } from './../../models/geometry';
 import { Position, hexToRgb, Utils } from './../../models/utils';
-import { AddPointAction, Action, MovedPointAction, ActionManager } from './../../models/action';
+import { AddPointAction, SegmentationAction, MovedPointAction, ActionManager, AddEmptyPolygon } from './../../models/action';
 import { ToastController } from '@ionic/angular';
 import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener } from '@angular/core';
 import { multiply} from 'mathjs';
 import { Polygon } from 'src/app/models/geometry';
+import { TypedJSON } from 'typedjson';
+
+import { Plugins } from '@capacitor/core';
+
+const { Storage } = Plugins;
 
 enum CursorType {
   Drag = 'move',
@@ -27,7 +32,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   imageUrl: string;
   enabled: boolean;
   element: any;
-  polygons: Polygon[] = [new Polygon()];
+  polygons: Polygon[] = [];
   activePolygon: number;
   activePoint: number;
   ctx: any;
@@ -53,7 +58,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   draggingOrigPoint: [number, number];
 
-  actions: Action[] = [];
 
   constructor(private renderer: Renderer2,
               private toastController: ToastController) {
@@ -90,6 +94,43 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     };
 
     this.image.src = this.imageUrl;
+
+    this.dataRestore();
+  }
+
+  dataChanged() {
+    const serializer = new TypedJSON(ActionManager);
+
+    const json = serializer.stringify(this.actionManager);
+
+    Storage.set({
+      key: 'actions',
+      value: json
+    });
+  }
+
+  clearData() {
+    this.polygons = [];
+    this.activePolygon = 0;
+    this.activePoint = 0;
+  }
+
+  async dataRestore() {
+    const serializer = new TypedJSON(ActionManager);
+    
+    const jsonString = await Storage.get({key: 'actions'});
+
+    if (jsonString.value) {
+      this.actionManager = serializer.parse(jsonString.value);
+
+      this.clearData();
+
+      this.actionManager.reapplyActions(this.polygons);
+
+      this.draw();
+    } else {
+      this.addAction(new AddEmptyPolygon(this.polygons));
+    }
   }
 
   // ----- Basic touch/click events -----
@@ -283,7 +324,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     } else {
       // insert new empty polygon at the end if needed
       if (this.polygons[this.polygons.length - 1].numPoints > 0) {
-        this.polygons.push(new Polygon());
+        this.addAction(new AddEmptyPolygon(this.polygons));
       }
       // make the last polygon (empty one) active
       this.activePolygon = this.polygons.length - 1;
@@ -344,7 +385,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     e.preventDefault();
 
     if (this.dragging) {
-      const act = new MovedPointAction(this.polygons[this.activePolygon].getPoint(this.activePoint), this.draggingOrigPoint);
+      const act = new MovedPointAction(this.draggingOrigPoint, this.activePoint, this.activePolygon, this.polygons);
       this.addAction(act);
 
       this.activePoint = null;
@@ -426,7 +467,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
         }
 
         // place at correct place (maybe close to line --> directly on the line)
-        const act = new AddPointAction([x, y], insertAt, this.polygons[this.activePolygon]);
+        const act = new AddPointAction([x, y], insertAt, this.activePolygon, this.polygons);
         this.addAction(act);
 
         this.activePoint = insertAt;
@@ -522,8 +563,11 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   }
 
   // ----- pure data manipulation -----
-  addAction(action: Action) {
+  addAction(action: SegmentationAction) {
     this.actionManager.addAction(action);
+
+    this.dataChanged();
+
     this.draw();
   }
 
