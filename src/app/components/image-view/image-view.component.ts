@@ -1,6 +1,6 @@
 import { Indicator } from './indicators';
 import { Rectangle } from './../../models/geometry';
-import { Position, hexToRgb, Utils } from './../../models/utils';
+import { Position, hexToRgb, Utils, UIUtils } from './../../models/utils';
 import { AddPointAction, SegmentationAction, MovedPointAction, ActionManager, AddEmptyPolygon } from './../../models/action';
 import { ToastController } from '@ionic/angular';
 import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener } from '@angular/core';
@@ -36,7 +36,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   activePolygon: number;
   activePoint: number;
   ctx: any;
-  palette: any;
   image: any;
   dragging = false;
   distanceThreshold = 10;
@@ -67,8 +66,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
     this.activePolygon = 0;
     this.activePoint = 0;
-
-    this.palette = ['#ff0000'];
 
     this.indicators = new Indicator();
     this.actionManager = new ActionManager(this.actionTimeSplitThreshold);
@@ -129,7 +126,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
       this.draw();
     } else {
-      this.addAction(new AddEmptyPolygon(this.polygons));
+      this.addAction(new AddEmptyPolygon(this.polygons, UIUtils.randomColor()));
     }
   }
 
@@ -324,7 +321,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     } else {
       // insert new empty polygon at the end if needed
       if (this.polygons[this.polygons.length - 1].numPoints > 0) {
-        this.addAction(new AddEmptyPolygon(this.polygons));
+        this.addAction(new AddEmptyPolygon(this.polygons, UIUtils.randomColor()));
       }
       // make the last polygon (empty one) active
       this.activePolygon = this.polygons.length - 1;
@@ -491,7 +488,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.ctx.restore();
 
     for (const [index, polygon] of this.polygons.entries()) {
-      this.drawSingle(polygon.points, index);
+      UIUtils.drawSingle(polygon.points, index === this.activePolygon, this.ctx, polygon.getColor());
     }
     this.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
 
@@ -528,38 +525,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     setTimeout(() => {
       this.fitToContainer(this.element);
     }, 1000);
-  }
-
-  /**
-   * Draws a single segmentation polygon
-   * @param points the list of polygon border
-   * @param p index in the global polygon list
-   */
-  drawSingle(points, p) {
-    this.ctx.globalCompositeOperation = 'destination-over';
-    this.ctx.fillStyle = 'rgb(255,255,255)';
-    this.ctx.strokeStyle = this.palette[p];
-    this.ctx.lineWidth = 1;
-
-    // create the path for polygon
-    this.ctx.beginPath();
-    for (const point of points) {
-      if (this.activePolygon ===  p && this.enabled) {
-        this.ctx.fillRect(point[0] - 2, point[1] - 2, 4, 4);
-        this.ctx.strokeRect(point[0] - 2, point[1] - 2, 4, 4);
-      }
-      this.ctx.lineTo(point[0], point[1]);
-    }
-    this.ctx.closePath();
-
-    // perform the filling
-    if (!this.palette[p]) {
-      this.palette[p] =  '#'+(function lol(m,s,c){return s[m.floor(m.random() * s.length)] + (c && lol(m,s,c-1));})(Math,'0123456789ABCDEF',4)
-    }
-    const fillColor = hexToRgb(this.palette[p]);
-    this.ctx.fillStyle = 'rgba(' + fillColor.r + ',' + fillColor.g + ',' + fillColor.b + ',0.1)';
-    this.ctx.fill();
-    this.ctx.stroke();
   }
 
   // ----- pure data manipulation -----

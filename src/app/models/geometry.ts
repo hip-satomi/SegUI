@@ -4,6 +4,7 @@ const inside = require('point-in-polygon');
 type Point = [number, number];
 export class Polygon {
     points: Point[] = [];
+    color: string;
 
     constructor(...points: Point[]) {
         this.points = points;
@@ -11,6 +12,14 @@ export class Polygon {
 
     isInside(pos: Point): boolean {
         return inside(pos, this.points);
+    }
+
+    setColor(color: string) {
+        this.color = color;
+    }
+
+    getColor(): string {
+        return this.color;
     }
 
     setPoint(index: number, point: Point) {

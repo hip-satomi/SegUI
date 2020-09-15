@@ -130,3 +130,39 @@ export class Utils {
       };
   }
 }
+
+export class UIUtils {
+  /**
+   * Draws a single segmentation polygon
+   * @param points the list of polygon border
+   * @param p index in the global polygon list
+   */
+  static drawSingle(points, active, ctx, color) {
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.fillStyle = 'rgb(255,255,255)';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+
+    // create the path for polygon
+    ctx.beginPath();
+    for (const point of points) {
+      if (active) {
+        ctx.fillRect(point[0] - 2, point[1] - 2, 4, 4);
+        ctx.strokeRect(point[0] - 2, point[1] - 2, 4, 4);
+      }
+      ctx.lineTo(point[0], point[1]);
+    }
+    ctx.closePath();
+
+    // perform the filling
+    const fillColor = hexToRgb(color);
+    ctx.fillStyle = 'rgba(' + fillColor.r + ',' + fillColor.g + ',' + fillColor.b + ',0.1)';
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  static randomColor() {
+    return '#'+(function lol(m,s,c){return s[m.floor(m.random() * s.length)] + (c && lol(m,s,c-1));})(Math,'0123456789ABCDEF',4)
+  }
+
+}

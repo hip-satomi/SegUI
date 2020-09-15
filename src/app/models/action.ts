@@ -34,12 +34,18 @@ export abstract class SegmentationAction extends Action {
 @jsonObject
 export class AddEmptyPolygon extends SegmentationAction {
 
-    constructor(polygonList: Polygon[]) {
+    @jsonMember
+    color: string;
+
+    constructor(polygonList: Polygon[], color: string) {
         super(polygonList);
+        this.color = color;
     }
 
     perform() {
-        this.polygonList.push(new Polygon());
+        const poly = new Polygon();
+        poly.setColor(this.color);
+        this.polygonList.push(poly);
 
         this.updatePerformedTime();
     }
