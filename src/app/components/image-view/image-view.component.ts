@@ -1,11 +1,10 @@
+import { SegmentationModel } from './../../models/segmentation-model';
 import { Indicator } from './indicators';
-import { Rectangle } from './../../models/geometry';
-import { Position, hexToRgb, Utils, UIUtils } from './../../models/utils';
-import { AddPointAction, SegmentationAction, MovedPointAction, ActionManager, AddEmptyPolygon } from './../../models/action';
+import { Position, Utils, UIUtils } from './../../models/utils';
+import { AddPointAction, SegmentationAction, MovedPointAction, AddEmptyPolygon } from './../../models/action';
 import { ToastController } from '@ionic/angular';
 import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener } from '@angular/core';
 import { multiply} from 'mathjs';
-import { Polygon } from 'src/app/models/geometry';
 import { TypedJSON } from 'typedjson';
 
 import { Plugins } from '@capacitor/core';
@@ -32,9 +31,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   imageUrl: string;
   enabled: boolean;
   element: any;
-  polygons: Polygon[] = [];
-  activePolygon: number;
-  activePoint: number;
   ctx: any;
   image: any;
   dragging = false;
@@ -42,10 +38,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   actionTimeSplitThreshold = 0.5; // time in seconds, below actions get merged
   scale = 1.;
   currentMousePos: Position;
-  imageRect: Rectangle;
   indicators;
 
-  actionManager: ActionManager;
+  segmentationModel: SegmentationModel;
 
   pinchInfo = {
     pinching: false,
@@ -61,14 +56,12 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   constructor(private renderer: Renderer2,
               private toastController: ToastController) {
     this.enabled = true;
-    const image_src = '../assets/1.png'//'https://cloud.githubusercontent.com/assets/6464002/22788262/182d8192-ef01-11e6-8da0-903c1ddfa70f.png'
-    this.imageUrl = image_src;
-
-    this.activePolygon = 0;
-    this.activePoint = 0;
+    const imageSrc = '../assets/1.png';
+    this.imageUrl = imageSrc;
 
     this.indicators = new Indicator();
-    this.actionManager = new ActionManager(this.actionTimeSplitThreshold);
+
+    this.segmentationModel = new SegmentationModel(this.imageUrl);
   }
 
   ngOnInit() {}
@@ -86,7 +79,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.image = new Image();
 
     this.image.onload = () => {
-      this.imageRect = new Rectangle(0, 0, this.image.width, this.image.height);
       this.draw();
     };
 
@@ -95,39 +87,61 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.dataRestore();
   }
 
-  dataChanged() {
-    const serializer = new TypedJSON(ActionManager);
+  async dataSave() {
+    const serializer = new TypedJSON(SegmentationModel);
 
-    const json = serializer.stringify(this.actionManager);
+    const json = serializer.stringify(this.segmentationModel);
 
-    Storage.set({
-      key: 'actions',
+    console.log(json);
+
+    await Storage.set({
+      key: 'segmentation',
       value: json
     });
   }
 
-  clearData() {
-    this.polygons = [];
-    this.activePolygon = 0;
-    this.activePoint = 0;
-  }
-
   async dataRestore() {
-    const serializer = new TypedJSON(ActionManager);
-    
-    const jsonString = await Storage.get({key: 'actions'});
+    const serializer = new TypedJSON(SegmentationModel);
+
+    const jsonString = await Storage.get({key: 'segmentation'});
 
     if (jsonString.value) {
-      this.actionManager = serializer.parse(jsonString.value);
+      console.log(jsonString.value);
 
-      this.clearData();
+      // try to deserialize the segmentation model
+      const segmentationModel = serializer.parse(jsonString.value);
 
-      this.actionManager.reapplyActions(this.polygons);
+      if (segmentationModel) {
+        // if it works we will accept this as the new model
+        this.segmentationModel = segmentationModel;
+      } else {
+        // otherwise we notify the user and use the old segmentation model
+        const toast = await this.toastController.create({
+          message: 'Could not restore local data!',
+          duration: 2000
+        });
+        toast.present();
+      }
 
       this.draw();
-    } else {
-      this.addAction(new AddEmptyPolygon(this.polygons, UIUtils.randomColor()));
     }
+
+    this.segmentationModel.onModelChange = (segmentationModel: SegmentationModel) => {
+      this.onSegModelChange(segmentationModel);
+    };
+
+    if (this.segmentationModel.polygons.length === 0) {
+      this.addAction(new AddEmptyPolygon(this.segmentationModel, UIUtils.randomColor()));
+    }
+  }
+
+  /**
+   * Called when the action model is modified
+   */
+  onSegModelChange(segmentationModel: SegmentationModel) {
+    this.draw();
+
+    this.dataSave();
   }
 
   // ----- Basic touch/click events -----
@@ -312,19 +326,14 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   }
 
   async save() {
-    if (this.polygons[this.activePolygon].numPoints === 0) {
+    if (this.segmentationModel.activePolygon.numPoints === 0) {
       const toast = await this.toastController.create({
         message: 'Please perform a segmentation!',
         duration: 2000
       });
       toast.present();
     } else {
-      // insert new empty polygon at the end if needed
-      if (this.polygons[this.polygons.length - 1].numPoints > 0) {
-        this.addAction(new AddEmptyPolygon(this.polygons, UIUtils.randomColor()));
-      }
-      // make the last polygon (empty one) active
-      this.activePolygon = this.polygons.length - 1;
+      this.segmentationModel.addNewPolygon();
       this.draw();
     }
   }
@@ -339,15 +348,15 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.currentMousePos = mousePos;
     if (this.enabled && this.dragging) {
       // get active polygon and point and update position
-      const polygon = this.polygons[this.activePolygon];
-      polygon.setPoint(this.activePoint, [mousePos.x, mousePos.y]);
+      const polygon = this.segmentationModel.activePolygon;
+      polygon.setPoint(this.segmentationModel.activePointIndex, [mousePos.x, mousePos.y]);
 
       // redraw the canvas
       this.draw();
     } else {
       // we want to select the correct cursor type
 
-      const polygon = this.polygons[this.activePolygon];
+      const polygon = this.segmentationModel.activePolygon;
 
       let cursorSelected = false;
 
@@ -382,12 +391,15 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     e.preventDefault();
 
     if (this.dragging) {
-      const act = new MovedPointAction(this.draggingOrigPoint, this.activePoint, this.activePolygon, this.polygons);
+      const act = new MovedPointAction(this.draggingOrigPoint, this.segmentationModel.activePointIndex,
+                                       this.segmentationModel.activePolygonIndex, this.segmentationModel);
       this.addAction(act);
 
-      this.activePoint = null;
+      //this.activePoint = null;
       this.dragging = false;
     }
+
+    return false;
   }
 
   
@@ -409,7 +421,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     //alert('Mouse down');
     e.preventDefault();
     if (this.enabled && !this.dragging) {
-      let poly = this.polygons[this.activePolygon];
+      let poly = this.segmentationModel.activePolygon;
       let x, y, insertAt = poly.numPoints;
 
       if (e.which === 3) {
@@ -430,10 +442,10 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       const minDis = distanceInfo.distance;
       const minDisIndex = distanceInfo.index;
       if (minDis < 10 && minDisIndex >= 0) {
-        this.activePoint = minDisIndex;
+        this.segmentationModel.activePointIndex = minDisIndex;
         this.dragging = true; // enable dragging mode
 
-        this.draggingOrigPoint = [...this.polygons[this.activePolygon].getPoint(this.activePoint)];
+        this.draggingOrigPoint = [...this.segmentationModel.activePoint];
 
         return false;
       }
@@ -449,13 +461,13 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
         if (!lineInsert) {
           // check whether you did click onto another polygon
-          for (const [index, polygon] of this.polygons.entries()) {
-            if (index === this.activePolygon) {
+          for (const [index, polygon] of this.segmentationModel.polygons.entries()) {
+            if (index === this.segmentationModel.activePolygonIndex) {
               continue;
             }
             if (polygon.isInside([x, y])) {
               // clicke inside a non active polygon
-              this.activePolygon = index;
+              this.segmentationModel.activePolygonIndex = index;
               this.draw();
               return false;
             }
@@ -464,10 +476,10 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
         }
 
         // place at correct place (maybe close to line --> directly on the line)
-        const act = new AddPointAction([x, y], insertAt, this.activePolygon, this.polygons);
+        const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonIndex, this.segmentationModel);
         this.addAction(act);
 
-        this.activePoint = insertAt;
+        this.segmentationModel.activePointIndex = insertAt;
 
         // redraw
         this.draw();
@@ -476,7 +488,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     return false;
   }
 
-  draw() {
+  clearCanvas() {
     // Store the current transformation matrix
     this.ctx.save();
 
@@ -486,12 +498,15 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
     // Restore the transform
     this.ctx.restore();
+  }
 
-    for (const [index, polygon] of this.polygons.entries()) {
-      UIUtils.drawSingle(polygon.points, index === this.activePolygon, this.ctx, polygon.getColor());
-    }
-    this.ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+  /**
+   * Refresh the cavas drawing
+   */
+  draw() {
+    this.clearCanvas();
 
+    this.segmentationModel.draw(this.ctx);
   }
 
   /**
@@ -529,11 +544,15 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   // ----- pure data manipulation -----
   addAction(action: SegmentationAction) {
-    this.actionManager.addAction(action);
+    this.segmentationModel.addAction(action);
 
-    this.dataChanged();
+    this.dataSave();
 
     this.draw();
+  }
+
+  get actionManager() {
+    return this.segmentationModel.actionManager;
   }
 
 

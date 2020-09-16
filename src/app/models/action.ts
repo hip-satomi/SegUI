@@ -1,3 +1,4 @@
+import { SegmentationData } from './segmentation-data';
 import { Polygon } from 'src/app/models/geometry';
 import 'reflect-metadata';
 import { jsonArrayMember, jsonMember, jsonObject, toJson, TypedJSON } from 'typedjson';
@@ -19,15 +20,19 @@ export abstract class Action {
 @jsonObject
 export abstract class SegmentationAction extends Action {
 
-    protected polygonList: Polygon[];
+    protected segmentationData: SegmentationData;
 
-    constructor(polygonList: Polygon[]) {
+    constructor(segmentationData: SegmentationData) {
         super();
-        this.polygonList = polygonList;
+        this.segmentationData = segmentationData;
     }
 
-    setPolygonList(polygonList: Polygon[]) {
-        this.polygonList = polygonList;
+    setSegmentationData(segmentationData: SegmentationData) {
+        this.segmentationData = segmentationData;
+    }
+
+    protected get polygonList() {
+        return this.segmentationData.polygons;
     }
 }
 
@@ -37,23 +42,49 @@ export class AddEmptyPolygon extends SegmentationAction {
     @jsonMember
     color: string;
 
-    constructor(polygonList: Polygon[], color: string) {
-        super(polygonList);
+    constructor(segmentationData: SegmentationData, color: string) {
+        super(segmentationData);
         this.color = color;
     }
 
     perform() {
         const poly = new Polygon();
         poly.setColor(this.color);
-        this.polygonList.push(poly);
+        this.segmentationData.polygons.push(poly);
 
         this.updatePerformedTime();
     }
 
     reverse() {
-        this.polygonList.pop();
+        this.segmentationData.polygons.pop();
     }
 
+}
+
+@jsonObject
+export class SelectPolygon extends SegmentationAction {
+
+    @jsonMember newPolyIndex: number;
+    @jsonMember oldPolyIndex: number;
+
+    constructor(segmentationData: SegmentationData, newPolyIndex: number, oldPolyIndex: number) {
+        super(segmentationData);
+
+        this.newPolyIndex = newPolyIndex;
+        this.oldPolyIndex = oldPolyIndex;
+    }
+
+    perform() {
+        this.segmentationData.activePolygonIndex = this.newPolyIndex;
+        this.segmentationData.activePointIndex = 0;
+
+        this.updatePerformedTime();
+    }
+
+    reverse() {
+        this.segmentationData.activePolygonIndex = this.oldPolyIndex;
+        this.segmentationData.activePointIndex = this.segmentationData.polygons[this.segmentationData.activePolygonIndex].numPoints - 1;
+    }
 }
 
 @jsonObject
@@ -66,12 +97,11 @@ export class AddPointAction extends SegmentationAction {
     @jsonMember
     private polygonIndex: number;
 
-    constructor(point: [number, number], index: number, polygonIndex: number, polygonList: Polygon[]) {
-        super(polygonList);
+    constructor(point: [number, number], index: number, polygonIndex: number, segmentationData: SegmentationData) {
+        super(segmentationData);
         this.point = point;
         this.index = index;
         this.polygonIndex = polygonIndex;
-        this.polygonList = polygonList;
     }
 
     perform() {
@@ -97,12 +127,18 @@ export class MovedPointAction extends SegmentationAction {
     @jsonMember
     private pointIndex: number;
 
-    constructor(oldPoint: [number, number], pointIndex: number, polygonIndex: number, polygonList: Polygon[]) {
-        super(polygonList);
+    constructor(oldPoint: [number, number], pointIndex: number, polygonIndex: number, segmentationData: SegmentationData) {
+        super(segmentationData);
+
+        if (!segmentationData) {
+            // this is a json recreation
+            return;
+        }
+
         this.polygonIndex = polygonIndex;
         this.pointIndex = pointIndex;
-        const point = this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
-        this.newPoint = [...point];
+        //const point = this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
+        this.newPoint = [...this.point];
         this.oldPoint = [...oldPoint];
     }
 
@@ -123,6 +159,7 @@ export class MovedPointAction extends SegmentationAction {
     }
 }
 
+@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon]})
 export class JointAction extends Action{
 
     @jsonArrayMember(Action)
@@ -142,7 +179,7 @@ export class JointAction extends Action{
     }
 
     reverse() {
-        for (const act of this.actions.reverse()) {
+        for (const act of this.actions.slice().reverse()) {
             act.reverse();
         }
     }
@@ -151,9 +188,9 @@ export class JointAction extends Action{
 /**
  * Handles actions with do and undo operations
  * 
- * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions
+ * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions (https://github.com/JohnWeisz/TypedJSON/blob/master/spec/polymorphism-abstract-class.spec.ts)
  */
-@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction]})
+@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon]})
 export class ActionManager {
 
     @jsonArrayMember(Action)
@@ -161,6 +198,8 @@ export class ActionManager {
     @jsonMember actionTimeSplitThreshold: number;
     @jsonMember
     currentActionPointer: number;
+
+    onDataChanged: (actionManager: ActionManager) => void;
 
     constructor(actionTimeSplitThreshold: number) {
         this.actionTimeSplitThreshold = actionTimeSplitThreshold;
@@ -178,69 +217,84 @@ export class ActionManager {
         }
 
 
-        if (this.actions.length > 0
+        /*if (this.actions.length > 0
             && (+(new Date()) - +this.actions[this.actions.length - 1].lastPerformedTime) / 1000 < this.actionTimeSplitThreshold) {
             // join with existing action due to time correspondence
             const jact = new JointAction(this.actions.pop(), action);
             jact.updatePerformedTime();
             action = jact;
-        } else {
+            this.actions.splice(this.currentActionPointer - 1, this.actions.length, action);
+        } else*/ {
             this.actions.splice(this.currentActionPointer, this.actions.length, action);
             this.currentActionPointer++;
         }
+
+        this.notifyDataChanged();
     }
 
-  /**
-   * Undos last action
-   * 
-   * if there is no last action, does nothing
-   */
-  undo() {
-    if (!this.canUndo) {
-        return;
+    notifyDataChanged() {
+        if (this.onDataChanged) {
+            this.onDataChanged(this);
+        }
     }
-    const lastAction = this.actions[this.currentActionPointer - 1];
-    lastAction.reverse();
-    this.currentActionPointer--;
-  }
 
-  /**
-   * Redos next possible action
-   * 
-   * If there are no actions, nothing happens
-   */
-  redo() {
-    if (!this.canRedo) {
-        return;
+    /**
+     * Undos last action
+     * 
+     * if there is no last action, does nothing
+     */
+    undo() {
+        if (!this.canUndo) {
+            return;
+        }
+        const lastAction = this.actions[this.currentActionPointer - 1];
+        lastAction.reverse();
+        this.currentActionPointer--;
+
+        this.notifyDataChanged();
     }
-    const nextAction = this.actions[this.currentActionPointer];
-    nextAction.perform();
-    this.currentActionPointer++;
-  }
 
-  /**
-   * returns true iff there is action that can be undone
-   */
-  get canUndo() {
-      return this.actions.length > 0;
-  }
+    /**
+     * Redos next possible action
+     * 
+     * If there are no actions, nothing happens
+     */
+    redo() {
+        if (!this.canRedo) {
+            return;
+        }
+        const nextAction = this.actions[this.currentActionPointer];
+        nextAction.perform();
+        this.currentActionPointer++;
 
-  /**
-   * returns true iff there is an action that can be redone
-   */
-  get canRedo() {
-      return this.actions.length > this.currentActionPointer;
-  }
+        this.notifyDataChanged();
+    }
 
-  reapplyActions(polygonList: Polygon[]) {
-      for (let i = 0; i < this.currentActionPointer; i++) {
-          const action = this.actions[i];
+    /**
+     * returns true iff there is action that can be undone
+     */
+    get canUndo() {
+        return this.currentActionPointer > 0;
+    }
 
-          if (action instanceof SegmentationAction) {
-              action.setPolygonList(polygonList);
-          }
+    /**
+     * returns true iff there is an action that can be redone
+     */
+    get canRedo() {
+        return this.actions.length > this.currentActionPointer;
+    }
 
-          action.perform();
-      }
-  }
+    reapplyActions(segmentationData: SegmentationData) {
+        for (let i = 0; i < this.currentActionPointer; i++) {
+            const action = this.actions[i];
+
+            if (action instanceof SegmentationAction) {
+                action.setSegmentationData(segmentationData);
+            }
+
+            action.perform();
+        }
+
+        this.notifyDataChanged();
+    }
 }
