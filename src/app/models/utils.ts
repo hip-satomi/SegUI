@@ -129,6 +129,14 @@ export class Utils {
       x, y
       };
   }
+
+  static getMousePosMouse(canvasElement, e): Position {
+    const rect = canvasElement.getBoundingClientRect();
+    const x: number = e.clientX - rect.left;
+    const y: number = e.clientY - rect.top;
+
+    return {x, y};
+  }
 }
 
 export class UIUtils {

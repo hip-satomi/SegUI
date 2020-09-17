@@ -9,6 +9,7 @@ import { TypedJSON } from 'typedjson';
 import { encode, decode } from '@msgpack/msgpack';
 
 import { Plugins } from '@capacitor/core';
+import { THIS_EXPR } from '@angular/compiler/src/output/output_ast';
 
 const { Storage } = Plugins;
 
@@ -356,7 +357,18 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     e.preventDefault();
     const mousePos = Utils.getMousePos(this.element, e);
     this.currentMousePos = mousePos;
-    if (this.enabled && this.dragging) {
+
+    if (this.pinchInfo.pinching) {
+      const oldPos = this.pinchInfo.pinchPos;
+      // computer center position w.r.t. canvas element
+      const newPos = Utils.getMousePosMouse(this.element, e);
+
+      this.ctx.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
+      this.pinchInfo.pinchPos = newPos;
+
+      this.draw();
+    }
+    else if (this.enabled && this.dragging) {
       // get active polygon and point and update position
       const polygon = this.segmentationModel.activePolygon;
       this.addAction(new MovePointAction([mousePos.x, mousePos.y],
@@ -414,11 +426,24 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       this.dragging = false;
     }
 
+    if (this.pinchInfo.pinching) {
+      this.pinchInfo.pinching = false;
+    }
+
     return false;
   }
 
   
   mousedown(event, dragOnly=false) {
+
+    if (event.button === 1) {
+      // wheel mouse button --> TODO add some panning here
+      this.pinchInfo.pinching = true;
+      this.pinchInfo.pinchPos = Utils.getMousePos(this.element, event);
+      this.pinchInfo.pinchScale = 1.;
+
+      this.setCursor(CursorType.Panning);
+    }
 
     if (this.pinchInfo.pinching) {
       // if we are pinching we will not recognize any mousedown events
@@ -427,11 +452,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
     console.log("touch start");
     const e = event;
-
-    if (event.button === 1) {
-      // wheel mouse button --> TODO add some panning here
-     return false;
-    }
 
     //alert('Mouse down');
     e.preventDefault();
