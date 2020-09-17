@@ -43,6 +43,10 @@ export class SegmentationModel {
         this.clear();
         // load the image
         this.loadImage();
+
+        this.actionManager.onDataChanged = (actionManager: ActionManager) => {
+            this.actionManagerChanged(actionManager);
+        };
     }
 
     /**

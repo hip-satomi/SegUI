@@ -12,6 +12,10 @@ export abstract class Action {
     abstract perform(): void;
     abstract reverse(): void;
 
+    join(action: Action): boolean {
+        return false;
+    }
+
     updatePerformedTime() {
         this.lastPerformedTime = new Date();
     }
@@ -84,6 +88,18 @@ export class SelectPolygon extends SegmentationAction {
     reverse() {
         this.segmentationData.activePolygonIndex = this.oldPolyIndex;
         this.segmentationData.activePointIndex = this.segmentationData.polygons[this.segmentationData.activePolygonIndex].numPoints - 1;
+    }
+
+    join(action: Action): boolean {
+        if (action instanceof SelectPolygon) {
+            const selectAction = action as SelectPolygon;
+
+            this.newPolyIndex = selectAction.newPolyIndex;
+
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -159,6 +175,64 @@ export class MovedPointAction extends SegmentationAction {
     }
 }
 
+@jsonObject
+export class MovePointAction extends SegmentationAction {
+
+    @jsonArrayMember(Number)
+    private newPoint: [number, number];
+    @jsonArrayMember(Number)
+    private oldPoint: [number, number];
+    @jsonMember
+    private polygonIndex: number;
+    @jsonMember
+    private pointIndex: number;
+
+    constructor(newPoint: [number, number], pointIndex: number, polygonIndex: number, segmentationData: SegmentationData) {
+        super(segmentationData);
+
+        if (!segmentationData) {
+            // this is a json recreation
+            return;
+        }
+
+        this.polygonIndex = polygonIndex;
+        this.pointIndex = pointIndex;
+        //const point = this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
+        this.newPoint = [...newPoint];
+        this.oldPoint = [...this.point];
+    }
+
+    perform() {
+        this.point[0] = this.newPoint[0];
+        this.point[1] = this.newPoint[1];
+
+        this.updatePerformedTime();
+    }
+
+    reverse() {
+        this.point[0] = this.oldPoint[0];
+        this.point[1] = this.oldPoint[1];
+    }
+
+    private get point() {
+        return this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
+    }
+
+    join(action: Action) {
+        if (action instanceof MovePointAction) {
+            const mpAction = action as MovePointAction;
+
+            if (this.polygonIndex === mpAction.polygonIndex && this.pointIndex === mpAction.pointIndex) {
+                // polygon and point do correspond
+                this.newPoint = mpAction.newPoint;
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 @jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon]})
 export class JointAction extends Action{
 
@@ -190,7 +264,7 @@ export class JointAction extends Action{
  * 
  * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions (https://github.com/JohnWeisz/TypedJSON/blob/master/spec/polymorphism-abstract-class.spec.ts)
  */
-@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon]})
+@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon, MovePointAction]})
 export class ActionManager {
 
     @jsonArrayMember(Action)
@@ -216,6 +290,13 @@ export class ActionManager {
             action.perform();
         }
 
+        if (this.currentActionPointer > 0 && this.actions[this.currentActionPointer - 1].join(action)) {
+            // sucessfully joined the action
+        } else {
+            this.actions.splice(this.currentActionPointer, this.actions.length, action);
+            this.currentActionPointer++;
+        }
+
 
         /*if (this.actions.length > 0
             && (+(new Date()) - +this.actions[this.actions.length - 1].lastPerformedTime) / 1000 < this.actionTimeSplitThreshold) {
@@ -224,10 +305,7 @@ export class ActionManager {
             jact.updatePerformedTime();
             action = jact;
             this.actions.splice(this.currentActionPointer - 1, this.actions.length, action);
-        } else*/ {
-            this.actions.splice(this.currentActionPointer, this.actions.length, action);
-            this.currentActionPointer++;
-        }
+        } else*/
 
         this.notifyDataChanged();
     }

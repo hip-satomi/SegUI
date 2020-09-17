@@ -1,11 +1,12 @@
 import { SegmentationModel } from './../../models/segmentation-model';
 import { Indicator } from './indicators';
 import { Position, Utils, UIUtils } from './../../models/utils';
-import { AddPointAction, SegmentationAction, MovedPointAction, AddEmptyPolygon } from './../../models/action';
+import { AddPointAction, SegmentationAction, AddEmptyPolygon, MovePointAction } from './../../models/action';
 import { ToastController } from '@ionic/angular';
 import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener } from '@angular/core';
 import { multiply} from 'mathjs';
 import { TypedJSON } from 'typedjson';
+import { encode, decode } from '@msgpack/msgpack';
 
 import { Plugins } from '@capacitor/core';
 
@@ -108,19 +109,28 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     if (jsonString.value) {
       console.log(jsonString.value);
 
-      // try to deserialize the segmentation model
-      const segmentationModel = serializer.parse(jsonString.value);
+      try {
+        // try to deserialize the segmentation model
+        const segmentationModel = serializer.parse(jsonString.value);
 
-      if (segmentationModel) {
-        // if it works we will accept this as the new model
-        this.segmentationModel = segmentationModel;
-      } else {
-        // otherwise we notify the user and use the old segmentation model
-        const toast = await this.toastController.create({
-          message: 'Could not restore local data!',
-          duration: 2000
-        });
-        toast.present();
+        if (segmentationModel) {
+          // if it works we will accept this as the new model
+          this.segmentationModel = segmentationModel;
+        } else {
+          // otherwise we notify the user and use the old segmentation model
+          const toast = await this.toastController.create({
+            message: 'Could not restore local data!',
+            duration: 2000
+          });
+          toast.present();
+        }
+      } catch(e) {
+          // otherwise we notify the user and use the old segmentation model
+          const toast = await this.toastController.create({
+            message: 'Could not restore local data!',
+            duration: 2000
+          });
+          toast.present();
       }
 
       this.draw();
@@ -349,10 +359,15 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     if (this.enabled && this.dragging) {
       // get active polygon and point and update position
       const polygon = this.segmentationModel.activePolygon;
-      polygon.setPoint(this.segmentationModel.activePointIndex, [mousePos.x, mousePos.y]);
+      this.addAction(new MovePointAction([mousePos.x, mousePos.y],
+                                          this.segmentationModel.activePointIndex,
+                                          this.segmentationModel.activePolygonIndex,
+                                          this.segmentationModel.segmentationData));
+
+      //polygon.setPoint(this.segmentationModel.activePointIndex, [mousePos.x, mousePos.y]);
 
       // redraw the canvas
-      this.draw();
+      //this.draw();
     } else {
       // we want to select the correct cursor type
 
@@ -391,9 +406,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     e.preventDefault();
 
     if (this.dragging) {
-      const act = new MovedPointAction(this.draggingOrigPoint, this.segmentationModel.activePointIndex,
-                                       this.segmentationModel.activePolygonIndex, this.segmentationModel);
-      this.addAction(act);
+      //const act = new MovedPointAction(this.draggingOrigPoint, this.segmentationModel.activePointIndex,
+      //                                 this.segmentationModel.activePolygonIndex, this.segmentationModel);
+      //this.addAction(act);
 
       //this.activePoint = null;
       this.dragging = false;
@@ -545,10 +560,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   // ----- pure data manipulation -----
   addAction(action: SegmentationAction) {
     this.segmentationModel.addAction(action);
-
-    this.dataSave();
-
-    this.draw();
   }
 
   get actionManager() {
