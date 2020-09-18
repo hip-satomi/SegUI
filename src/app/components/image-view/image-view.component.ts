@@ -3,7 +3,7 @@ import { Indicator } from './indicators';
 import { Position, Utils, UIUtils } from './../../models/utils';
 import { AddPointAction, SegmentationAction, AddEmptyPolygon, MovePointAction } from './../../models/action';
 import { ToastController } from '@ionic/angular';
-import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener, Input } from '@angular/core';
 import { multiply} from 'mathjs';
 import { TypedJSON } from 'typedjson';
 import { encode, decode } from '@msgpack/msgpack';
@@ -29,8 +29,8 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   @ViewChild('myCanvas', {static: false}) canvas: ElementRef;
 
   context: any;
-  imageUrl: string;
-  enabled: boolean;
+  @Input() imageUrl: string;
+  @Input() enabled: boolean;
   element: any;
   ctx: any;
   image: any;
