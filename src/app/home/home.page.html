@@ -26,5 +26,24 @@
   </ion-header>
 
   
-  <app-image-view #imageView></app-image-view>
+  <app-image-view #imageView [imageUrl]="url" [enabled]="activeView === i" *ngFor="let url of urls; let i = index"></app-image-view>
 </ion-content>
+
+<ion-footer *ngIf="urls.length > 1">
+  <ion-toolbar>
+    <ion-range min="0" max="{{urls.length - 1}}" color="secondary" step="1" snaps="true" [(ngModel)]="activeView">
+      <ion-label slot="start">0</ion-label>
+      <ion-label slot="end">{{ urls.length - 1}}</ion-label>
+    </ion-range>
+    <ion-buttons slot="end">
+      <ion-button [disabled]="!canPrevImage" (click)="prevImage()" style="padding-right:10px">
+        <ion-icon name="caret-back-outline"></ion-icon>
+      </ion-button>
+      <ion-button [disabled]="!canNextImage" (click)="nextImage()" style="padding-right:10xpx">
+        <ion-icon name="caret-forward-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+  </ion-toolbar>
+</ion-footer>
+

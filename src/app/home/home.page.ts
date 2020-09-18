@@ -9,7 +9,11 @@ import { Component, ViewChild } from '@angular/core';
 })
 export class HomePage {
 
-  @ViewChild('imageView') imageView: ImageViewComponent;
+  //@ViewChild('imageView') imageView: ImageViewComponent;
+  @ViewChildren(ImageViewComponent) components: QueryList<ImageViewComponent>;
+
+  activeView = 0;
+  urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg'];
 
   constructor(private toastController: ToastController) {}
 
@@ -50,6 +54,48 @@ export class HomePage {
     }
     
     return false;
+  }
+
+  get canNextImage() {
+    if (this.components) {
+      return this.activeView < this.components.length - 1;
+    }
+
+    return false;
+  }
+
+  get canPrevImage() {
+    return this.activeView > 0;
+  }
+
+  nextImage() {
+    if (this.canNextImage) {
+      this.setImageIndex(this.activeView + 1);
+    }
+  }
+
+  prevImage() {
+    if (this.canPrevImage) {
+      this.setImageIndex(this.activeView - 1);
+    }
+  }
+
+  get imageView() {
+    if (this.components) {
+      return this.components.toArray()[this.activeView];
+    }
+    
+    return null;
+  }
+
+  setImageIndex(index: number) {
+    this.activeView = index;
+  }
+
+  onSliderChanged(event) {
+    console.log('slider changed');
+    console.log(event);
+    this.setImageIndex(event.detail.value);
   }
 
 }
