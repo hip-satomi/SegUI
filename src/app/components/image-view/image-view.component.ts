@@ -164,11 +164,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   async onPress(event) {
     // TODO useful functionality for press event
-    const toast = await this.toastController.create({
-      message: 'You pressed it!',
-      duration: 2000
-    });
-    toast.present();
   }
 
   /**
