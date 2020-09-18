@@ -9,7 +9,6 @@ import { TypedJSON } from 'typedjson';
 import { encode, decode } from '@msgpack/msgpack';
 
 import { Plugins } from '@capacitor/core';
-import { THIS_EXPR } from '@angular/compiler/src/output/output_ast';
 
 const { Storage } = Plugins;
 
@@ -58,7 +57,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   constructor(private renderer: Renderer2,
               private toastController: ToastController) {
     this.enabled = true;
-    const imageSrc = '../assets/1.png';
+    const imageSrc = '../assets/stone-example.jpg'; //'../assets/1.png';
     this.imageUrl = imageSrc;
 
     this.indicators = new Indicator();
