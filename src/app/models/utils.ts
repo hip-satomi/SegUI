@@ -164,7 +164,7 @@ export class UIUtils {
 
     // perform the filling
     const fillColor = hexToRgb(color);
-    ctx.fillStyle = 'rgba(' + fillColor.r + ',' + fillColor.g + ',' + fillColor.b + ',0.1)';
+    ctx.fillStyle = 'rgba(' + fillColor.r + ',' + fillColor.g + ',' + fillColor.b + ',0.3)';
     ctx.fill();
     ctx.stroke();
   }
