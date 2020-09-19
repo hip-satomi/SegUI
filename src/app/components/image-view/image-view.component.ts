@@ -353,11 +353,14 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.currentMousePos = mousePos;
 
     if (this.pinchInfo.pinching) {
-      const oldPos = this.pinchInfo.pinchPos;
-      // computer center position w.r.t. canvas element
-      const newPos = Utils.getMousePosMouse(this.element, e);
+      const oldPos = Utils.screenPosToModelPos(this.pinchInfo.pinchPos, this.ctx);
 
-      this.ctx.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
+      // computer center position w.r.t. canvas element
+      const newPos = Utils.getMousePosMouse(this.canvasElement, e);
+
+      const newModelPos = Utils.screenPosToModelPos(newPos, this.ctx);
+
+      this.ctx.translate(newModelPos.x - oldPos.x, newModelPos.y - oldPos.y);
       this.pinchInfo.pinchPos = newPos;
 
       this.draw();
@@ -433,7 +436,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     if (event.button === 1) {
       // wheel mouse button --> TODO add some panning here
       this.pinchInfo.pinching = true;
-      this.pinchInfo.pinchPos = Utils.getMousePos(this.element, event);
+      this.pinchInfo.pinchPos = Utils.getMousePosMouse(this.canvasElement, event);
       this.pinchInfo.pinchScale = 1.;
 
       this.setCursor(CursorType.Panning);
