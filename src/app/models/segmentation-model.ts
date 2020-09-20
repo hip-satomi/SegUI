@@ -128,8 +128,13 @@ export class SegmentationModel {
      * if there is  an empty polygon at the end, this one is used
      */
     addNewPolygon() {
+        if (this.polygons.length === 0) {
+            this.addAction(new AddEmptyPolygon(this, UIUtils.randomColor()));
+
+            this.activePointIndex = 0;
+        }
         // insert new empty polygon at the end if needed
-        if (this.polygons[this.polygons.length - 1].numPoints > 0) {
+        else if (this.polygons[this.polygons.length - 1].numPoints > 0) {
             this.addAction(new AddEmptyPolygon(this, UIUtils.randomColor()));
 
             this.activePointIndex = 0;
@@ -175,10 +180,26 @@ export class SegmentationModel {
      * returns the currently active polygon
      */
     get activePolygon() {
+        if (this.polygons.length === 0) {
+            this.addNewPolygon();
+        }
+
         return this.polygons[this.activePolygonIndex];
     }
 
     get activePoint() {
         return this.activePolygon.getPoint(this.activePointIndex);
+    }
+
+    undo() {
+        if (this.actionManager.canUndo) {
+            this.actionManager.undo();
+        }
+    }
+
+    redo() {
+        if (this.actionManager.canRedo) {
+            this.actionManager.redo();
+        }
     }
 }

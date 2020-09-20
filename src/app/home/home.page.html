@@ -25,8 +25,8 @@
 
   </ion-header>
 
-  
-  <app-image-view #imageView [imageUrl]="url" [enabled]="activeView === i" *ngFor="let url of urls; let i = index"></app-image-view>
+  <app-image-display #imageDisplay [drawer]="this" [interactor]="curSegUI"></app-image-display>
+  <!--<app-image-view #imageView [imageUrl]="url" [enabled]="activeView === i" [segmentationModel]="segmentationModels[i]" [segmentationUI]="segmentationUIs[i]" *ngFor="let url of urls; let i = index"></app-image-view>-->
 </ion-content>
 
 <ion-footer *ngIf="urls.length > 1">

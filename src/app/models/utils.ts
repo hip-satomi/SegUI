@@ -137,6 +137,14 @@ export class Utils {
 
     return {x, y};
   }
+
+  static getMousePosTouch(canvasElement, touchEvent): Position {
+    const rect = canvasElement.getBoundingClientRect();
+    const x: number = touchEvent.center.x - rect.left;
+    const y: number = touchEvent.center.y - rect.top;
+
+    return {x, y};
+  }
 }
 
 export class UIUtils {
@@ -171,6 +179,39 @@ export class UIUtils {
 
   static randomColor() {
     return '#'+(function lol(m,s,c){return s[m.floor(m.random() * s.length)] + (c && lol(m,s,c-1));})(Math,'0123456789ABCDEF',4)
+  }
+
+  static fitToContainer(canvasElement) {
+    let changed = false;
+    // Make it visually fill the positioned parent
+    if (canvasElement.style.width !== '100%') {
+      canvasElement.style.width = '100%';
+      canvasElement.style.height = '100%';
+
+      changed = true;
+    }
+    if (canvasElement.width !== canvasElement.offsetWidth
+      || canvasElement.height !== canvasElement.offsetHeight) {
+      // ...then set the internal size to match
+      canvasElement.width  = canvasElement.offsetWidth;
+      canvasElement.height = canvasElement.offsetHeight;
+
+      changed = true;
+    }
+
+    return changed;
+  }
+
+  static clearCanvas(canvasElement, ctx) {
+    // Store the current transformation matrix
+    ctx.save();
+
+    // Use the identity matrix while clearing the canvas
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+    // Restore the transform
+    ctx.restore();
   }
 
 }

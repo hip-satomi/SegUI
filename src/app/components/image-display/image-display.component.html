@@ -1,0 +1,28 @@
+<div class="full-size">
+    <!--<canvas class="canvas"></canvas>-->
+    <!--(mousedown)="mousedown($event)"-->
+    <!--(panstart)="onPanStart($event)" (pan)="onPan($event)"-->
+    <!--(mousemove)="move($event)" (mouseup)="stopdrag($event)"-->
+    <!--  -->
+    <canvas #myCanvas class="canvas"
+        (mousedown)="mousedown($event, true)"  (mouseup)="mouseup($event)"
+        (mousemove)="move($event)" (wheel)="mousewheel($event)"
+        (pinchstart)="onPinchStart($event)" (pinchend)="onPinchEnd($event)" (pinch)="onPinch($event)"
+        (panstart)="onPanStart($event)" (pan)="onPan($event)" (panend)="onPanEnd($event)"
+        (tap)="onTap($event)" (press)="onPress($event)"
+        (touchstart)="mousedown($event, true)" (touchend)="stopdrag($event)" (touchmove)="move($event)"
+        >
+    </canvas>
+
+    <div
+        class="gesture__indicator"
+        *ngFor="let indicator of indicators.gestureIndicators"
+        [style.top.px]="indicator.y - (indicator.size/2)"
+        [style.left.px]="indicator.x - (indicator.size/2)"
+        [style.width.px]="indicator.size"
+        [style.height.px]="indicator.size"
+        [style.transform]="indicator.transform"
+        [@indicatorState]="indicator.state"></div>
+
+</div>
+<!--(touchmove)="mousemove($event)" (touchstart)="mousedown($event)" (touchend)="stopdrag($event)"-->
