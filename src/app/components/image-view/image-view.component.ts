@@ -1,3 +1,4 @@
+import { SegmentationUI } from './../../models/segmentation-ui';
 import { SegmentationModel } from './../../models/segmentation-model';
 import { Indicator } from './indicators';
 import { Position, Utils, UIUtils } from './../../models/utils';
@@ -5,8 +6,6 @@ import { AddPointAction, SegmentationAction, AddEmptyPolygon, MovePointAction } 
 import { ToastController } from '@ionic/angular';
 import { Component, OnInit, ViewChild, ElementRef, Renderer2, AfterViewInit, HostListener, Input } from '@angular/core';
 import { multiply} from 'mathjs';
-import { TypedJSON } from 'typedjson';
-import { encode, decode } from '@msgpack/msgpack';
 
 import { Plugins } from '@capacitor/core';
 
@@ -31,7 +30,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   context: any;
   @Input() imageUrl: string;
   @Input() enabled: boolean;
-  element: any;
+  canvasElement: any;
   ctx: any;
   image: any;
   dragging = false;
@@ -41,7 +40,8 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   currentMousePos: Position;
   indicators;
 
-  segmentationModel: SegmentationModel;
+  @Input() segmentationModel: SegmentationModel;
+  @Input() segmentationUI: SegmentationUI;
 
   pinchInfo = {
     pinching: false,
@@ -56,24 +56,23 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
   constructor(private renderer: Renderer2,
               private toastController: ToastController) {
-    this.enabled = true;
-    const imageSrc = '../assets/stone-example.jpg'; //'../assets/1.png';
-    this.imageUrl = imageSrc;
-
     this.indicators = new Indicator();
-
-    this.segmentationModel = new SegmentationModel(this.imageUrl);
   }
 
   ngOnInit() {}
 
-  ngAfterViewInit(): void {
+  async ngAfterViewInit() {
+    // init variables
     this.context = this.canvas.nativeElement.getContext('2d');
     this.ctx = this.context;
-    this.element = this.canvas.nativeElement;
+    this.canvasElement = this.canvas.nativeElement;
+
+    this.segmentationUI.canvasElement = this.canvasElement;
+    this.segmentationUI.ctx = this.ctx;
+
     // activate delayed fit container function
     setTimeout( () => {
-      this.fitToContainer(this.element);
+      this.fitToContainer(this.canvasElement);
     }, 500);
 
     // load the image
@@ -85,10 +84,18 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
     this.image.src = this.imageUrl;
 
-    this.dataRestore();
+    this.segmentationModel.onModelChange = (segmentationModel: SegmentationModel) => {
+      this.onSegModelChange(segmentationModel);
+    };
+
+    if (this.segmentationModel.polygons.length === 0) {
+        this.addAction(new AddEmptyPolygon(this.segmentationModel, UIUtils.randomColor()));
+    }
+
+    this.draw();
   }
 
-  async dataSave() {
+  /*async dataSave() {
     const serializer = new TypedJSON(SegmentationModel);
 
     const json = serializer.stringify(this.segmentationModel);
@@ -143,7 +150,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     if (this.segmentationModel.polygons.length === 0) {
       this.addAction(new AddEmptyPolygon(this.segmentationModel, UIUtils.randomColor()));
     }
-  }
+  }*/
 
   /**
    * Called when the action model is modified
@@ -151,14 +158,27 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
   onSegModelChange(segmentationModel: SegmentationModel) {
     this.draw();
 
-    this.dataSave();
+    //this.dataSave();
   }
 
   // ----- Basic touch/click events -----
 
   async onTap(event) {
     // handle a tap like a mousedown event
-    this.mousedown(event);
+    //this.mousedown(event);
+    this.segmentationUI.onTap(event);
+  }
+
+  onPanStart(event) {
+    this.segmentationUI.onPanStart(event);
+  }
+
+  onPan(event) {
+    this.segmentationUI.onPan(event);
+  }
+
+  onPanEnd(event) {
+    this.segmentationUI.onPanEnd(event);
   }
 
   async onPress(event) {
@@ -178,7 +198,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     const zoom = evt.scale / this.pinchInfo.pinchScale;
 
     // computer center position w.r.t. canvas element
-    const rect = this.element.getBoundingClientRect();
+    const rect = this.canvasElement.getBoundingClientRect();
     const x: number = evt.center.x - rect.left;
     const y: number = evt.center.y - rect.top;
     /*const mousePos = this.getMousePos(this.element, evt);
@@ -212,7 +232,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.indicators.gestureIndicators = [];
     this.indicators.display(evt.center.x, evt.center.y, 50);
 
-    const rect = this.element.getBoundingClientRect();
+    const rect = this.canvasElement.getBoundingClientRect();
     const x: number = evt.center.x - rect.left;
     const y: number = evt.center.y - rect.top;
     this.pinchInfo.pinchScale = 1.;
@@ -234,7 +254,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
    */
   mousewheel(event) {
     event.preventDefault();
-    const mousepos = Utils.getMousePos(this.element, event, false);
+    const mousepos = Utils.getMousePos(this.canvasElement, event, false);
     const mousex = mousepos.x;
     const mousey = mousepos.y;
 
@@ -246,7 +266,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
 
   setCursor(cursor: CursorType) {
-    this.renderer.setStyle(this.element, 'cursor', cursor);
+    this.renderer.setStyle(this.canvasElement, 'cursor', cursor);
   }
 
   // ----- Keyboard events -----
@@ -313,6 +333,8 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     // 3. scale canvas by factor
     this.ctx.scale(factor, factor);
 
+    this.scale *= factor;
+
     // 4. move origin back --> mouse position should be invariant to combined (2, 3, 4) transforms
     this.ctx.translate(-mousex, -mousey);
 
@@ -349,8 +371,6 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
    */
   move(e) {
     e.preventDefault();
-    const mousePos = Utils.getMousePos(this.element, e);
-    this.currentMousePos = mousePos;
 
     if (this.pinchInfo.pinching) {
       const oldPos = Utils.screenPosToModelPos(this.pinchInfo.pinchPos, this.ctx);
@@ -365,7 +385,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
       this.draw();
     }
-    else if (this.enabled && this.dragging) {
+    /*else if (this.enabled && this.dragging) {
       // get active polygon and point and update position
       const polygon = this.segmentationModel.activePolygon;
       this.addAction(new MovePointAction([mousePos.x, mousePos.y],
@@ -401,7 +421,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       if (!cursorSelected) {
         this.setCursor(CursorType.Standard);
       }
-    }
+    }*/
   }
 
   /**
@@ -442,7 +462,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
       this.setCursor(CursorType.Panning);
     }
 
-    if (this.pinchInfo.pinching) {
+    /*if (this.pinchInfo.pinching) {
       // if we are pinching we will not recognize any mousedown events
       return false;
     }
@@ -453,7 +473,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     //alert('Mouse down');
     e.preventDefault();
     if (this.enabled && !this.dragging) {
-      let poly = this.segmentationModel.activePolygon;
+      const poly = this.segmentationModel.activePolygon;
       let x, y, insertAt = poly.numPoints;
 
       if (e.which === 3) {
@@ -464,7 +484,7 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
         e.offsetX = e.target.offsetLeft; //(e.pageX - e.target.offsetLeft);
         e.offsetY = e.target.offsetTop; //(e.pageY - e.target.offsetTop);
       }
-      const mousePos = Utils.getMousePos(this.element, e);
+      const mousePos = Utils.getMousePos(this.canvasElement, e);
       x = mousePos.x;
       y = mousePos.y;
 
@@ -516,27 +536,17 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
         // redraw
         this.draw();
       }
-    }
+    }*/
     return false;
   }
 
-  clearCanvas() {
-    // Store the current transformation matrix
-    this.ctx.save();
-
-    // Use the identity matrix while clearing the canvas
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.clearRect(0, 0, this.element.width, this.element.height);
-
-    // Restore the transform
-    this.ctx.restore();
-  }
+  
 
   /**
    * Refresh the cavas drawing
    */
   draw() {
-    this.clearCanvas();
+    UIUtils.clearCanvas(this.canvasElement, this.ctx);
 
     this.segmentationModel.draw(this.ctx);
   }
@@ -546,31 +556,19 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
    * @param canvas the canvast to fit
    */
   async fitToContainer(canvas){
-    let changed = false;
-    // Make it visually fill the positioned parent
-    if (canvas.style.width !== '100%') {
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
+    if (this.enabled) {
+      // try to maximize canvas
+      const changed = UIUtils.fitToContainer(canvas);
 
-      changed = true;
-    }
-    if (canvas.width !== canvas.offsetWidth
-       || canvas.height !== canvas.offsetHeight) {
-      // ...then set the internal size to match
-      canvas.width  = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-
-      changed = true;
-    }
-
-    if (changed) {
-      // redraw when the container has changed
-      this.draw();
+      if (changed) {
+        // redraw when the container has changed
+        this.draw();
+      }
     }
 
     // TODO: this is a dirty hack to resize the container if the window size changes (resize borser, rotate device)
     setTimeout(() => {
-      this.fitToContainer(this.element);
+      this.fitToContainer(this.canvasElement);
     }, 1000);
   }
 
@@ -579,35 +577,14 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
     this.segmentationModel.addAction(action);
   }
 
-  get actionManager() {
-    return this.segmentationModel.actionManager;
-  }
-
-
   async undo() {
-    if (this.actionManager.canUndo) {
-      this.actionManager.undo();
-      this.draw();
-    } else {
-      const toast = await this.toastController.create({
-        message: 'There are no actions to undo',
-        duration: 2000
-      });
-      toast.present();
-    }
+    // perform undo --> redraw will be called automatically as action manager changes
+    this.segmentationModel.undo();
   }
 
   async redo() {
-    if (this.actionManager.canRedo) {
-      this.actionManager.redo();
-      this.draw();
-    } else {
-      const toast = await this.toastController.create({
-        message: 'There are no actions to redo',
-        duration: 2000
-      });
-      toast.present();
-    }
+    // perform redo --> redraw will be called automatically as action manager changes
+    this.segmentationModel.redo();
   }
 
 }
