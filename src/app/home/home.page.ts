@@ -31,7 +31,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   segmentationUIs: SegmentationUI[] = [];
 
   _activeView = 0;
-  urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg'];
+  urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg'];
 
   constructor(private toastController: ToastController) {
   }
