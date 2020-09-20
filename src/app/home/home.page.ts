@@ -30,7 +30,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   segmentationModels: SegmentationModel[] = [];
   segmentationUIs: SegmentationUI[] = [];
 
-  activeView = 0;
+  _activeView = 0;
   urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg'];
 
   constructor(private toastController: ToastController) {
@@ -190,8 +190,15 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   setImageIndex(index: number) {
     this.activeView = index;
+  }
 
+  set activeView(viewIndex: number) {
+    this._activeView = viewIndex;
     this.draw(this.ctx);
+  }
+
+  get activeView() {
+    return this._activeView;
   }
 
   onSliderChanged(event) {
