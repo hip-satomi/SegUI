@@ -123,9 +123,9 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit {
     const zoom = evt.scale / this.pinchInfo.pinchScale;
 
     // computer center position w.r.t. canvas element
-    const rect = this.canvasElement.getBoundingClientRect();
-    const x: number = evt.center.x - rect.left;
-    const y: number = evt.center.y - rect.top;
+    const mousePos = Utils.getMousePosTouch(this.canvasElement, evt);
+    const x = mousePos.x;
+    const y = mousePos.y;
     /*const mousePos = this.getMousePos(this.element, evt);
     const x = mousePos.x;
     const y = mousePos.y;*/
@@ -133,10 +133,11 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit {
     const oldPos = this.pinchInfo.pinchPos;
 
     // go from screen to model coordinates
-    const modelPos = Utils.screenPosToModelPos({x, y}, this.ctx);
+    const oldModelPos = Utils.screenPosToModelPos(oldPos, this.ctx);
+    const modelPos = Utils.screenPosToModelPos(mousePos, this.ctx);
 
-    const xTranslate = x - oldPos.x;
-    const yTranslate = y - oldPos.y;
+    const xTranslate = modelPos.x - oldModelPos.x;
+    const yTranslate = modelPos.y - oldModelPos.y;
 
     this.ctx.translate(xTranslate, yTranslate);
     this.pinchInfo.pinchPos = {x, y};
@@ -157,9 +158,10 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit {
     this.indicators.gestureIndicators = [];
     this.indicators.display(evt.center.x, evt.center.y, 50);
 
-    const rect = this.canvasElement.getBoundingClientRect();
-    const x: number = evt.center.x - rect.left;
-    const y: number = evt.center.y - rect.top;
+    const mousePos = Utils.getMousePosTouch(this.canvasElement, evt);
+    const x = mousePos.x;
+    const y = mousePos.y;
+
     this.pinchInfo.pinchScale = 1.;
     this.pinchInfo.pinchPos = {x, y};
   }
