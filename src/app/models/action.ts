@@ -11,6 +11,7 @@ export abstract class Action {
 
     abstract perform(): void;
     abstract reverse(): void;
+    abstract setData(info): void;
 
     join(action: Action): boolean {
         return false;
@@ -31,8 +32,14 @@ export abstract class SegmentationAction extends Action {
         this.segmentationData = segmentationData;
     }
 
-    setSegmentationData(segmentationData: SegmentationData) {
-        this.segmentationData = segmentationData;
+    setData(info) {
+        const segData = info.segmentationData;
+
+        if (!segData) {
+            throw new Error('Illegal relinking of segmentation action! No segmentation data available!');
+        }
+
+        this.segmentationData = info.segmentationData;
     }
 
     protected get polygonList() {
@@ -257,6 +264,13 @@ export class JointAction extends Action{
             act.reverse();
         }
     }
+
+    setData(info) {
+        for (const act of this.actions) {
+            act.setData(info);
+        }
+    }
+}
 }
 
 /**
@@ -362,13 +376,11 @@ export class ActionManager {
         return this.actions.length > this.currentActionPointer;
     }
 
-    reapplyActions(segmentationData: SegmentationData) {
+    reapplyActions(info) {
         for (let i = 0; i < this.currentActionPointer; i++) {
             const action = this.actions[i];
 
-            if (action instanceof SegmentationAction) {
-                action.setSegmentationData(segmentationData);
-            }
+            action.setData(info);
 
             action.perform();
         }

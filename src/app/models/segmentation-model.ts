@@ -62,7 +62,7 @@ export class SegmentationModel {
         this.clear();
 
         // reapply actions from action manager
-        this.actionManager.reapplyActions(this.segmentationData);
+        this.actionManager.reapplyActions({segmentationData: this.segmentationData});
 
         this.actionManager.onDataChanged = (actionManager: ActionManager) => {
             this.actionManagerChanged(actionManager);
