@@ -33,6 +33,19 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   _activeView = 0;
   urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg'];
 
+  _editMode: EditMode = EditMode.Segmentation;
+
+  get editMode(): EditMode {
+    return this._editMode;
+  }
+
+  set editMode(value: EditMode) {
+    this._editMode = value;
+
+    this.draw(this.ctx);
+  }
+
+
   constructor(private toastController: ToastController) {
   }
 

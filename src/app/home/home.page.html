@@ -4,15 +4,19 @@
       Segmentation
     </ion-title>
       <ion-buttons slot="end">
-          <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px">
-            <ion-icon name="arrow-undo-outline"></ion-icon>
-          </ion-button>
-          <ion-button [disabled]="!canRedo" (click)="redo()" style="padding-right:10xpx">
-            <ion-icon name="arrow-redo-outline"></ion-icon>
-          </ion-button>
-          <ion-button (click)="done()">
-            <ion-icon name="checkmark-outline"></ion-icon>
-          </ion-button>
+        <ion-select [(ngModel)]="editMode" interface="action-sheet">
+          <ion-select-option value="0">Segment</ion-select-option>
+          <ion-select-option value="1">Track</ion-select-option>
+        </ion-select>
+        <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px">
+          <ion-icon name="arrow-undo-outline"></ion-icon>
+        </ion-button>
+        <ion-button [disabled]="!canRedo" (click)="redo()" style="padding-right:10xpx">
+          <ion-icon name="arrow-redo-outline"></ion-icon>
+        </ion-button>
+        <ion-button (click)="done()">
+          <ion-icon name="checkmark-outline"></ion-icon>
+        </ion-button>
       </ion-buttons>
   </ion-toolbar>
 </ion-header>
