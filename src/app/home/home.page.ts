@@ -190,6 +190,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
 
     if (!restored) {
+      // clear segmentation lists
+      this.segmentationModels = [];
+      this.segmentationUIs = [];
+
       for (const url of this.urls) {
         const segModel = new SegmentationModel(url);
         segModel.onModelChange.subscribe((segModel: SegmentationModel) => {
