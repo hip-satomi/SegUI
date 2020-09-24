@@ -107,7 +107,11 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit {
       this.pinchInfo.pinchPos = newPos;
 
       this.draw();
+
+      return false;
     }
+
+    return this.interactor.onMove(event);
   }
 
     /**
