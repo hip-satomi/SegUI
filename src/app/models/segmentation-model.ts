@@ -1,3 +1,4 @@
+import { EventEmitter } from '@angular/core';
 import { SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
 import { Polygon } from './geometry';
@@ -102,9 +103,31 @@ export class SegmentationModel {
      * 
      * @param ctx canvas context to draw onto
      */
-    draw(ctx) {
+    draw(ctx, markActive = true) {
         for (const [index, polygon] of this.polygons.entries()) {
-          UIUtils.drawSingle(polygon.points, index === this.activePolygonIndex, ctx, polygon.getColor());
+            if (markActive) {
+                UIUtils.drawSingle(polygon.points, index === this.activePolygonIndex, ctx, polygon.getColor());
+            } else {
+                UIUtils.drawSingle(polygon.points, false, ctx, polygon.getColor());
+            }
+        }
+        ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+    }
+
+    drawAdvanced(ctx, colorGenerator: (polygon: Polygon) => string = (poly: Polygon) => poly.getColor()) {
+        const markActive = false;
+
+        for (const [index, polygon] of this.polygons.entries()) {
+            if (polygon.numPoints === 0) {
+                continue;
+            }
+
+            if (markActive) {
+                UIUtils.drawSingle(polygon.points, index === this.activePolygonIndex, ctx, colorGenerator(polygon));
+            } else {
+                UIUtils.drawSingle(polygon.points, false, ctx, colorGenerator(polygon));
+            }
+            UIUtils.drawCircle(ctx, polygon.center, 4, '#00FF00');
         }
         ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
     }

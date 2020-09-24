@@ -1,8 +1,8 @@
-import { UIInteraction } from './drawing';
+import { UIInteraction, Drawer } from './drawing';
 import { AddPointAction, MovePointAction } from './action';
-import { Utils } from './utils';
+import { UIUtils, Utils } from './utils';
 import { SegmentationModel } from './segmentation-model';
-export class SegmentationUI implements UIInteraction {
+export class SegmentationUI implements UIInteraction, Drawer {
 
     segmentationModel: SegmentationModel;
     canvasElement;
@@ -124,7 +124,10 @@ export class SegmentationUI implements UIInteraction {
             toast.present();*/
           } else {
             this.segmentationModel.addNewPolygon();
-            this.segmentationModel.onModelChange(this.segmentationModel);
           }
+    }
+
+    draw(ctx) {
+        this.segmentationModel.draw(ctx);
     }
 }
