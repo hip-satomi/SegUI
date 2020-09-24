@@ -6,7 +6,7 @@ import { ImageDisplayComponent } from './../components/image-display/image-displ
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SegmentationModel } from './../models/segmentation-model';
-import { ToastController } from '@ionic/angular';
+import { ActionSheetController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
