@@ -433,4 +433,76 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     return this.imageDisplay.ctx;
   }
 
+  /**
+   * Shows ui to delete storage
+   */
+  async deleteStorage() {
+    const actionSheet = await this.actionSheetController.create({
+      header: 'Delete Storage',
+      cssClass: 'my-custom-class',
+      buttons: [{
+        text: 'Delete Segmentation (also deletes Tracking)',
+        role: 'destructive',
+        icon: 'trash',
+        handler: () => {
+          console.log('Delete Segmentation clicked');
+
+          this.deleteSegmentation();
+        }
+      }, {
+        text: 'Delete Tracking',
+        role: 'destructive',
+        icon: 'trash',
+        handler: () => {
+          console.log('Delete tracking clicked');
+          this.deleteTracking();
+        }
+      }, {
+        text: 'Delete All',
+        role: 'destructive',
+        icon: 'trash',
+        handler: () => {
+          console.log('Delete storage clicked');
+
+          this.deleteCompleteStorage();
+        }
+      }, {
+        text: 'Cancel',
+        icon: 'close',
+        role: 'cancel',
+        handler: () => {
+          console.log('Cancel clicked');
+        }
+      }]
+    });
+    await actionSheet.present();
+  }
+
+  /**
+   * Deletes the segmentation storage
+   */
+  async deleteSegmentation() {
+    await Storage.remove({key: this.segKey});
+
+    this.load();
+  }
+
+  /**
+   * Deletes the tracking storage
+   */
+  async deleteTracking() {
+    await Storage.remove({key: this.trackingKey});
+
+    this.load();
+  }
+
+  /**
+   * Clears complete storage
+   */
+  async deleteCompleteStorage() {
+    await Storage.clear();
+
+    this.load();
+  }
+
 }
