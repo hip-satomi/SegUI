@@ -84,9 +84,9 @@ export class ImageViewComponent implements OnInit, AfterViewInit {
 
     this.image.src = this.imageUrl;
 
-    this.segmentationModel.onModelChange = (segmentationModel: SegmentationModel) => {
+    this.segmentationModel.onModelChange.subscribe((segmentationModel: SegmentationModel) => {
       this.onSegModelChange(segmentationModel);
-    };
+    });
 
     if (this.segmentationModel.polygons.length === 0) {
         this.addAction(new AddEmptyPolygon(this.segmentationModel, UIUtils.randomColor()));
