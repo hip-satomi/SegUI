@@ -45,6 +45,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   /** Key where the tracking data is stored */
   trackingKey = 'tracking';
 
+  justTapped = false;
+
   _activeView = 0;
   //urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg'];
 
@@ -73,6 +75,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   onTap(event: any) {
+    this.justTapped = true;
+
     if (this.isSegmentation) {
       this.curSegUI.onTap(event);
     } else {
@@ -100,10 +104,14 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
   onMove(event: any) {
-    if (this.isSegmentation) {
-      this.curSegUI.onMove(event);
-    } else if (this.trackingUI) {
-      this.trackingUI.onMove(event);
+    if (this.justTapped) {
+      this.justTapped = false;
+    } else {
+      if (this.isSegmentation) {
+        this.curSegUI.onMove(event);
+      } else if (this.trackingUI) {
+        this.trackingUI.onMove(event);
+      }
     }
   }
 
