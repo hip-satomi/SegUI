@@ -89,6 +89,10 @@ export class TrackingUI implements UIInteraction, Drawer {
     }
 
     async onTap(event: any) {
+        if (!this.canTrack) {
+            return;
+        }
+
         // we have to check whether we did hit a polygon of the current frame
         const mouseModelPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
 
@@ -139,6 +143,10 @@ export class TrackingUI implements UIInteraction, Drawer {
     }
 
     onMove(event: any) {
+        if (!this.canTrack) {
+            return;
+        }
+
         const frame = (this.selectSource) ? this.currentFrame : this.currentFrame + 1;
 
         const mouseModelPos = Utils.screenPosToModelPos(Utils.getMousePosMouse(this.canvasElement, event), this.ctx);
@@ -156,6 +164,8 @@ export class TrackingUI implements UIInteraction, Drawer {
         this.trackingModel.onModelChanged.emit(new TrackingChangedEvent(this.trackingModel, ChangeType.SOFT));
     }
 
+    get canTrack() {
+        return this.currentFrame + 1 < this.segmentationModels.length;
     }
 
     get combinedSelections() {
