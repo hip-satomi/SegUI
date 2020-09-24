@@ -95,9 +95,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         if (locHolder) {
             // if it works we will accept this as the new model
             for (const segModel of locHolder.segmentations) {
-              segModel.onModelChange = (segModel: SegmentationModel) => {
+              segModel.onModelChange.subscribe((segModel: SegmentationModel) => {
                 this.segModelChanged(segModel);
-              };
+              });
               this.segmentationModels.push(segModel);
               this.segmentationUIs.push(new SegmentationUI(segModel, this.imageDisplay.canvasElement));
             }
@@ -123,9 +123,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     if (!restored) {
       for (const url of this.urls) {
         const segModel = new SegmentationModel(url);
-        segModel.onModelChange = (segModel: SegmentationModel) => {
+        segModel.onModelChange.subscribe((segModel: SegmentationModel) => {
           this.segModelChanged(segModel);
-        };
+        });
         this.segmentationUIs.push(new SegmentationUI(segModel, this.imageDisplay.canvasElement));
         this.segmentationModels.push(segModel);
       }

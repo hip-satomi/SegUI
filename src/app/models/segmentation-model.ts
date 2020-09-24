@@ -23,7 +23,7 @@ export class SegmentationModel {
     @jsonMember
     actionManager: ActionManager;
 
-    onModelChange: (SegmentationModel) => void;
+    onModelChange = new EventEmitter<SegmentationModel>();
 
     // this is the raw data for segmentation
     segmentationData: SegmentationData = new SegmentationData();
@@ -44,9 +44,9 @@ export class SegmentationModel {
         // load the image
         this.loadImage();
 
-        this.actionManager.onDataChanged = (actionManager: ActionManager) => {
+        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
             this.actionManagerChanged(actionManager);
-        };
+        });
     }
 
     /**
@@ -64,15 +64,13 @@ export class SegmentationModel {
         // reapply actions from action manager
         this.actionManager.reapplyActions({segmentationData: this.segmentationData});
 
-        this.actionManager.onDataChanged = (actionManager: ActionManager) => {
+        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
             this.actionManagerChanged(actionManager);
-        };
+        });
     }
 
     actionManagerChanged(actionManager: ActionManager) {
-        if (this.onModelChange) {
-            this.onModelChange(this);
-        }
+        this.onModelChange.emit(this);
     }
 
     /**
@@ -86,9 +84,7 @@ export class SegmentationModel {
           this.imageLoaded = true;
 
           // notify that the model changed
-          if (this.onModelChange) {
-            this.onModelChange(this);
-          }
+          this.onModelChange.emit(this);
         };
 
         this.image.src = this.imageUrl;

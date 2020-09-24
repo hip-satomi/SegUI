@@ -287,7 +287,7 @@ export class ActionManager {
     @jsonMember
     currentActionPointer: number;
 
-    onDataChanged: (actionManager: ActionManager) => void;
+    onDataChanged = new EventEmitter<ActionManager>();
 
     constructor(actionTimeSplitThreshold: number) {
         this.actionTimeSplitThreshold = actionTimeSplitThreshold;
@@ -326,7 +326,7 @@ export class ActionManager {
 
     notifyDataChanged() {
         if (this.onDataChanged) {
-            this.onDataChanged(this);
+            this.onDataChanged.emit(this);
         }
     }
 
