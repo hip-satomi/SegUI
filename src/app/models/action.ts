@@ -476,9 +476,7 @@ export class ActionManager {
     }
 
     notifyDataChanged() {
-        if (this.onDataChanged) {
-            this.onDataChanged.emit(this);
-        }
+        this.onDataChanged.emit(this);
     }
 
     /**

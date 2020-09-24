@@ -1,13 +1,11 @@
 import { ToastController } from '@ionic/angular';
 import { SegmentationModel } from './segmentation-model';
-import { SelectSegmentAction } from './action';
-import { SegmentationData } from './segmentation-data';
+
 import { UIInteraction, Drawer } from './drawing';
 import { Utils, Position, UIUtils } from './utils';
 import { Polygon } from './geometry';
 import { TrackingChangedEvent, TrackingModel, ChangeType } from './tracking';
 import { SelectedSegment, TrackingLink } from './tracking-data';
-import { start } from 'repl';
 
 export class TrackingUI implements UIInteraction, Drawer {
 

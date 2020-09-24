@@ -127,7 +127,7 @@ export class SegmentationModel {
             } else {
                 UIUtils.drawSingle(polygon.points, false, ctx, colorGenerator(polygon));
             }
-            UIUtils.drawCircle(ctx, polygon.center, 4, '#00FF00');
+            //UIUtils.drawCircle(ctx, polygon.center, 4, '#00FF00');
         }
         ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
     }

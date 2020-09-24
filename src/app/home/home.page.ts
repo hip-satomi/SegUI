@@ -1,5 +1,5 @@
 import { TrackingUI } from './../models/tracking-ui';
-import { TrackingModel } from './../models/tracking';
+import { ChangeType, TrackingChangedEvent, TrackingModel } from './../models/tracking';
 import { TypedJSON, jsonArrayMember, jsonObject } from 'typedjson';
 import { UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
