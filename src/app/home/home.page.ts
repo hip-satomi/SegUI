@@ -1,3 +1,5 @@
+import { TrackingUI } from './../models/tracking-ui';
+import { TrackingModel } from './../models/tracking';
 import { TypedJSON, jsonArrayMember, jsonObject } from 'typedjson';
 import { UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
@@ -10,6 +12,11 @@ import { Component, ViewChild, OnInit, AfterViewInit } from '@angular/core';
 import { Plugins } from '@capacitor/core';
 
 const { Storage } = Plugins;
+
+enum EditMode {
+  Segmentation = '0',
+  Tracking = '1'
+}
 
 @jsonObject
 class SegmentationHolder {
@@ -30,8 +37,19 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   segmentationModels: SegmentationModel[] = [];
   segmentationUIs: SegmentationUI[] = [];
 
+  trackingModel: TrackingModel;
+  trackingUI: TrackingUI;
+
   _activeView = 0;
-  urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg'];
+  //urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg'];
+
+  urls = ['../assets/sequence/image0.png',
+          '../assets/sequence/image1.png',
+          '../assets/sequence/image2.png',
+          '../assets/sequence/image3.png',
+          '../assets/sequence/image4.png',
+          '../assets/sequence/image5.png',
+          '../assets/sequence/image6.png'];
 
   _editMode: EditMode = EditMode.Segmentation;
 
@@ -50,22 +68,45 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   onTap(event: any) {
-    this.curSegUI.onTap(event);
+    if (this.isSegmentation) {
+      this.curSegUI.onTap(event);
+    } else {
+      this.trackingUI.onTap(event);
+    }
   }
   onPress(event: any) {
-    this.curSegUI.onPress(event);
+    if (this.isSegmentation) {
+      this.curSegUI.onPress(event);
+    }
   }
   onPanStart(event: any) {
-    this.curSegUI.onPanStart(event);
+    if (this.isSegmentation) {
+      this.curSegUI.onPanStart(event);
+    }
   }
   onPan(event: any) {
-    this.curSegUI.onPan(event);
+    if (this.isSegmentation) {
+      this.curSegUI.onPan(event);
+    }
   }
   onPanEnd(event: any) {
-    this.curSegUI.onPanEnd(event);
+    if (this.isSegmentation) {
+      this.curSegUI.onPanEnd(event);
+    }
+  }
+  onMove(event: any) {
+    if (this.isSegmentation) {
+      this.curSegUI.onMove(event);
+    } else if (this.trackingUI) {
+      this.trackingUI.onMove(event);
+    }
   }
 
   ngOnInit() {
+  }
+
+  get isSegmentation() {
+    return this.editMode === EditMode.Segmentation;
   }
 
   get curSegUI(): SegmentationUI {
@@ -136,6 +177,16 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       });
       toast.present();
     }
+
+    this.trackingModel = new TrackingModel();
+    this.trackingUI = new TrackingUI(this.segmentationModels, this.trackingModel, this.imageDisplay.canvasElement, this.toastController);
+    this.trackingUI.canvasElement = this.imageDisplay.canvasElement;
+    this.trackingUI.ctx = this.imageDisplay.ctx;
+    this.trackingUI.toastController = this.toastController;
+    this.trackingUI.currentFrame = this.activeView;
+    this.trackingModel.onModelChanged.subscribe((trackingModel: TrackingModel) => {
+      this.draw(this.ctx);
+    });
   }
 
   async undo() {
@@ -144,34 +195,44 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       duration: 2000
     });
     toast.present();*/
-    if (this.curSegModel) {
+    if (this.editMode === EditMode.Segmentation && this.curSegModel) {
       this.curSegModel.undo();
+    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
+      this.trackingUI.undo();
     }
   }
 
   async redo() {
-    if (this.curSegModel) {
+    if (this.editMode === EditMode.Segmentation && this.curSegModel) {
       this.curSegModel.redo();
+    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
+      this.trackingUI.redo();
     }
   }
 
   async done() {
-    if (this.curSegUI) {
+    if (this.editMode === EditMode.Segmentation && this.curSegUI) {
       this.curSegUI.save();
+    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
+      this.trackingUI.save();
     }
   }
 
   get canRedo() {
-    if (this.curSegModel) {
+    if (this.editMode === EditMode.Segmentation && this.curSegModel) {
       return this.curSegModel.actionManager.canRedo;
+    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
+      return this.trackingUI.canRedo;
     }
 
     return false;
   }
 
   get canUndo() {
-    if (this.curSegModel) {
+    if (this.editMode === EditMode.Segmentation && this.curSegModel) {
       return this.curSegModel.actionManager.canUndo;
+    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
+      return this.trackingUI.canUndo;
     }
 
     return false;
@@ -207,6 +268,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   set activeView(viewIndex: number) {
     this._activeView = viewIndex;
+
+    this.trackingUI.currentFrame = this.activeView;
+
     this.draw(this.ctx);
   }
 
@@ -237,7 +301,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   draw(ctx) {
     this.imageDisplay.clear();
 
-    this.segmentationModels[this.activeView].draw(this.imageDisplay.ctx);
+    if (this.editMode === EditMode.Segmentation) {
+      // draw the segmentation stuff
+      this.segmentationUIs[this.activeView].draw(ctx);
+    } else {
+      this.trackingUI.draw(ctx);
+    }
   }
 
   get ctx() {
