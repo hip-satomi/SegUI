@@ -231,12 +231,6 @@ export class TrackingUI implements UIInteraction, Drawer {
 
         this.hoverPoly?.drawCenter(canvasContext, 'rgb(255, 0, 0)', 4);
 
-        if (!this.selectSource && this.hoverPoly) {
-            const startCenter = this.segmentationModels[this.sourceSelection.frame].polygons[this.sourceSelection.polygonIndex].center;
-            const destCenter = this.hoverPoly.center;
-
-            UIUtils.drawLine(canvasContext, startCenter, destCenter, 'rgba(255, 0, 0, 0.2)');
-        }
 
         if (this.selectSource) {
             // we simply draw the source image + segmentations
