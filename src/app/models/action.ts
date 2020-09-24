@@ -279,6 +279,7 @@ export class JointAction extends Action{
  * 
  * works on tracking data
  */
+@jsonObject
 export abstract class TrackingAction extends Action {
 
     protected trackingData: TrackingData;
@@ -300,6 +301,7 @@ export abstract class TrackingAction extends Action {
 /**
  * Select a segmentation during the tracking process
  */
+@jsonObject
 export class SelectSegmentAction extends TrackingAction {
     @jsonMember
     selection: SelectedSegment;
@@ -318,6 +320,7 @@ export class SelectSegmentAction extends TrackingAction {
     }
 }
 
+@jsonObject
 export class UnselectSegmentAction extends TrackingAction {
     @jsonMember
     selection: SelectedSegment;
@@ -344,6 +347,7 @@ export class UnselectSegmentAction extends TrackingAction {
 /**
  * Add a link during the tracking process
  */
+@jsonObject
 export class AddLinkAction extends TrackingAction {
 
     @jsonMember
@@ -354,6 +358,11 @@ export class AddLinkAction extends TrackingAction {
 
     constructor(trackingData: TrackingData) {
         super(trackingData);
+
+        if (!trackingData) {
+            // restoring from json
+            return;
+        }
 
         // generate link from selection
         const frames = new Set<number>();
