@@ -40,6 +40,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   trackingModel: TrackingModel;
   trackingUI: TrackingUI;
 
+  /** Key where the segmentation data is stored */
+  segKey = 'segmentations';
+  /** Key where the tracking data is stored */
+  trackingKey = 'tracking';
+
   _activeView = 0;
   //urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg'];
 
@@ -136,7 +141,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     const serializer = new TypedJSON(SegmentationHolder);
 
     Storage.set({
-      key: 'segmentations',
+      key: this.segKey,
       value: serializer.stringify(holder)
     });
   }
@@ -149,7 +154,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
     const serializer = new TypedJSON(SegmentationHolder);
 
-    const jsonString = await Storage.get({key: 'segmentations'});
+    const jsonString = await Storage.get({key: this.segKey});
 
     if (jsonString) {
       try {
@@ -235,7 +240,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     console.log(jsonString);
 
     Storage.set({
-      key: 'tracking',
+      key: this.trackingKey,
       value: jsonString
     });
   }
@@ -253,7 +258,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
     const serializer = new TypedJSON(TrackingModel);
 
-    const jsonString = (await Storage.get({key: 'tracking'})).value;
+    const jsonString = (await Storage.get({key: this.trackingKey})).value;
 
     if (jsonString) {
       const locTracking = serializer.parse(jsonString);
