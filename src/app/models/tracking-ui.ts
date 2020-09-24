@@ -215,7 +215,7 @@ export class TrackingUI implements UIInteraction, Drawer {
         // draw the existing links
         const prefilteredLinks = this.trackingModel.trackingData.trackingLinks.filter((trackingLink: TrackingLink) => {
             return trackingLink.source.frame >= this.currentFrame - this.preHistory
-                    && trackingLink.source.frame <= this.currentFrame + this.postFuture;
+                    && trackingLink.source.frame < this.currentFrame + this.postFuture;
         });
         for (const link of prefilteredLinks) {
             const source = link.source;

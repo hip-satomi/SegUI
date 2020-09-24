@@ -17,6 +17,7 @@ export class SelectedSegment {
 export class TrackingLink {
     @jsonMember
     source: SelectedSegment;
+
     @jsonArrayMember(SelectedSegment)
     targets: SelectedSegment[];
 
