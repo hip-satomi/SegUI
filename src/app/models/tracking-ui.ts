@@ -5,7 +5,7 @@ import { SegmentationData } from './segmentation-data';
 import { UIInteraction, Drawer } from './drawing';
 import { Utils, Position, UIUtils } from './utils';
 import { Polygon } from './geometry';
-import { TrackingModel } from './tracking';
+import { TrackingChangedEvent, TrackingModel, ChangeType } from './tracking';
 import { SelectedSegment, TrackingLink } from './tracking-data';
 import { start } from 'repl';
 
@@ -153,7 +153,9 @@ export class TrackingUI implements UIInteraction, Drawer {
 
         this.hoverPoly = poly;
 
-        this.trackingModel.onModelChanged.emit(this.trackingModel);
+        this.trackingModel.onModelChanged.emit(new TrackingChangedEvent(this.trackingModel, ChangeType.SOFT));
+    }
+
     }
 
     get combinedSelections() {

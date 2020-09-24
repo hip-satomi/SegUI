@@ -2,7 +2,21 @@ import { TrackingData, SelectedSegment } from './tracking-data';
 import { jsonMember, jsonObject } from 'typedjson';
 import { ActionManager, AddLinkAction, SelectSegmentAction, UnselectSegmentAction } from './action';
 import { EventEmitter } from '@angular/core';
-import { Action } from 'rxjs/internal/scheduler/Action';
+
+export enum ChangeType {
+    SOFT,
+    HARD
+};
+
+export class TrackingChangedEvent {
+    trackingModel: TrackingModel;
+    changeType: ChangeType;
+
+    constructor(trackingModel: TrackingModel, changeType = ChangeType.HARD) {
+        this.trackingModel = trackingModel;
+        this.changeType = changeType;
+    }
+}
 
 @jsonObject({onDeserialized: 'onDeserialized'})
 export class TrackingModel {
@@ -12,11 +26,11 @@ export class TrackingModel {
     @jsonMember
     actionManager: ActionManager = new ActionManager(0.25);
 
-    onModelChanged = new EventEmitter<TrackingModel>();
+    onModelChanged = new EventEmitter<TrackingChangedEvent>();
 
     constructor() {
         this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
-            this.onModelChanged.emit();
+            this.onModelChanged.emit(new TrackingChangedEvent(this));
         });
     }
 
@@ -24,7 +38,7 @@ export class TrackingModel {
         this.actionManager.reapplyActions({'trackingData': this.trackingData});
 
         this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
-            this.onModelChanged.emit();
+            this.onModelChanged.emit(new TrackingChangedEvent(this));
         });
     }
 
