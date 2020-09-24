@@ -26,6 +26,9 @@ export class TrackingUI implements UIInteraction, Drawer {
     postFuture = 1;
 
     standardTrackingColor = 'rgba(255, 255, 0, 0.5)';
+    selectedSourceColor = 'rgba(130, 130, 130, 0.8)';
+    existingLinkColor = 'rgba(255, 0, 0, 0.5)';
+    currentLinkColor = 'rgba(255, 0, 0, 1)';
 
 
     constructor(segmentationModels: SegmentationModel[], trackingModel: TrackingModel, canvasElement, toastController: ToastController) {
@@ -191,7 +194,7 @@ export class TrackingUI implements UIInteraction, Drawer {
         // draw selected source segmentation
         for (const poly of sourcePolys) {
             // TODO draw source selection differently (e.g. gray)
-            poly.drawAdvanced(canvasContext, false, 'rgba(130, 130, 130, 0.8)');
+            poly.drawAdvanced(canvasContext, false, this.selectedSourceColor);
         }
         
         // draw selected target segmentations
@@ -205,7 +208,7 @@ export class TrackingUI implements UIInteraction, Drawer {
                 const startCenter = sPoly.center;
                 const destCenter = tPoly.center;
 
-                UIUtils.drawLine(canvasContext, startCenter, destCenter, 'rgba(255, 0, 0, 1)', 2);
+                UIUtils.drawLine(canvasContext, startCenter, destCenter, this.currentLinkColor, 2);
             }
         }
 
@@ -225,7 +228,7 @@ export class TrackingUI implements UIInteraction, Drawer {
                 const sourceCenter = sourcePoly.center;
                 const targetCenter = targetPoly.center;
 
-                UIUtils.drawLine(canvasContext, sourceCenter, targetCenter, 'rgba(255, 0, 0, 0.5)', 1);
+                UIUtils.drawLine(canvasContext, sourceCenter, targetCenter, this.existingLinkColor, 1);
             }
         }
 
