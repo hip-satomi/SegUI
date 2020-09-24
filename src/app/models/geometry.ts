@@ -1,5 +1,6 @@
-import { Position, pairwiseDistanceMin, dotLineLength } from './utils';
+import { Position, pairwiseDistanceMin, dotLineLength, UIUtils } from './utils';
 const inside = require('point-in-polygon');
+import { mean } from 'mathjs';
 
 type Point = [number, number];
 export class Polygon {
@@ -70,8 +71,24 @@ export class Polygon {
         };
     }
 
+    draw(ctx, active = false) {
+        UIUtils.drawSingle(this.points, active, ctx, this.color);
+    }
+
+    drawAdvanced(ctx, active = false, color) {
+        UIUtils.drawSingle(this.points, active, ctx, color);
+    }
+
+    drawCenter(ctx, color, radius) {
+        UIUtils.drawCircle(ctx, this.center, radius, color);
+    }
+
     get numPoints(): number {
         return this.points.length;
+    }
+
+    get center(): Point {
+        return mean(this.points, 0);
     }
 }
 

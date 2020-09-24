@@ -171,9 +171,35 @@ export class UIUtils {
     ctx.closePath();
 
     // perform the filling
-    const fillColor = hexToRgb(color);
-    ctx.fillStyle = 'rgba(' + fillColor.r + ',' + fillColor.g + ',' + fillColor.b + ',0.3)';
+    if (!color.startsWith('rgb')) {
+      const fillColor = hexToRgb(color);
+      ctx.fillStyle = 'rgba(' + fillColor.r + ',' + fillColor.g + ',' + fillColor.b + ',0.3)';
+    } else {
+      ctx.fillStyle = color;
+    }
     ctx.fill();
+    ctx.stroke();
+  }
+
+  static drawCircle(ctx, center: [number, number], radius: number, color) {
+    ctx.beginPath();
+    ctx.arc(center[0], center[1], radius, 0, 2 * Math.PI, false);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#003300';
+    ctx.stroke();
+  }
+
+  static drawLine(ctx, start: [number, number], stop: [number, number], color, lineWidth = 2) {
+    ctx.beginPath();
+    ctx.moveTo(start[0], start[1]);
+    ctx.lineTo(stop[0], stop[1]);
+    ctx.closePath();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
     ctx.stroke();
   }
 

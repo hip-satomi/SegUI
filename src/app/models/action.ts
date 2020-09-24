@@ -1,3 +1,5 @@
+import { EventEmitter } from '@angular/core';
+import { SelectedSegment, TrackingData, TrackingLink } from './tracking-data';
 import { SegmentationData } from './segmentation-data';
 import { Polygon } from 'src/app/models/geometry';
 import 'reflect-metadata';
@@ -271,6 +273,146 @@ export class JointAction extends Action{
         }
     }
 }
+
+/**
+ * Basic tracking action
+ * 
+ * works on tracking data
+ */
+export abstract class TrackingAction extends Action {
+
+    protected trackingData: TrackingData;
+
+    constructor(trackingData: TrackingData) {
+        super();
+        this.trackingData = trackingData;
+    }
+
+    setData(info) {
+        if (!info.trackingData) {
+            throw new Error('Illegal relinking of tracking action! No tracking data available');
+        }
+
+        this.trackingData = info.trackingData;
+    }
+}
+
+/**
+ * Select a segmentation during the tracking process
+ */
+export class SelectSegmentAction extends TrackingAction {
+    @jsonMember
+    selection: SelectedSegment;
+
+    constructor(selectedSegment: SelectedSegment, trackingData: TrackingData) {
+        super(trackingData);
+        this.selection = selectedSegment;
+    }
+
+    perform() {
+        this.trackingData.selectedSegments.push(this.selection);
+    }
+
+    reverse() {
+        this.trackingData.selectedSegments.pop();
+    }
+}
+
+export class UnselectSegmentAction extends TrackingAction {
+    @jsonMember
+    selection: SelectedSegment;
+
+    constructor(selectedSegment: SelectedSegment, trackingData: TrackingData) {
+        super(trackingData);
+
+        this.selection = selectedSegment;
+    }
+
+    perform() {
+        for (const [index, item] of this.trackingData.selectedSegments.entries()) {
+            if (item.frame === this.selection.frame && item.polygonIndex === this.selection.polygonIndex) {
+                this.trackingData.selectedSegments.splice(index, 1);
+            }
+        }
+    }
+
+    reverse() {
+        this.trackingData.selectedSegments.push(this.selection);
+    }
+}
+
+/**
+ * Add a link during the tracking process
+ */
+export class AddLinkAction extends TrackingAction {
+
+    @jsonMember
+    link: TrackingLink;
+
+    @jsonArrayMember(UnselectSegmentAction)
+    unselections: UnselectSegmentAction[] = [];
+
+    constructor(trackingData: TrackingData) {
+        super(trackingData);
+
+        // generate link from selection
+        const frames = new Set<number>();
+        for (const segment of trackingData.selectedSegments) {
+            frames.add(segment.frame);
+        }
+
+        if (frames.size !== 2) {
+            throw new Error('wrong frame selection');
+        }
+
+        const sourceFrame = Math.min(...frames);
+        const targetFrame = Math.max(...frames);
+
+        const sourceSelections = [];
+        const targetSelections = [];
+
+        for (const segment of trackingData.selectedSegments) {
+            if (segment.frame === sourceFrame) {
+                sourceSelections.push(segment);
+            } else {
+                targetSelections.push(segment);
+            }
+        }
+
+        if (sourceSelections.length !== 1) {
+            throw new Error('Do not support multi selections');
+        }
+
+        this.link = new TrackingLink(sourceSelections[0], targetSelections);
+
+        for (const segment of trackingData.selectedSegments) {
+            this.unselections.push(new UnselectSegmentAction(segment, this.trackingData));
+        }
+    }
+
+    setData(info) {
+        super.setData(info);
+
+        for (const unsel of this.unselections) {
+            unsel.setData(info);
+        }
+    }
+
+    perform() {
+        this.trackingData.trackingLinks.push(this.link);
+
+        for (const unsel of this.unselections) {
+            unsel.perform();
+        }
+    }
+
+    reverse() {
+        this.trackingData.trackingLinks.pop();
+
+        for (const unsel of this.unselections) {
+            unsel.reverse();
+        }
+    }
 }
 
 /**
@@ -278,7 +420,7 @@ export class JointAction extends Action{
  * 
  * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions (https://github.com/JohnWeisz/TypedJSON/blob/master/spec/polymorphism-abstract-class.spec.ts)
  */
-@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon, MovePointAction]})
+@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon, MovePointAction, SelectSegmentAction, AddLinkAction, UnselectSegmentAction]})
 export class ActionManager {
 
     @jsonArrayMember(Action)
