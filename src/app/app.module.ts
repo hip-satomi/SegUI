@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { NgModule, Injectable } from '@angular/core';
 import { BrowserModule, HammerModule } from '@angular/platform-browser';
 import { RouteReuseStrategy } from '@angular/router';
 
@@ -11,6 +11,16 @@ import { AppRoutingModule } from './app-routing.module';
 
 import { AngularResizedEventModule } from 'angular-resize-event';
 
+import { HammerGestureConfig, HAMMER_GESTURE_CONFIG} from '@angular/platform-browser';
+
+@Injectable({providedIn: 'root'})
+export class MyHammerConfig extends HammerGestureConfig  {
+  overrides = {
+      // override hammerjs default configuration
+      'pan': {threshold: 5},
+  };
+}
+
 @NgModule({
   declarations: [AppComponent],
   entryComponents: [],
@@ -18,7 +28,11 @@ import { AngularResizedEventModule } from 'angular-resize-event';
   providers: [
     StatusBar,
     SplashScreen,
-    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy }
+    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+    {
+      provide: HAMMER_GESTURE_CONFIG,
+      useClass: MyHammerConfig
+    }
   ],
   bootstrap: [AppComponent]
 })
