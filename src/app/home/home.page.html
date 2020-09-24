@@ -4,6 +4,9 @@
       Segmentation
     </ion-title>
       <ion-buttons slot="end">
+        <ion-button (click)="deleteStorage()" style="padding-right:10px">
+          <ion-icon name="trash-outline"></ion-icon>
+        </ion-button>
         <ion-select [(ngModel)]="editMode" interface="action-sheet">
           <ion-select-option value="0">Segment</ion-select-option>
           <ion-select-option value="1">Track</ion-select-option>
