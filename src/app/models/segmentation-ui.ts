@@ -111,6 +111,10 @@ export class SegmentationUI implements UIInteraction {
         this.draggingPointIndex = -1;
     }
 
+    onMove(event) {
+        // TODO: should show drag cursor
+    }
+
     save() {
         if (this.segmentationModel.activePolygon.numPoints === 0) {
             /*const toast = await this.toastController.create({

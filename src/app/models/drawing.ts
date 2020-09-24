@@ -10,4 +10,6 @@ export interface UIInteraction {
     onPanStart(event);
     onPan(event);
     onPanEnd(event);
+
+    onMove(event);
 }
