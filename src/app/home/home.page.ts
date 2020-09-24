@@ -69,7 +69,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
 
-  constructor(private toastController: ToastController) {
+  constructor(private toastController: ToastController, private actionSheetController: ActionSheetController) {
   }
 
   onTap(event: any) {
