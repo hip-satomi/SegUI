@@ -127,7 +127,24 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.load();
   }
 
-  async load() {
+  segModelChanged(segModel: SegmentationModel) {
+    this.draw(this.ctx);
+
+    const holder = new SegmentationHolder();
+    holder.segmentations = this.segmentationModels;
+
+    const serializer = new TypedJSON(SegmentationHolder);
+
+    Storage.set({
+      key: 'segmentations',
+      value: serializer.stringify(holder)
+    });
+  }
+
+  /**
+   * returns true iff an existing segmentation was restored
+   */
+  async restoreSegmentation(): Promise<boolean> {
     let restored = false;
 
     const serializer = new TypedJSON(SegmentationHolder);
@@ -182,17 +199,101 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         duration: 2000
       });
       toast.present();
+
+      return false;
     }
 
-    this.trackingModel = new TrackingModel();
+    return true;
+  }
+
+  initTracking(createNewTrackingModel = true) {
+    if (createNewTrackingModel) {
+      this.trackingModel = new TrackingModel();
+    }
     this.trackingUI = new TrackingUI(this.segmentationModels, this.trackingModel, this.imageDisplay.canvasElement, this.toastController);
     this.trackingUI.canvasElement = this.imageDisplay.canvasElement;
     this.trackingUI.ctx = this.imageDisplay.ctx;
     this.trackingUI.toastController = this.toastController;
     this.trackingUI.currentFrame = this.activeView;
-    this.trackingModel.onModelChanged.subscribe((trackingModel: TrackingModel) => {
-      this.draw(this.ctx);
+    this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: TrackingChangedEvent) => {
+      if (trackingChangedEvent.changeType === ChangeType.SOFT) {
+        // if there are only soft changes we will just redraw
+        this.draw(this.ctx);
+      } else {
+        // if there are hard changes in the model we will drwa & save
+        this.draw(this.ctx);
+        this.storeTracking();
+      }
     });
+  }
+
+  async storeTracking() {
+    const serializer = new TypedJSON(TrackingModel);
+
+    const jsonString =  serializer.stringify(this.trackingModel);
+
+    console.log(jsonString);
+
+    Storage.set({
+      key: 'tracking',
+      value: jsonString
+    });
+  }
+
+  async restoreTracking(segRestored: boolean) {
+
+    if (!segRestored) {
+      // if the segmentation could not be restored then we can not restore any tracking
+      // --> create a new one
+      this.initTracking();
+      return false;
+    }
+
+    let restored = false;
+
+    const serializer = new TypedJSON(TrackingModel);
+
+    const jsonString = (await Storage.get({key: 'tracking'})).value;
+
+    if (jsonString) {
+      const locTracking = serializer.parse(jsonString);
+
+      if (locTracking) {
+        // copy tracking model and attach ui
+        this.trackingModel = locTracking;
+        this.initTracking(false);
+
+        restored = true;
+
+        // otherwise we notify the user and use the old segmentation model
+        const toast = await this.toastController.create({
+          message: 'Successfully restored tracking model',
+          duration: 2000
+        });
+        toast.present();
+      }
+    }
+
+    if (!restored) {
+      // there must have been something wrong during tracking restoring
+      // --> create a new one
+      this.initTracking();
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Restores a saved state or a newly initialized one
+   */
+  async load() {
+
+    // restore segmentation
+    const segRestored = await this.restoreSegmentation();
+
+    // restore tracking
+    this.restoreTracking(segRestored);
   }
 
   async undo() {
@@ -306,20 +407,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     console.log('slider changed');
     console.log(event);
     this.setImageIndex(event.detail.value);
-  }
-
-  segModelChanged(segModel: SegmentationModel) {
-    this.draw(this.ctx);
-
-    const holder = new SegmentationHolder();
-    holder.segmentations = this.segmentationModels;
-
-    const serializer = new TypedJSON(SegmentationHolder);
-
-    Storage.set({
-      key: 'segmentations',
-      value: serializer.stringify(holder)
-    });
   }
 
   draw(ctx) {
