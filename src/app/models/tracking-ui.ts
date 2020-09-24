@@ -264,15 +264,21 @@ export class TrackingUI implements UIInteraction, Drawer {
         return this.trackingModel.actionManager.canRedo;
     }
 
+    get canSave() {
+        return this.trackingModel.trackingData.selectedSegments.length >= 2;
+    }
+
     async save() {
-        this.trackingModel.addLink();
+        if (this.canSave) {
+            this.trackingModel.addLink();
 
-        const toast = await this.toastController.create({
-            message: 'Added link',
-            duration: 2000
-        });
+            const toast = await this.toastController.create({
+                message: 'Added link',
+                duration: 2000
+            });
 
-        toast.present();
+            toast.present();
+        }
     }
 
 }

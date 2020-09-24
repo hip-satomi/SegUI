@@ -14,7 +14,7 @@
         <ion-button [disabled]="!canRedo" (click)="redo()" style="padding-right:10xpx">
           <ion-icon name="arrow-redo-outline"></ion-icon>
         </ion-button>
-        <ion-button (click)="done()">
+        <ion-button [disabled]="!canSave" (click)="done()">
           <ion-icon name="checkmark-outline"></ion-icon>
         </ion-button>
       </ion-buttons>

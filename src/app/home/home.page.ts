@@ -102,6 +102,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
+  @HostListener('document:keydown.enter', ['$event'])
+  async saveKey(event) {
+    this.done();
+  }
+
+
   ngOnInit() {
   }
 
@@ -210,11 +216,29 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
-  async done() {
+  get canSave() {
     if (this.editMode === EditMode.Segmentation && this.curSegUI) {
-      this.curSegUI.save();
+      return this.curSegUI.canSave;
     } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-      this.trackingUI.save();
+      return this.trackingUI.canSave;
+    }
+
+    return false;
+  }
+
+  async done() {
+    if (this.canSave) {
+      if (this.editMode === EditMode.Segmentation && this.curSegUI) {
+        this.curSegUI.save();
+      } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
+        this.trackingUI.save();
+      }
+    } else {
+      const toast = await this.toastController.create({
+        message: 'Sorry but I cannot save the current state!',
+        duration: 2000
+      });
+      toast.present();
     }
   }
 

@@ -115,16 +115,14 @@ export class SegmentationUI implements UIInteraction, Drawer {
         // TODO: should show drag cursor
     }
 
+    get canSave(): boolean {
+        return this.segmentationModel.activePolygon.numPoints > 0;
+    }
+
     save() {
-        if (this.segmentationModel.activePolygon.numPoints === 0) {
-            /*const toast = await this.toastController.create({
-              message: 'Please perform a segmentation!',
-              duration: 2000
-            });
-            toast.present();*/
-          } else {
+        if (this.canSave) {
             this.segmentationModel.addNewPolygon();
-          }
+        }
     }
 
     draw(ctx) {
