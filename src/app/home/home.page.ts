@@ -120,6 +120,21 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.done();
   }
 
+  @HostListener('document:keydown.arrowleft')
+  moveLeft(event) {
+    if (this.canPrevImage) {
+      this.prevImage();
+    }
+  }
+
+  @HostListener('document:keydown.arrowright')
+  moveRight() {
+    if (this.canNextImage) {
+      this.nextImage();
+    }
+  }
+
+
 
   ngOnInit() {
   }
