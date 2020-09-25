@@ -146,7 +146,7 @@ export class SegmentationModel {
      * 
      * if there is  an empty polygon at the end, this one is used
      */
-    addNewPolygon() {
+    addNewPolygon(): string {
         let uuid = '';
 
         if (this.segmentationData.numPolygons === 0) {
@@ -172,6 +172,8 @@ export class SegmentationModel {
 
         // select the correct polygon
         this.addAction(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId));
+
+        return uuid;
     }
 
     /**

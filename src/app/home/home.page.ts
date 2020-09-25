@@ -134,6 +134,14 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
+  @HostListener('document:keydown.delete')
+  delete() {
+    if (this.isSegmentation) {
+      this.segmentationUIs[this.activeView].delete();
+    }
+  }
+
+
 
 
   ngOnInit() {

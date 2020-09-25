@@ -65,7 +65,7 @@ export class AddEmptyPolygon extends SegmentationAction {
 
     constructor(segmentationData: SegmentationData, color: string) {
         super(segmentationData);
-        
+
         this.color = color;
         this.uuid = uuidv4();
     }
@@ -80,6 +80,34 @@ export class AddEmptyPolygon extends SegmentationAction {
 
     reverse() {
         this.segmentationData.removePolygon(this.uuid);
+    }
+
+}
+
+@jsonObject
+export class RemovePolygon extends SegmentationAction {
+
+    @jsonMember
+    polygonId: string;
+
+    @jsonMember
+    polygon: Polygon;
+
+    constructor(segData: SegmentationData, polgonId: string) {
+        super(segData);
+
+        this.polygonId = polgonId;
+    }
+
+    perform() {
+        this.polygon = this.segmentationData.removePolygon(this.polygonId);
+    }
+
+    reverse() {
+        if (!this.polygon) {
+            throw Error('No polygon information available! Please make sure the action has been performed before it is reversed!');
+        }
+        this.segmentationData.addPolygon(this.polygonId, this.polygon);
     }
 
 }
@@ -147,6 +175,42 @@ export class AddPointAction extends SegmentationAction {
 
     reverse() {
         this.getPolygon(this.polygonId).removePoint(this.index);
+    }
+}
+
+@jsonObject
+export class RemovePointAction extends SegmentationAction {
+
+    @jsonMember
+    polygonId: string;
+    @jsonMember
+    pointIndex: number;
+
+    @jsonArrayMember(Number)
+    point: [number, number];
+
+    constructor(segData: SegmentationData, polygonId: string, pointIndex: number) {
+        super(segData);
+
+        if (!segData) {
+            // this is just loaded from json
+            return;
+        }
+
+        this.polygonId = polygonId;
+        this.pointIndex = pointIndex;
+
+        this.point = this.getPolygon(this.polygonId).getPoint(this.pointIndex);
+    }
+
+    perform() {
+        // remove point
+        this.getPolygon(this.polygonId).removePoint(this.pointIndex);
+    }
+
+    reverse() {
+        // add point
+        this.getPolygon(this.polygonId).addPoint(this.pointIndex, this.point);
     }
 }
 
@@ -249,38 +313,6 @@ export class MovePointAction extends SegmentationAction {
         }
 
         return false;
-    }
-}
-
-@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon]})
-export class JointAction extends Action{
-
-    @jsonArrayMember(Action)
-    actions: Action[];
-
-    constructor(...actions: Action[]) {
-        super();
-        this.actions = actions;
-    }
-
-    perform() {
-        for (const act of this.actions) {
-            act.perform();
-        }
-
-        this.updatePerformedTime();
-    }
-
-    reverse() {
-        for (const act of this.actions.slice().reverse()) {
-            act.reverse();
-        }
-    }
-
-    setData(info) {
-        for (const act of this.actions) {
-            act.setData(info);
-        }
     }
 }
 
@@ -411,7 +443,56 @@ export class AddLinkAction extends TrackingAction {
  * 
  * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions (https://github.com/JohnWeisz/TypedJSON/blob/master/spec/polymorphism-abstract-class.spec.ts)
  */
-@jsonObject({knownTypes: [AddEmptyPolygon, MovedPointAction, AddPointAction, JointAction, SelectPolygon, MovePointAction, SelectSegmentAction, AddLinkAction, UnselectSegmentAction]})
+const knownTypes = [Action,
+                    SegmentationAction,
+                    AddEmptyPolygon,
+                    RemovePolygon,
+                    AddPointAction,
+                    RemovePointAction,
+                    SelectPolygon,
+                    MovePointAction,
+
+                    // Actions for tracking
+                    TrackingAction,
+                    SelectSegmentAction,
+                    AddLinkAction,
+                    UnselectSegmentAction];
+
+
+@jsonObject({knownTypes: [...knownTypes, JointAction]})
+export class JointAction extends Action{
+
+    @jsonArrayMember(Action)
+    actions: Action[];
+
+    constructor(...actions: Action[]) {
+        super();
+        this.actions = actions;
+    }
+
+    perform() {
+        for (const act of this.actions) {
+            act.perform();
+        }
+
+        this.updatePerformedTime();
+    }
+
+    reverse() {
+        for (const act of this.actions.slice().reverse()) {
+            act.reverse();
+        }
+    }
+
+    setData(info) {
+        for (const act of this.actions) {
+            act.setData(info);
+        }
+    }
+}
+
+
+@jsonObject({knownTypes: [...knownTypes, JointAction]})
 export class ActionManager {
 
     @jsonArrayMember(Action)
@@ -419,6 +500,9 @@ export class ActionManager {
     @jsonMember actionTimeSplitThreshold: number;
     @jsonMember
     currentActionPointer: number;
+
+    @jsonMember
+    recordedActionPointer: number;
 
     onDataChanged = new EventEmitter<ActionManager>();
 
@@ -437,7 +521,7 @@ export class ActionManager {
             action.perform();
         }
 
-        if (this.currentActionPointer > 0 && this.actions[this.currentActionPointer - 1].join(action)) {
+        if (!this.recordedActionPointer && this.currentActionPointer > 0 && this.actions[this.currentActionPointer - 1].join(action)) {
             // sucessfully joined the action
         } else {
             this.actions.splice(this.currentActionPointer, this.actions.length, action);
@@ -475,6 +559,8 @@ export class ActionManager {
         this.currentActionPointer--;
 
         this.notifyDataChanged();
+
+        this.recordedActionPointer = null;
     }
 
     /**
@@ -491,6 +577,8 @@ export class ActionManager {
         this.currentActionPointer++;
 
         this.notifyDataChanged();
+
+        this.recordedActionPointer = null;
     }
 
     /**
@@ -517,5 +605,23 @@ export class ActionManager {
         }
 
         this.notifyDataChanged();
+    }
+
+    recordActions() {
+        this.recordedActionPointer = this.currentActionPointer;
+    }
+
+    mergeRecordedActions() {
+        if (this.recordedActionPointer) {
+            const actions = this.actions.splice(this.recordedActionPointer, this.currentActionPointer - this.recordedActionPointer);
+
+            const action = new JointAction(...actions);
+
+            this.currentActionPointer = this.recordedActionPointer;
+
+            this.addAction(action, false);
+
+            this.recordedActionPointer = null;
+        }
     }
 }

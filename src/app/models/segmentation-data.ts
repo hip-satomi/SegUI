@@ -24,8 +24,19 @@ export class SegmentationData {
         this.polygons.set(uuid, polygon);
     }
 
-    removePolygon(uuid: string) {
+    /**
+     * Remove the polygon from segmentation data
+     * @param uuid id of the polygon
+     */
+    removePolygon(uuid: string): Polygon {
+        // get the polygon
+        const poly = this.polygons.get(uuid);
+
+        // delete polygon
         this.polygons.delete(uuid);
+
+        // return the old one
+        return poly;
     }
 
     getEmptyPolygonId() {

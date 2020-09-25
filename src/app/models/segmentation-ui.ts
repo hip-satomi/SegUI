@@ -1,5 +1,6 @@
+import { Polygon } from 'src/app/models/geometry';
 import { UIInteraction, Drawer } from './drawing';
-import { AddPointAction, MovePointAction } from './action';
+import { AddPointAction, MovePointAction, RemovePolygon } from './action';
 import { UIUtils, Utils } from './utils';
 import { SegmentationModel } from './segmentation-model';
 export class SegmentationUI implements UIInteraction, Drawer {
@@ -113,6 +114,22 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
     onMove(event) {
         // TODO: should show drag cursor
+    }
+
+    delete() {
+        if (this.segmentationModel.activePolygon) {
+            const removalId = this.segmentationModel.activePolygonId;
+
+            // TODO: this action recording can be dangerous
+            this.segmentationModel.actionManager.recordActions();
+
+            this.segmentationModel.addNewPolygon();
+            this.segmentationModel.actionManager.addAction(
+                    new RemovePolygon(this.segmentationModel.segmentationData,
+                                      removalId));
+
+            this.segmentationModel.actionManager.mergeRecordedActions();
+        }
     }
 
     get canSave(): boolean {
