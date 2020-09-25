@@ -36,6 +36,7 @@
     "text-encoder": "0.0.4",
     "tslib": "^2.0.0",
     "typedjson": "^1.6.0-rc2",
+    "uuid": "^8.3.0",
     "zone.js": "~0.10.3"
   },
   "devDependencies": {
