@@ -1,5 +1,5 @@
 import { UIInteraction } from './../../models/drawing';
-import { Indicator } from './../image-view/indicators';
+import { Indicator } from './indicators';
 import { UIUtils, Utils, Position } from './../../models/utils';
 import { Component, Input, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { Drawer } from 'src/app/models/drawing';
