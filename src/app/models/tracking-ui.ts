@@ -1,3 +1,4 @@
+import { AddLinkAction } from './action';
 import { ToastController } from '@ionic/angular';
 import { SegmentationModel } from './segmentation-model';
 
@@ -43,13 +44,34 @@ export class TrackingUI implements UIInteraction, Drawer {
         return this.segmentationModels[this.currentFrame].segmentationData;
     }
 
+    getSelectedSegmentFrame(selSegment: SelectedSegment) {
+        for (const [index, segModel] of this.segmentationModels.entries()) {
+            if (segModel.segmentationData.contains(selSegment.polygonId)) {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    getPolygonById(polygonId: string): Polygon {
+        for (const segModel of this.segmentationModels) {
+            if (segModel.segmentationData.contains(polygonId)) {
+                return segModel.segmentationData.getPolygon(polygonId);
+            }
+        }
+
+        return null;
+    }
+
+
     get selectSource(): boolean {
         if (this.trackingModel.trackingData.selectedSegments.length === 0) {
             return true;
         }
 
         const frames: number[] = this.trackingModel.trackingData.selectedSegments.map((selSegment: SelectedSegment): number => {
-            return selSegment.frame;
+            return this.getSelectedSegmentFrame(selSegment);
         });
 
         if (Math.min(...frames) > this.currentFrame) {
@@ -62,7 +84,7 @@ export class TrackingUI implements UIInteraction, Drawer {
 
     get sourceSelection(): SelectedSegment {
         const curFrameSelections = this.trackingModel.trackingData.selectedSegments.filter((selSgment: SelectedSegment) => {
-            return selSgment.frame === this.currentFrame;
+            return this.getSelectedSegmentFrame(selSgment) === this.currentFrame;
         });
 
         if (curFrameSelections.length > 1) {
@@ -76,14 +98,14 @@ export class TrackingUI implements UIInteraction, Drawer {
         return curFrameSelections[0];
     }
 
-    getSelectedPolygon(mouseModelPos: Position, frame: number): [number, Polygon] {
-        for (const [index, poly] of this.segmentationModels[frame].polygons.entries()) {
+    getSelectedPolygon(mouseModelPos: Position, frame: number): [string, Polygon] {
+        for (const [index, poly] of this.segmentationModels[frame].segmentationData.getPolygonEntries()) {
             if (poly.isInside([mouseModelPos.x, mouseModelPos.y])) {
                 return [index, poly];
             }
         }
 
-        return [-1, null];
+        return [null, null];
     }
 
     async onTap(event: any) {
@@ -100,7 +122,7 @@ export class TrackingUI implements UIInteraction, Drawer {
 
             if (poly) {
                 // if we did hit a polygon please add the selection
-                this.trackingModel.selectSegment(new SelectedSegment(this.currentFrame, polyIndex));
+                this.trackingModel.selectSegment(new SelectedSegment(polyIndex));
 
                 const toast = await this.toastController.create({
                     message: 'Selected a source segmentation',
@@ -115,7 +137,7 @@ export class TrackingUI implements UIInteraction, Drawer {
 
             if (poly) {
                 // if we did hit a polygon please add the selection
-                this.trackingModel.selectSegment(new SelectedSegment(this.currentFrame + 1, polyIndex));
+                this.trackingModel.selectSegment(new SelectedSegment(polyIndex));
 
                 const toast = await this.toastController.create({
                     message: 'Selected a target segmentation',
@@ -152,7 +174,7 @@ export class TrackingUI implements UIInteraction, Drawer {
         const [index, poly] = this.getSelectedPolygon(mouseModelPos, frame);
 
         if (poly) {
-            this.temporarySelection = new SelectedSegment(frame, index);
+            this.temporarySelection = new SelectedSegment(index);
         } else {
             this.temporarySelection = null;
         }
@@ -177,7 +199,7 @@ export class TrackingUI implements UIInteraction, Drawer {
         // split in source and target selections
 
         const frames = allSelections.map((selSeg: SelectedSegment) => {
-            return selSeg.frame;
+            return this.getSelectedSegmentFrame(selSeg);
         });
 
         const sourceFrame = Math.min(...frames);
@@ -185,9 +207,9 @@ export class TrackingUI implements UIInteraction, Drawer {
 
         // source drawings
         const sourcePolys = allSelections.filter((selSeg: SelectedSegment) => {
-            return selSeg.frame === sourceFrame;
+            return this.getSelectedSegmentFrame(selSeg) === sourceFrame;
         }).map((selSeg: SelectedSegment) => {
-            return this.segmentationModels[selSeg.frame].polygons[selSeg.polygonIndex];
+            return this.getPolygonById(selSeg.polygonId);
         });
 
         let targetPolys: Polygon[];
@@ -195,9 +217,9 @@ export class TrackingUI implements UIInteraction, Drawer {
             targetPolys = [];
         } else {
             targetPolys = allSelections.filter((selSeg: SelectedSegment) => {
-                return selSeg.frame === targetFrame;
+                return this.getSelectedSegmentFrame(selSeg) === targetFrame;
             }).map((selSeg: SelectedSegment) => {
-                return this.segmentationModels[selSeg.frame].polygons[selSeg.polygonIndex];
+                return this.getPolygonById(selSeg.polygonId);
             });
         }
 
@@ -206,7 +228,7 @@ export class TrackingUI implements UIInteraction, Drawer {
             // TODO draw source selection differently (e.g. gray)
             poly.drawAdvanced(canvasContext, false, this.selectedSourceColor);
         }
-        
+
         // draw selected target segmentations
         for (const poly of targetPolys) {
             poly.draw(canvasContext);
@@ -224,16 +246,16 @@ export class TrackingUI implements UIInteraction, Drawer {
 
         // draw the existing links
         const prefilteredLinks = this.trackingModel.trackingData.trackingLinks.filter((trackingLink: TrackingLink) => {
-            return trackingLink.source.frame >= this.currentFrame - this.preHistory
-                    && trackingLink.source.frame < this.currentFrame + this.postFuture;
+            return this.getSelectedSegmentFrame(trackingLink.source) >= this.currentFrame - this.preHistory
+                    && this.getSelectedSegmentFrame(trackingLink.source) < this.currentFrame + this.postFuture;
         });
         for (const link of prefilteredLinks) {
             const source = link.source;
             const targets = link.targets;
 
             for (const t of targets) {
-                const sourcePoly = this.segmentationModels[source.frame].polygons[source.polygonIndex];
-                const targetPoly = this.segmentationModels[t.frame].polygons[t.polygonIndex];
+                const sourcePoly = this.getPolygonById(source.polygonId);
+                const targetPoly = this.getPolygonById(t.polygonId);
 
                 const sourceCenter = sourcePoly.center;
                 const targetCenter = targetPoly.center;
@@ -275,12 +297,28 @@ export class TrackingUI implements UIInteraction, Drawer {
     }
 
     get canSave() {
-        return this.trackingModel.trackingData.selectedSegments.length >= 2;
+        return this.trackingModel.trackingData.selectedSegments.length >= 2
+            && new Set<number>(this.trackingModel.trackingData.selectedSegments.map((selSeg: SelectedSegment) => this.getSelectedSegmentFrame(selSeg))).size === 2;
     }
 
     async save() {
         if (this.canSave) {
-            this.trackingModel.addLink();
+            const frames = new Set<number>(this.trackingModel.trackingData.selectedSegments.map((selSeg: SelectedSegment) => this.getSelectedSegmentFrame(selSeg)));
+
+            const sourceFrame = Math.min(...frames);
+            const targetFrame = Math.max(...frames);
+
+            const sources = this.trackingModel.trackingData.selectedSegments
+                                .filter((selSeg: SelectedSegment) => sourceFrame === this.getSelectedSegmentFrame(selSeg));
+
+            if (sources.length !== 1) {
+                throw new Error('There must be a single source for a tracking link');
+            }
+
+            const targets = this.trackingModel.trackingData.selectedSegments
+                                .filter((selSeg: SelectedSegment) => targetFrame === this.getSelectedSegmentFrame(selSeg));
+
+            this.trackingModel.actionManager.addAction(new AddLinkAction(this.trackingModel.trackingData, sources[0], targets));
 
             const toast = await this.toastController.create({
                 message: 'Added link',

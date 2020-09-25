@@ -104,9 +104,9 @@ export class SegmentationModel {
      * @param ctx canvas context to draw onto
      */
     draw(ctx, markActive = true) {
-        for (const [index, polygon] of this.polygons.entries()) {
+        for (const [index, polygon] of this.segmentationData.getPolygonEntries()) {
             if (markActive) {
-                UIUtils.drawSingle(polygon.points, index === this.activePolygonIndex, ctx, polygon.getColor());
+                UIUtils.drawSingle(polygon.points, index === this.activePolygonId, ctx, polygon.getColor());
             } else {
                 UIUtils.drawSingle(polygon.points, false, ctx, polygon.getColor());
             }
@@ -117,13 +117,13 @@ export class SegmentationModel {
     drawAdvanced(ctx, colorGenerator: (polygon: Polygon) => string = (poly: Polygon) => poly.getColor()) {
         const markActive = false;
 
-        for (const [index, polygon] of this.polygons.entries()) {
+        for (const [index, polygon] of this.segmentationData.getPolygonEntries()) {
             if (polygon.numPoints === 0) {
                 continue;
             }
 
             if (markActive) {
-                UIUtils.drawSingle(polygon.points, index === this.activePolygonIndex, ctx, colorGenerator(polygon));
+                UIUtils.drawSingle(polygon.points, index === this.activePolygonId, ctx, colorGenerator(polygon));
             } else {
                 UIUtils.drawSingle(polygon.points, false, ctx, colorGenerator(polygon));
             }
@@ -147,41 +147,53 @@ export class SegmentationModel {
      * if there is  an empty polygon at the end, this one is used
      */
     addNewPolygon() {
-        if (this.polygons.length === 0) {
-            this.addAction(new AddEmptyPolygon(this, UIUtils.randomColor()));
+        let uuid = '';
+
+        if (this.segmentationData.numPolygons === 0) {
+            // when there are no polygons we simply have to add one
+            const newAction = new AddEmptyPolygon(this.segmentationData, UIUtils.randomColor());
+            uuid = newAction.uuid;
+            this.addAction(newAction);
 
             this.activePointIndex = 0;
-        }
-        // insert new empty polygon at the end if needed
-        else if (this.polygons[this.polygons.length - 1].numPoints > 0) {
-            this.addAction(new AddEmptyPolygon(this, UIUtils.randomColor()));
+        } else {
+            // if there are polygons we check whether there are empty ones before creating a new one
+            const emptyId = this.segmentationData.getEmptyPolygonId();
+            if (emptyId) {
+                uuid = emptyId;
+            } else {
+                const newAction = new AddEmptyPolygon(this.segmentationData, UIUtils.randomColor());
+                uuid = newAction.uuid;
+                this.addAction(newAction);
 
-            this.activePointIndex = 0;
+                this.activePointIndex = 0;
+            }
         }
 
-        this.addAction(new SelectPolygon(this.segmentationData, this.polygons.length - 1, this.segmentationData.activePolygonIndex));
+        // select the correct polygon
+        this.addAction(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId));
     }
 
     /**
      * get the list of polygons
      */
-    get polygons(): Polygon[] {
+    /*get polygons(): Polygon[] {
         return this.segmentationData.polygons;
-    }
+    }*/
 
     /**
      * returns the index of the currently active polygon
      * 
      */
-    get activePolygonIndex(): number {
-        return this.segmentationData.activePolygonIndex;
+    get activePolygonId(): string {
+        return this.segmentationData.activePolygonId;
     }
 
     /**
      * sets the currently active polygon index
      */
-    set activePolygonIndex(activePolygonIndex: number) {
-        this.addAction(new SelectPolygon(this.segmentationData, activePolygonIndex, this.segmentationData.activePolygonIndex));
+    set activePolygonId(activePolygonId: string) {
+        this.addAction(new SelectPolygon(this.segmentationData, activePolygonId, this.segmentationData.activePolygonId));
     }
 
     /**
@@ -199,11 +211,11 @@ export class SegmentationModel {
      * returns the currently active polygon
      */
     get activePolygon() {
-        if (this.polygons.length === 0) {
+        if (this.segmentationData.numPolygons === 0) {
             this.addNewPolygon();
         }
 
-        return this.polygons[this.activePolygonIndex];
+        return this.segmentationData.getPolygon(this.activePolygonId);
     }
 
     get activePoint() {

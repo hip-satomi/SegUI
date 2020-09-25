@@ -6,7 +6,7 @@ import { EventEmitter } from '@angular/core';
 export enum ChangeType {
     SOFT,
     HARD
-};
+}
 
 export class TrackingChangedEvent {
     trackingModel: TrackingModel;
@@ -35,7 +35,7 @@ export class TrackingModel {
     }
 
     onDeserialized() {
-        this.actionManager.reapplyActions({'trackingData': this.trackingData});
+        this.actionManager.reapplyActions({trackingData: this.trackingData});
 
         this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
             this.onModelChanged.emit(new TrackingChangedEvent(this));
@@ -45,7 +45,7 @@ export class TrackingModel {
     selectSegment(segmentSelection: SelectedSegment) {
 
         const existing = this.trackingData.selectedSegments.find((selSegment: SelectedSegment) => {
-            return selSegment.frame === segmentSelection.frame && selSegment.polygonIndex === segmentSelection.polygonIndex;
+            return selSegment.polygonId === segmentSelection.polygonId;
         });
         if (existing) {
             // we found element in selected segments --> deselect it
@@ -60,8 +60,8 @@ export class TrackingModel {
         }
     }
 
-    addLink() {
+    /*addLink() {
         // TODO look for conflicts with other links!!!
         this.actionManager.addAction(new AddLinkAction(this.trackingData));
-    }
+    }*/
 }

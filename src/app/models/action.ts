@@ -4,7 +4,8 @@ import { SegmentationData } from './segmentation-data';
 import { Polygon } from 'src/app/models/geometry';
 import 'reflect-metadata';
 import { jsonArrayMember, jsonMember, jsonObject, toJson, TypedJSON } from 'typedjson';
-
+import { v4 as uuidv4 } from 'uuid';
+import { stringify as uuidStringify } from 'uuid';
 @jsonObject
 export abstract class Action {
 
@@ -44,8 +45,12 @@ export abstract class SegmentationAction extends Action {
         this.segmentationData = info.segmentationData;
     }
 
-    protected get polygonList() {
+    /*protected get polygonList() {
         return this.segmentationData.polygons;
+    }*/
+
+    getPolygon(polygonId: string) {
+        return this.segmentationData.getPolygon(polygonId);
     }
 }
 
@@ -55,21 +60,26 @@ export class AddEmptyPolygon extends SegmentationAction {
     @jsonMember
     color: string;
 
+    @jsonMember
+    uuid: string;
+
     constructor(segmentationData: SegmentationData, color: string) {
         super(segmentationData);
+        
         this.color = color;
+        this.uuid = uuidv4();
     }
 
     perform() {
         const poly = new Polygon();
         poly.setColor(this.color);
-        this.segmentationData.polygons.push(poly);
+        this.segmentationData.addPolygon(this.uuid, poly);
 
         this.updatePerformedTime();
     }
 
     reverse() {
-        this.segmentationData.polygons.pop();
+        this.segmentationData.removePolygon(this.uuid);
     }
 
 }
@@ -77,33 +87,33 @@ export class AddEmptyPolygon extends SegmentationAction {
 @jsonObject
 export class SelectPolygon extends SegmentationAction {
 
-    @jsonMember newPolyIndex: number;
-    @jsonMember oldPolyIndex: number;
+    @jsonMember newPolyId: string;
+    @jsonMember oldPolyId: string;
 
-    constructor(segmentationData: SegmentationData, newPolyIndex: number, oldPolyIndex: number) {
+    constructor(segmentationData: SegmentationData, newPolyId: string, oldPolyId: string) {
         super(segmentationData);
 
-        this.newPolyIndex = newPolyIndex;
-        this.oldPolyIndex = oldPolyIndex;
+        this.newPolyId = newPolyId;
+        this.oldPolyId = oldPolyId;
     }
 
     perform() {
-        this.segmentationData.activePolygonIndex = this.newPolyIndex;
+        this.segmentationData.activePolygonId = this.newPolyId;
         this.segmentationData.activePointIndex = 0;
 
         this.updatePerformedTime();
     }
 
     reverse() {
-        this.segmentationData.activePolygonIndex = this.oldPolyIndex;
-        this.segmentationData.activePointIndex = this.segmentationData.polygons[this.segmentationData.activePolygonIndex].numPoints - 1;
+        this.segmentationData.activePolygonId = this.oldPolyId;
+        this.segmentationData.activePointIndex = this.segmentationData.getPolygon(this.segmentationData.activePolygonId).numPoints - 1;
     }
 
     join(action: Action): boolean {
         if (action instanceof SelectPolygon) {
             const selectAction = action as SelectPolygon;
 
-            this.newPolyIndex = selectAction.newPolyIndex;
+            this.newPolyId = selectAction.newPolyId;
 
             return true;
         }
@@ -120,23 +130,23 @@ export class AddPointAction extends SegmentationAction {
     @jsonMember
     private index: number;
     @jsonMember
-    private polygonIndex: number;
+    private polygonId: string;
 
-    constructor(point: [number, number], index: number, polygonIndex: number, segmentationData: SegmentationData) {
+    constructor(point: [number, number], index: number, polygonId: string, segmentationData: SegmentationData) {
         super(segmentationData);
         this.point = point;
         this.index = index;
-        this.polygonIndex = polygonIndex;
+        this.polygonId = polygonId;
     }
 
     perform() {
-        this.polygonList[this.polygonIndex].addPoint(this.index, this.point);
+        this.getPolygon(this.polygonId).addPoint(this.index, this.point);
 
         this.updatePerformedTime();
     }
 
     reverse() {
-        this.polygonList[this.polygonIndex].removePoint(this.index);
+        this.getPolygon(this.polygonId).removePoint(this.index);
     }
 }
 
@@ -148,11 +158,11 @@ export class MovedPointAction extends SegmentationAction {
     @jsonArrayMember(Number)
     private oldPoint: [number, number];
     @jsonMember
-    private polygonIndex: number;
+    private polygonId: string;
     @jsonMember
     private pointIndex: number;
 
-    constructor(oldPoint: [number, number], pointIndex: number, polygonIndex: number, segmentationData: SegmentationData) {
+    constructor(oldPoint: [number, number], pointIndex: number, polygonId: string, segmentationData: SegmentationData) {
         super(segmentationData);
 
         if (!segmentationData) {
@@ -160,7 +170,7 @@ export class MovedPointAction extends SegmentationAction {
             return;
         }
 
-        this.polygonIndex = polygonIndex;
+        this.polygonId = polygonId;
         this.pointIndex = pointIndex;
         //const point = this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
         this.newPoint = [...this.point];
@@ -180,7 +190,7 @@ export class MovedPointAction extends SegmentationAction {
     }
 
     private get point() {
-        return this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
+        return this.getPolygon(this.polygonId).getPoint(this.pointIndex);
     }
 }
 
@@ -192,11 +202,11 @@ export class MovePointAction extends SegmentationAction {
     @jsonArrayMember(Number)
     private oldPoint: [number, number];
     @jsonMember
-    private polygonIndex: number;
+    private polygonId: string;
     @jsonMember
     private pointIndex: number;
 
-    constructor(newPoint: [number, number], pointIndex: number, polygonIndex: number, segmentationData: SegmentationData) {
+    constructor(newPoint: [number, number], pointIndex: number, polygonId: string, segmentationData: SegmentationData) {
         super(segmentationData);
 
         if (!segmentationData) {
@@ -204,7 +214,7 @@ export class MovePointAction extends SegmentationAction {
             return;
         }
 
-        this.polygonIndex = polygonIndex;
+        this.polygonId = polygonId;
         this.pointIndex = pointIndex;
         //const point = this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
         this.newPoint = [...newPoint];
@@ -224,14 +234,14 @@ export class MovePointAction extends SegmentationAction {
     }
 
     private get point() {
-        return this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
+        return this.getPolygon(this.polygonId).getPoint(this.pointIndex);
     }
 
     join(action: Action) {
         if (action instanceof MovePointAction) {
             const mpAction = action as MovePointAction;
 
-            if (this.polygonIndex === mpAction.polygonIndex && this.pointIndex === mpAction.pointIndex) {
+            if (this.polygonId === mpAction.polygonId && this.pointIndex === mpAction.pointIndex) {
                 // polygon and point do correspond
                 this.newPoint = mpAction.newPoint;
                 return true;
@@ -333,7 +343,7 @@ export class UnselectSegmentAction extends TrackingAction {
 
     perform() {
         for (const [index, item] of this.trackingData.selectedSegments.entries()) {
-            if (item.frame === this.selection.frame && item.polygonIndex === this.selection.polygonIndex) {
+            if (item.polygonId === this.selection.polygonId) {
                 this.trackingData.selectedSegments.splice(index, 1);
             }
         }
@@ -356,7 +366,7 @@ export class AddLinkAction extends TrackingAction {
     @jsonArrayMember(UnselectSegmentAction)
     unselections: UnselectSegmentAction[] = [];
 
-    constructor(trackingData: TrackingData) {
+    constructor(trackingData: TrackingData, source: SelectedSegment, targets: SelectedSegment[]) {
         super(trackingData);
 
         if (!trackingData) {
@@ -364,35 +374,7 @@ export class AddLinkAction extends TrackingAction {
             return;
         }
 
-        // generate link from selection
-        const frames = new Set<number>();
-        for (const segment of trackingData.selectedSegments) {
-            frames.add(segment.frame);
-        }
-
-        if (frames.size !== 2) {
-            throw new Error('wrong frame selection');
-        }
-
-        const sourceFrame = Math.min(...frames);
-        const targetFrame = Math.max(...frames);
-
-        const sourceSelections = [];
-        const targetSelections = [];
-
-        for (const segment of trackingData.selectedSegments) {
-            if (segment.frame === sourceFrame) {
-                sourceSelections.push(segment);
-            } else {
-                targetSelections.push(segment);
-            }
-        }
-
-        if (sourceSelections.length !== 1) {
-            throw new Error('Do not support multi selections');
-        }
-
-        this.link = new TrackingLink(sourceSelections[0], targetSelections);
+        this.link = new TrackingLink(source, targets);
 
         for (const segment of trackingData.selectedSegments) {
             this.unselections.push(new UnselectSegmentAction(segment, this.trackingData));

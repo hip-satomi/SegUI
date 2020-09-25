@@ -44,13 +44,13 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
         if (!lineInsert) {
             // check whether you did click onto another polygon
-            for (const [index, polygon] of this.segmentationModel.polygons.entries()) {
-                if (index === this.segmentationModel.activePolygonIndex) {
+            for (const [index, polygon] of this.segmentationModel.segmentationData.getPolygonEntries()) {
+                if (index === this.segmentationModel.activePolygonId) {
                     continue;
                 }
                 if (polygon.isInside([x, y])) {
                     // clicke inside a non active polygon
-                    this.segmentationModel.activePolygonIndex = index;
+                    this.segmentationModel.activePolygonId = index;
                     return false;
                 }
             }
@@ -58,7 +58,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
         }
 
         // place at correct place (maybe close to line --> directly on the line)
-        const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonIndex, this.segmentationModel);
+        const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonId, this.segmentationModel.segmentationData);
         this.segmentationModel.actionManager.addAction(act);
 
         this.segmentationModel.activePointIndex = insertAt;
@@ -100,7 +100,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             const polygon = this.segmentationModel.activePolygon;
             this.segmentationModel.actionManager.addAction(new MovePointAction([mousePos.x, mousePos.y],
                                                 this.segmentationModel.activePointIndex,
-                                                this.segmentationModel.activePolygonIndex,
+                                                this.segmentationModel.activePolygonId,
                                                 this.segmentationModel.segmentationData));
         }
     }

@@ -3,13 +3,10 @@ import { jsonArrayMember, jsonMember, jsonObject } from 'typedjson';
 @jsonObject
 export class SelectedSegment {
     @jsonMember
-    frame: number;
-    @jsonMember
-    polygonIndex: number;
+    polygonId: string;
 
-    constructor(frame: number, polyonIndex: number) {
-        this.frame = frame;
-        this.polygonIndex = polyonIndex;
+    constructor(polyonId: string) {
+        this.polygonId = polyonId;
     }
 }
 
