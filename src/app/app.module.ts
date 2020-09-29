@@ -13,6 +13,8 @@ import { AngularResizedEventModule } from 'angular-resize-event';
 
 import { HammerGestureConfig, HAMMER_GESTURE_CONFIG} from '@angular/platform-browser';
 
+import {HttpClientModule} from '@angular/common/http';
+
 @Injectable({providedIn: 'root'})
 export class MyHammerConfig extends HammerGestureConfig  {
   overrides = {
@@ -24,7 +26,11 @@ export class MyHammerConfig extends HammerGestureConfig  {
 @NgModule({
   declarations: [AppComponent],
   entryComponents: [],
-  imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, AngularResizedEventModule, HammerModule],
+  imports: [BrowserModule, IonicModule.forRoot(),
+            AppRoutingModule,
+            AngularResizedEventModule,
+            HammerModule,
+            HttpClientModule],
   providers: [
     StatusBar,
     SplashScreen,
