@@ -1,3 +1,5 @@
+import { map } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { ChangeType, TrackingChangedEvent, TrackingModel } from './../models/tracking';
 import { TypedJSON, jsonArrayMember, jsonObject } from 'typedjson';
@@ -10,6 +12,8 @@ import { ActionSheetController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { SegRestService } from '../services/seg-rest.service';
 
 const { Storage } = Plugins;
 
@@ -48,7 +52,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   justTapped = false;
 
   _activeView = 0;
-  //urls = ['../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg', '../assets/stone-example.jpg'];
 
   urls = ['../assets/sequence/image0.png',
           '../assets/sequence/image1.png',
@@ -70,8 +73,50 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.draw(this.ctx);
   }
 
+  id = new Observable<number>();
 
-  constructor(private toastController: ToastController, private actionSheetController: ActionSheetController) {
+
+  constructor(private toastController: ToastController,
+              private actionSheetController: ActionSheetController,
+              private route: ActivatedRoute,
+              private router: Router,
+              private segService: SegRestService) {
+
+    // notify id change --> load data
+    this.id.subscribe(async id => {
+      const toast = await this.toastController.create({
+        message: `The loaded imageSet id is ${id}`,
+        duration: 2000
+      });
+      toast.present();
+
+      this.segService.getImageUrls(id).subscribe((urls: string[]) => {
+        console.log(urls);
+        this.urls = urls;
+        this.load(this.urls);
+      });
+    },
+    async (error) => {
+      console.error(error);
+
+      const toast = await this.toastController.create({
+        message: `Error while receiving urls! Fallback to presentation mode`,
+        duration: 2000
+      });
+      toast.present();
+      this.load(this.urls);
+    });
+
+    // get the query param and fire the id
+    this.id = this.route.queryParams.pipe(
+      map(params => {
+        if (!this.router.getCurrentNavigation().extras.state) {
+          throw new Error('No state information available');
+        } else {
+          return this.router.getCurrentNavigation().extras.state?.imageSetId;
+        }
+      })
+    );
   }
 
   onTap(event: any) {
@@ -103,13 +148,15 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.curSegUI.onPanEnd(event);
     }
   }
+
   onMove(event: any) {
     if (this.justTapped) {
       this.justTapped = false;
     } else {
-      if (this.isSegmentation) {
+      // redirect move action to child handlers if they are created w.r.t. mode
+      if (this.isSegmentation && this.curSegUI) {
         this.curSegUI.onMove(event);
-      } else if (this.trackingUI) {
+      } else if (this.trackingUI && this.trackingUI) {
         this.trackingUI.onMove(event);
       }
     }
@@ -159,9 +206,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     return this.segmentationModels[this.activeView];
   }
 
-  ngAfterViewInit() {
-    this.load();
-  }
 
   segModelChanged(segModel: SegmentationModel) {
     this.draw(this.ctx);
@@ -179,8 +223,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   /**
    * returns true iff an existing segmentation was restored
+   * @param imageUrls list of image urls used to directly load the images from
    */
-  async restoreSegmentation(): Promise<boolean> {
+  async restoreSegmentation(imageUrls: string[]): Promise<boolean> {
     let restored = false;
 
     const serializer = new TypedJSON(SegmentationHolder);
@@ -225,7 +270,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.segmentationModels = [];
       this.segmentationUIs = [];
 
-      for (const url of this.urls) {
+      // setup segmentation for every image url
+      for (const url of imageUrls) {
         const segModel = new SegmentationModel(url);
         segModel.onModelChange.subscribe((segModel: SegmentationModel) => {
           this.segModelChanged(segModel);
@@ -326,11 +372,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   /**
    * Restores a saved state or a newly initialized one
+   * @param imageUrls list of image urls used for image loading
    */
-  async load() {
+  async load(imageUrls: string[]) {
 
     // restore segmentation
-    const segRestored = await this.restoreSegmentation();
+    const segRestored = await this.restoreSegmentation(imageUrls);
 
     // restore tracking
     this.restoreTracking(segRestored);
@@ -454,9 +501,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
     if (this.editMode === EditMode.Segmentation) {
       // draw the segmentation stuff
-      this.segmentationUIs[this.activeView].draw(ctx);
+      this.segmentationUIs[this.activeView]?.draw(ctx);
     } else {
-      this.trackingUI.draw(ctx);
+      this.trackingUI?.draw(ctx);
     }
   }
 
@@ -515,7 +562,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   async deleteSegmentation() {
     await Storage.remove({key: this.segKey});
 
-    this.load();
+    this.load(this.urls);
   }
 
   /**
@@ -524,7 +571,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   async deleteTracking() {
     await Storage.remove({key: this.trackingKey});
 
-    this.load();
+    this.load(this.urls);
   }
 
   /**
@@ -533,7 +580,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   async deleteCompleteStorage() {
     await Storage.clear();
 
-    this.load();
+    this.load(this.urls);
   }
 
 }
