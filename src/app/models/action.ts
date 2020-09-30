@@ -16,6 +16,9 @@ export abstract class Action {
     abstract reverse(): void;
     abstract setData(info): void;
 
+    constructor() {
+    }
+
     join(action: Action): boolean {
         return false;
     }
@@ -23,10 +26,23 @@ export abstract class Action {
     updatePerformedTime() {
         this.lastPerformedTime = new Date();
     }
+
+    allowUndo() {
+        return true;
+    }
+
+    allowRedo() {
+        return true;
+    }
 }
 
 @jsonObject
-export abstract class SegmentationAction extends Action {
+export abstract class DataAction extends Action {
+    abstract setData(info): void;
+}
+
+@jsonObject
+export abstract class SegmentationAction extends DataAction {
 
     protected segmentationData: SegmentationData;
 
@@ -322,7 +338,7 @@ export class MovePointAction extends SegmentationAction {
  * works on tracking data
  */
 @jsonObject
-export abstract class TrackingAction extends Action {
+export abstract class TrackingAction extends DataAction {
 
     protected trackingData: TrackingData;
 
@@ -491,8 +507,35 @@ export class JointAction extends Action{
     }
 }
 
-
 @jsonObject({knownTypes: [...knownTypes, JointAction]})
+export class PreventUndoActionWrapper extends DataAction {
+
+    @jsonMember
+    action: DataAction;
+
+    constructor(action: DataAction) {
+        super();
+        this.action = action;
+    }
+
+    perform() {
+        this.action.perform();
+    }
+
+    reverse() {
+        throw new Error('Calling reverse on PreventUndoAction is not allowed');
+    }
+
+    setData(info) {
+        this.action.setData(info);
+    }
+
+    allowUndo() {
+        return false;
+    }
+}
+
+@jsonObject({knownTypes: [...knownTypes, JointAction, PreventUndoActionWrapper]})
 export class ActionManager {
 
     @jsonArrayMember(Action)
@@ -585,7 +628,14 @@ export class ActionManager {
      * returns true iff there is action that can be undone
      */
     get canUndo() {
-        return this.currentActionPointer > 0;
+        return this.currentActionPointer > 0 && this.lastAction.allowUndo();
+    }
+
+    get lastAction() {
+        if (this.currentActionPointer === 0) {
+            return null;
+        }
+        return  this.actions[this.currentActionPointer - 1];
     }
 
     /**

@@ -2,7 +2,7 @@ import { EventEmitter } from '@angular/core';
 import { SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
 import { Polygon } from './geometry';
-import { ActionManager, AddEmptyPolygon, SelectPolygon } from './action';
+import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper } from './action';
 import { jsonMember, jsonObject } from 'typedjson';
 
 /**
@@ -148,12 +148,16 @@ export class SegmentationModel {
      */
     addNewPolygon(): string {
         let uuid = '';
+        // do not allow undo for the first segment (it should be always present)
+        let allowUndo = true;
 
         if (this.segmentationData.numPolygons === 0) {
             // when there are no polygons we simply have to add one
             const newAction = new AddEmptyPolygon(this.segmentationData, UIUtils.randomColor());
             uuid = newAction.uuid;
             this.addAction(newAction);
+
+            allowUndo = false;
 
             this.activePointIndex = 0;
         } else {
@@ -171,7 +175,11 @@ export class SegmentationModel {
         }
 
         // select the correct polygon
-        this.addAction(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId));
+        if (allowUndo) {
+            this.addAction(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId));
+        } else {
+            this.addAction(new PreventUndoActionWrapper(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId)));
+        }
 
         return uuid;
     }
