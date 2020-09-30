@@ -34,7 +34,7 @@ class SegmentationHolder {
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
 })
-export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
+export class HomePage implements OnInit, Drawer, UIInteraction{
 
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
 
@@ -82,41 +82,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private router: Router,
               private segService: SegRestService) {
 
-    // notify id change --> load data
-    this.id.subscribe(async id => {
-      const toast = await this.toastController.create({
-        message: `The loaded imageSet id is ${id}`,
-        duration: 2000
-      });
-      toast.present();
-
-      this.segService.getImageUrls(id).subscribe((urls: string[]) => {
-        console.log(urls);
-        this.urls = urls;
-        this.load(this.urls);
-      });
-    },
-    async (error) => {
-      console.error(error);
-
-      const toast = await this.toastController.create({
-        message: `Error while receiving urls! Fallback to presentation mode`,
-        duration: 2000
-      });
-      toast.present();
-      this.load(this.urls);
-    });
-
-    // get the query param and fire the id
-    this.id = this.route.queryParams.pipe(
-      map(params => {
-        if (!this.router.getCurrentNavigation().extras.state) {
-          throw new Error('No state information available');
-        } else {
-          return this.router.getCurrentNavigation().extras.state?.imageSetId;
-        }
-      })
-    );
   }
 
   onTap(event: any) {
@@ -188,10 +153,43 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
-
-
-
   ngOnInit() {
+    // notify id change --> load data
+    this.id.subscribe(async id => {
+      const toast = await this.toastController.create({
+        message: `The loaded imageSet id is ${id}`,
+        duration: 2000
+      });
+      toast.present();
+
+      this.segService.getImageUrls(id).subscribe((urls: string[]) => {
+        console.log(urls);
+        this.urls = urls;
+        this.load(this.urls);
+      });
+    },
+    async (error) => {
+      console.error(error);
+
+      const toast = await this.toastController.create({
+        message: `Error while receiving urls! Fallback to presentation mode`,
+        duration: 2000
+      });
+      toast.present();
+      this.load(this.urls);
+    });
+
+    // get the query param and fire the id
+    this.id = this.route.queryParams.pipe(
+      map(params => {
+        if (!this.router.getCurrentNavigation().extras.state) {
+          throw new Error('No state information available');
+        } else {
+          return this.router.getCurrentNavigation().extras.state?.imageSetId;
+        }
+      })
+    );
+    
   }
 
   get isSegmentation() {
