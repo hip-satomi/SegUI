@@ -1,6 +1,6 @@
 import { map } from 'rxjs/operators';
 import { Component, OnInit } from '@angular/core';
-import { AlertController, ViewWillEnter } from '@ionic/angular';
+import { AlertController, ViewWillEnter, ToastController } from '@ionic/angular';
 import { Image, ImageSet, SegRestService } from 'src/app/services/seg-rest.service';
 import { NavigationExtras, Router } from '@angular/router';
 
@@ -13,7 +13,8 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
 
   constructor(private segService: SegRestService,
               private alertController: AlertController,
-              private router: Router) { }
+              private router: Router,
+              private toastController: ToastController) { }
 
   imageSets = [];
 
@@ -32,6 +33,13 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
       })
     ).subscribe((imageSets) => {
       this.imageSets = imageSets;
+    }, async (err) => {
+      console.error(err);
+      const toast = await this.toastController.create({
+        message: `Error ${JSON.stringify(err)}`,
+        duration: 10000
+      });
+      toast.present();
     });
   }
 
@@ -42,7 +50,7 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
       }
     };
 
-    this.router.navigate(['segTrack'], navigationExtras);
+    this.router.navigate(['seg-track'], navigationExtras);
   }
 
 }
