@@ -8,8 +8,17 @@ const routes: Routes = [
   },
   {
     path: '',
+    redirectTo: 'image-set-list',
+    pathMatch: 'full'
+  },
+  {
+    path: 'seg-track',
     redirectTo: 'home',
     pathMatch: 'full'
+  },
+  {
+    path: 'image-set-list',
+    loadChildren: () => import('./pages/image-set-list/image-set-list.module').then( m => m.ImageSetListPageModule)
   },
 ];
 
