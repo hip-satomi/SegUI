@@ -154,6 +154,17 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
   }
 
   ngOnInit() {
+    // get the query param and fire the id
+    this.id = this.route.queryParams.pipe(
+      map(params => {
+        if (!this.router.getCurrentNavigation().extras.state) {
+          throw new Error('No state information available');
+        } else {
+          return this.router.getCurrentNavigation().extras.state?.imageSetId;
+        }
+      })
+    );
+
     // notify id change --> load data
     this.id.subscribe(async id => {
       const toast = await this.toastController.create({
@@ -178,18 +189,6 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
       toast.present();
       this.load(this.urls);
     });
-
-    // get the query param and fire the id
-    this.id = this.route.queryParams.pipe(
-      map(params => {
-        if (!this.router.getCurrentNavigation().extras.state) {
-          throw new Error('No state information available');
-        } else {
-          return this.router.getCurrentNavigation().extras.state?.imageSetId;
-        }
-      })
-    );
-    
   }
 
   get isSegmentation() {
