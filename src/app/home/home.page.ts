@@ -1,5 +1,8 @@
-import { map } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { StateService } from './../services/state.service';
+import { SegmentationRESTStorageConnector } from './../models/storage-connectors';
+import { GUISegmentation} from './../services/seg-rest.service';
+import { map, concatAll, take } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { ChangeType, TrackingChangedEvent, TrackingModel } from './../models/tracking';
 import { TypedJSON, jsonArrayMember, jsonObject } from 'typedjson';
@@ -7,7 +10,7 @@ import { UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SegmentationModel } from './../models/segmentation-model';
+import { SegmentationModel,  SegmentationHolder, ModelChanged } from './../models/segmentation-model';
 import { ActionSheetController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angular/core';
 
@@ -22,13 +25,6 @@ enum EditMode {
   Tracking = '1'
 }
 
-@jsonObject
-class SegmentationHolder {
-
-  @jsonArrayMember(SegmentationModel)
-  segmentations: SegmentationModel[];
-}
-
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
@@ -38,7 +34,8 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
 
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
 
-  segmentationModels: SegmentationModel[] = [];
+  //segHolder = new SegmentationHolder();
+  //segmentationModels: SegmentationModel[] = [];
   segmentationUIs: SegmentationUI[] = [];
 
   trackingModel: TrackingModel;
@@ -80,7 +77,8 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
               private actionSheetController: ActionSheetController,
               private route: ActivatedRoute,
               private router: Router,
-              private segService: SegRestService) {
+              private segService: SegRestService,
+              private stateService: StateService) {
 
   }
 
@@ -153,7 +151,8 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
     }
   }
 
-  ngOnInit() {
+  async ngOnInit() {
+    console.log('Init test');
     // get the query param and fire the id
     this.id = this.route.queryParams.pipe(
       map(params => {
@@ -165,30 +164,70 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
       })
     );
 
-    // notify id change --> load data
-    this.id.subscribe(async id => {
-      const toast = await this.toastController.create({
-        message: `The loaded imageSet id is ${id}`,
-        duration: 2000
-      });
-      toast.present();
+    const id = this.stateService.imateSetId;
 
-      this.segService.getImageUrls(id).subscribe((urls: string[]) => {
-        console.log(urls);
-        this.urls = urls;
-        this.load(this.urls);
-      });
-    },
-    async (error) => {
-      console.error(error);
-
-      const toast = await this.toastController.create({
-        message: `Error while receiving urls! Fallback to presentation mode`,
-        duration: 2000
-      });
-      toast.present();
-      this.load(this.urls);
+    // now we have the id of the image set
+    const toast = await this.toastController.create({
+      message: `The loaded imageSet id is ${id}`,
+      duration: 2000
     });
+    toast.present();
+
+    // we request the latest segmentation on that image set
+    this.segService.getLatestSegmentation(id).pipe(
+      map((seg: GUISegmentation) => {
+        if (seg) {
+          // there was an existing segmentation --> we just have to load it and attach it to the storage
+          return of(SegmentationRESTStorageConnector.createFromExisting(this.segService, seg).getModel());
+        } else {
+          // there was no existing segmentation --> we get the image urls and create new ones
+          return this.segService.getImageUrls(id).pipe(
+            map((urls: string[]) => {
+              return SegmentationRESTStorageConnector.createNew(this.segService, id, urls).getModel();
+            })
+          );
+        }
+      }),
+      concatAll(),
+    ).subscribe((segHolder: SegmentationHolder) => {
+      // now that we have a holder we can start using it
+      this.segHolder = segHolder;
+      this.segHolder.modelChanged.subscribe((event: ModelChanged<SegmentationModel>) => {
+        this.segModelChanged(event);
+      });
+
+      this.segmentationModels = [];
+      this.segmentationUIs = [];
+
+      for (const model of this.segHolder.segmentations) {
+        this.segmentationModels.push(model);
+        this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement));
+      }
+    }, async (error) => {
+      console.error(error);
+      // now we have the id of the image set
+      const toast = await this.toastController.create({
+        message: `Error while loading segmentation for image set ${id}`,
+        duration: 2000
+      });
+      toast.present();
+    });
+  }
+
+  get segHolder() {
+    return this.stateService.holder;
+  }
+
+  set segHolder(segHolder: SegmentationHolder) {
+    this.stateService.holder = segHolder;
+  }
+
+  get segmentationModels() {
+    return this.stateService.models;
+  }
+
+  set segmentationModels(segModels: SegmentationModel[]) {
+    this.stateService.models = segModels;
   }
 
   get isSegmentation() {
@@ -204,89 +243,8 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
   }
 
 
-  segModelChanged(segModel: SegmentationModel) {
+  segModelChanged(segModelChangedEvent: ModelChanged<SegmentationModel>) {
     this.draw(this.ctx);
-
-    const holder = new SegmentationHolder();
-    holder.segmentations = this.segmentationModels;
-
-    const serializer = new TypedJSON(SegmentationHolder);
-
-    Storage.set({
-      key: this.segKey,
-      value: serializer.stringify(holder)
-    });
-  }
-
-  /**
-   * returns true iff an existing segmentation was restored
-   * @param imageUrls list of image urls used to directly load the images from
-   */
-  async restoreSegmentation(imageUrls: string[]): Promise<boolean> {
-    let restored = false;
-
-    const serializer = new TypedJSON(SegmentationHolder);
-
-    const jsonString = await Storage.get({key: this.segKey});
-
-    if (jsonString) {
-      try {
-        // try to deserialize the segmentation model
-        const locHolder = serializer.parse(jsonString.value);
-
-        if (locHolder) {
-            // if it works we will accept this as the new model
-            for (const segModel of locHolder.segmentations) {
-              segModel.onModelChange.subscribe((segModel: SegmentationModel) => {
-                this.segModelChanged(segModel);
-              });
-              this.segmentationModels.push(segModel);
-              this.segmentationUIs.push(new SegmentationUI(segModel, this.imageDisplay.canvasElement));
-            }
-            restored = true;
-        } else {
-            // otherwise we notify the user and use the old segmentation model
-            const toast = await this.toastController.create({
-                message: 'Could not restore local data!',
-                duration: 2000
-            });
-            toast.present();
-        }
-      } catch(e) {
-          // otherwise we notify the user and use the old segmentation model
-          const toast = await this.toastController.create({
-              message: 'Could not restore local data! Reseting...',
-              duration: 2000
-          });
-          toast.present();
-      }
-    }
-
-    if (!restored) {
-      // clear segmentation lists
-      this.segmentationModels = [];
-      this.segmentationUIs = [];
-
-      // setup segmentation for every image url
-      for (const url of imageUrls) {
-        const segModel = new SegmentationModel(url);
-        segModel.onModelChange.subscribe((segModel: SegmentationModel) => {
-          this.segModelChanged(segModel);
-        });
-        this.segmentationUIs.push(new SegmentationUI(segModel, this.imageDisplay.canvasElement));
-        this.segmentationModels.push(segModel);
-      }
-      // otherwise we notify the user and use the old segmentation model
-      const toast = await this.toastController.create({
-        message: 'Created new segmentation',
-        duration: 2000
-      });
-      toast.present();
-
-      return false;
-    }
-
-    return true;
   }
 
   initTracking(createNewTrackingModel = true) {
@@ -365,19 +323,6 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
     }
 
     return true;
-  }
-
-  /**
-   * Restores a saved state or a newly initialized one
-   * @param imageUrls list of image urls used for image loading
-   */
-  async load(imageUrls: string[]) {
-
-    // restore segmentation
-    const segRestored = await this.restoreSegmentation(imageUrls);
-
-    // restore tracking
-    this.restoreTracking(segRestored);
   }
 
   async undo() {
@@ -478,7 +423,9 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
   set activeView(viewIndex: number) {
     this._activeView = viewIndex;
 
-    this.trackingUI.currentFrame = this.activeView;
+    if (this.trackingUI) {
+      this.trackingUI.currentFrame = this.activeView;
+    }
 
     this.draw(this.ctx);
   }
@@ -559,7 +506,7 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
   async deleteSegmentation() {
     await Storage.remove({key: this.segKey});
 
-    this.load(this.urls);
+    //this.load(this.urls);
   }
 
   /**
@@ -568,7 +515,7 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
   async deleteTracking() {
     await Storage.remove({key: this.trackingKey});
 
-    this.load(this.urls);
+    //this.load(this.urls);
   }
 
   /**
@@ -577,7 +524,7 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
   async deleteCompleteStorage() {
     await Storage.clear();
 
-    this.load(this.urls);
+    //this.load(this.urls);
   }
 
 }

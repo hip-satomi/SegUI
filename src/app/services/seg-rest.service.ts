@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { flatten } from '@angular/compiler';
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { map, catchError, concatAll, flatMap, concatMap, exhaust, switchAll, combineAll } from 'rxjs/operators';
+import { map, catchError, concatAll, flatMap, concatMap, exhaust, switchAll, combineAll, first } from 'rxjs/operators';
 
 
 export class ImageSet {
@@ -19,11 +19,22 @@ export class Image {
   frameId: number;
 }
 
+export interface GUISegmentationCandidate {
+  imageSet: string;
+  json: string;
+}
+
+export interface GUISegmentation extends GUISegmentationCandidate {
+  id: number;
+  modifiedDate: string;
+  creationDate: string;
+}
+
 export class Result {
   count: number;
   next: string;
   previous: string;
-  results: [];
+  results: any[];
 }
 
 @Injectable({
@@ -37,6 +48,24 @@ export class SegRestService {
     console.log(resultObject);
     return resultObject as Result;
   });
+
+  complexPipe = [
+    // get the api urls of image instances
+    map((imageSet: ImageSet) => {
+      return imageSet.image_set;
+    }),
+    // get the api image instances
+    flatMap((imageUrls: string[]) => {
+      return imageUrls.map((url: string) => {
+        return this.getImageByUrl(url);
+      });
+    }),
+    // resolve the http requests
+    combineAll(),
+    // get the api image ids
+    map((images: Image[]) => {
+      return images.map(image => image.id);
+    }),]
 
   constructor(private httpClient: HttpClient) { }
 
@@ -90,11 +119,7 @@ export class SegRestService {
     return `${this.rootUrl}media/images/${id}.png`;
   }
 
-  /**
-   * Returns a list of direct image adresses that can be loaded using an image tag
-   * @param imageSetId id of the image set
-   */
-  public getImageUrls(imageSetId: number): Observable<string[]> {
+  public getImageIds(imageSetId: number): Observable<number[]> {
     return this.getImageSetById(imageSetId).pipe(
       // get the api urls of image instances
       map((imageSet: ImageSet) => {
@@ -112,9 +137,60 @@ export class SegRestService {
       map((images: Image[]) => {
         return images.map(image => image.id);
       }),
+    );
+  }
+
+  /**
+   * Returns a list of direct image adresses that can be loaded using an image tag
+   * @param imageSetId id of the image set
+   */
+  public getImageUrls(imageSetId: number): Observable<string[]> {
+    return this.getImageIds(imageSetId).pipe(
       // create the media urls for the images
       map((ids: number[]) => {
         return ids.map((id: number) => this.getImageUrl(id));
+      })
+    );
+  }
+
+  public postSegmentation(imageSetId: number, json: string): Observable<GUISegmentation> {
+    const imageSource = `${this.baseUrl}imageSets/${imageSetId}/`;
+
+    const segCand: GUISegmentationCandidate = {imageSet: imageSource, json};
+
+    return this.httpClient.post(`${this.baseUrl}gui-segmentations/`, segCand)
+      .pipe(
+        map((result) => result as GUISegmentation)
+      );
+  }
+
+  public putSegmentation(segItem: GUISegmentation): Observable<GUISegmentation> {
+    return this.httpClient.put(`${this.baseUrl}gui-segmentations/${segItem.id}/`, segItem)
+      .pipe(
+        map((result) => result as GUISegmentation)
+      );
+  }
+
+  public getSegmentation(segmentationId: number): Observable<GUISegmentation> {
+    return this.httpClient.get(`${this.baseUrl}gui-segmentations/${segmentationId}/`).pipe(
+      map(result => result as GUISegmentation)
+    );
+  }
+
+  /**
+   * 
+   * TODO really get latest segmentation
+   * @param imageSetId 
+   */
+  public getLatestSegmentation(imageSetId: number): Observable<GUISegmentation> {
+    return this.httpClient.get(`${this.baseUrl}gui-segmentations/?imageSet=${imageSetId}`).pipe(
+      this.rc,
+      map((result: Result) => {
+        if (result.results.length > 0) {
+          return result.results[0] as GUISegmentation;
+        } else {
+          return null;
+        }
       })
     );
   }

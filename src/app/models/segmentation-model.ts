@@ -3,7 +3,20 @@ import { SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
 import { Polygon } from './geometry';
 import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper } from './action';
-import { jsonMember, jsonObject } from 'typedjson';
+import { jsonMember, jsonObject, jsonArrayMember } from 'typedjson';
+import { ChangeType } from './tracking';
+import { SynchronizedObject } from './storage';
+import { Subscription, Observable } from 'rxjs';
+
+export class SegmentationChangedEvent {
+    segmentationModel: SegmentationModel;
+    changeType: ChangeType;
+
+    constructor(segmentationModel: SegmentationModel, changeType = ChangeType.HARD) {
+        this.segmentationModel = segmentationModel;
+        this.changeType = changeType;
+    }
+}
 
 /**
  * Segmentation model contains all the information of the segmentation
@@ -24,7 +37,7 @@ export class SegmentationModel {
     @jsonMember
     actionManager: ActionManager;
 
-    onModelChange = new EventEmitter<SegmentationModel>();
+    onModelChange = new EventEmitter<ModelChanged<SegmentationModel>>();
 
     // this is the raw data for segmentation
     segmentationData: SegmentationData = new SegmentationData();
@@ -71,7 +84,7 @@ export class SegmentationModel {
     }
 
     actionManagerChanged(actionManager: ActionManager) {
-        this.onModelChange.emit(this);
+        this.onModelChange.emit(new ModelChanged<SegmentationModel>(this, ChangeType.HARD));
     }
 
     /**
@@ -85,7 +98,7 @@ export class SegmentationModel {
           this.imageLoaded = true;
 
           // notify that the model changed
-          this.onModelChange.emit(this);
+          this.onModelChange.emit(new ModelChanged<SegmentationModel>(this, ChangeType.SOFT));
         };
 
         this.image.src = this.imageUrl;
@@ -242,5 +255,55 @@ export class SegmentationModel {
         if (this.actionManager.canRedo) {
             this.actionManager.redo();
         }
+    }
+}
+
+export class ModelChanged<T> {
+    model: T;
+    changeType: ChangeType;
+
+    constructor(model: T, changeType: ChangeType) {
+        this.model = model;
+        this.changeType = changeType;
+    }
+}
+
+export interface ChangableModel<T> {
+    modelChanged: EventEmitter<ModelChanged<T>>;
+}
+
+@jsonObject({onDeserialized: 'onDeserialized'})
+export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> implements ChangableModel<SegmentationModel> {
+
+    @jsonArrayMember(SegmentationModel)
+    segmentations: SegmentationModel[] = [];
+
+    private subscriptions: Subscription[] = [];
+
+    modelChanged = new EventEmitter<ModelChanged<SegmentationModel>>();
+
+    constructor() {
+        super();
+    }
+
+    onDeserialized() {
+        const tmpSegs = this.segmentations;
+        this.clearSegmentations();
+
+        for (const segModel of tmpSegs) {
+            this.addSegmentation(segModel);
+        }
+    }
+
+    addSegmentation(model: SegmentationModel) {
+        this.segmentations.push(model);
+        this.subscriptions.push(model.onModelChange.subscribe((event: SegmentationChangedEvent) => {
+        this.modelChanged.emit(new ModelChanged(event.segmentationModel, event.changeType));
+        }));
+    }
+
+    clearSegmentations() {
+        this.subscriptions.forEach(sub => sub.unsubscribe());
+        this.segmentations = [];
     }
 }

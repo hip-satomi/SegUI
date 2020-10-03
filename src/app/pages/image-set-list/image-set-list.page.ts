@@ -1,3 +1,4 @@
+import { StateService } from './../../services/state.service';
 import { map } from 'rxjs/operators';
 import { Component, OnInit } from '@angular/core';
 import { AlertController, ViewWillEnter, ToastController } from '@ionic/angular';
@@ -14,7 +15,8 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
   constructor(private segService: SegRestService,
               private alertController: AlertController,
               private router: Router,
-              private toastController: ToastController) { }
+              private toastController: ToastController,
+              private stateService: StateService) { }
 
   imageSets = [];
 
@@ -49,6 +51,8 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
         imageSetId: imSet.id,
       }
     };
+
+    this.stateService.imateSetId = imSet.id;
 
     this.router.navigate(['seg-track'], navigationExtras);
   }
