@@ -1,8 +1,8 @@
 import { StateService } from './../services/state.service';
-import { SegmentationRESTStorageConnector } from './../models/storage-connectors';
-import { GUISegmentation} from './../services/seg-rest.service';
-import { map, concatAll, take } from 'rxjs/operators';
-import { Observable, of } from 'rxjs';
+import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector } from './../models/storage-connectors';
+import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
+import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap } from 'rxjs/operators';
+import { forkJoin, Observable, of } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { ChangeType, TrackingChangedEvent, TrackingModel } from './../models/tracking';
 import { TypedJSON, jsonArrayMember, jsonObject } from 'typedjson';
@@ -17,6 +17,7 @@ import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angu
 import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
+import { StorageConnector } from '../models/storage';
 
 const { Storage } = Plugins;
 
@@ -164,7 +165,7 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
       })
     );
 
-    const id = this.stateService.imateSetId;
+    const id = this.stateService.imageSetId;
 
     // now we have the id of the image set
     const toast = await this.toastController.create({
@@ -173,7 +174,58 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
     });
     toast.present();
 
-    // we request the latest segmentation on that image set
+    // get image urls
+    this.segService.getImageUrls(id).pipe(
+      // get the latest tracking
+      mergeMap((urls: string[]) => {
+        return this.segService.getLatestTracking(id).pipe(
+          map(tr => ({urls, tracking: tr}))
+        );
+      }),
+      // depending on the tracking load the segmentation
+      mergeMap((joint) => {
+        let seg: Observable<GUISegmentation>;
+        if (joint.tracking) {
+          // we have a tracking --> load segmentation
+          seg = this.segService.getSegmentationByUrl(joint.tracking.segmentation);
+        } else {
+          // we have no tracking --> load segmentation
+          seg = this.segService.getLatestSegmentation(id);
+        }
+
+        return seg.pipe(
+          map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
+        );
+      }),
+      // create the segmentation connector
+      map((content) => {
+        let srsc: SegmentationRESTStorageConnector;
+        if (content.segm === null) {
+          srsc = SegmentationRESTStorageConnector.createNew(this.segService, id, content.urls);
+        } else {
+          srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
+        }
+
+        return {srsc, tracking: content.tracking};
+      }),
+      // create the tracking connector
+      map((content) => {
+        let trsc: TrackingRESTStorageConnector;
+        if (content.tracking === null) {
+          // create a tracking
+          trsc = TrackingRESTStorageConnector.createNew(this.segService, content.srsc);
+        } else {
+          trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
+        }
+
+        return {srsc: content.srsc, trsc};
+      })
+    ).subscribe(async (content) => {
+      await this.loadSegmentation(content.srsc);
+      await this.loadTracking(content.trsc);
+    });
+
+    /*// we request the latest segmentation on that image set
     this.segService.getLatestSegmentation(id).pipe(
       map((seg: GUISegmentation) => {
         if (seg) {
@@ -211,7 +263,44 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
         duration: 2000
       });
       toast.present();
+    });*/
+  }
+
+  async loadSegmentation(srsc: StorageConnector<SegmentationHolder>) {
+    // now that we have a holder we can start using it
+    this.segHolder = srsc.getModel();
+    this.segHolder.modelChanged.subscribe((event: ModelChanged<SegmentationModel>) => {
+      this.segModelChanged(event);
     });
+
+    this.segmentationModels = [];
+    this.segmentationUIs = [];
+
+    for (const model of this.segHolder.segmentations) {
+      this.segmentationModels.push(model);
+      this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement));
+    }
+  }
+
+  async loadTracking(trsc: StorageConnector<TrackingModel>) {
+    if (trsc === null) {
+      // There was an error while loading the tracking
+      const toast = await this.toastController.create({
+        message: `Error while loading tracking data`,
+        duration: 2000
+      });
+      toast.present();
+    } else {
+      // loading the tracking
+      this.trackingModel = trsc.getModel();
+      this.trackingUI = new TrackingUI(this.segmentationModels, this.trackingModel, this.imageDisplay.canvasElement, this.toastController, this.activeView);
+      this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: TrackingChangedEvent) => {
+        if (trackingChangedEvent.changeType === ChangeType.SOFT) {
+          // if there are only soft changes we will just redraw
+          this.draw(this.ctx);
+        }
+      });
+    }
   }
 
   get segHolder() {
@@ -251,7 +340,7 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
     if (createNewTrackingModel) {
       this.trackingModel = new TrackingModel();
     }
-    this.trackingUI = new TrackingUI(this.segmentationModels, this.trackingModel, this.imageDisplay.canvasElement, this.toastController);
+    //this.trackingUI = new TrackingUI(this.segmentationModels, this.trackingModel, this.imageDisplay.canvasElement, this.toastController);
     this.trackingUI.canvasElement = this.imageDisplay.canvasElement;
     this.trackingUI.ctx = this.imageDisplay.ctx;
     this.trackingUI.toastController = this.toastController;
