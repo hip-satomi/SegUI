@@ -6,7 +6,7 @@ import { Injectable } from '@angular/core';
 })
 export class StateService {
 
-  imateSetId: number;
+  imageSetId: number;
   holder: SegmentationHolder;
   models: SegmentationModel[] = [];
 
