@@ -15,13 +15,13 @@ export class AuthGuard implements CanActivate {
   canActivate(
     next: ActivatedRouteSnapshot,
     state: RouterStateSnapshot): Observable<boolean> {
-    return this.auth.user.pipe(
+    return this.auth.getValidToken().pipe(
       take(1),
-      map(user => {
-        if (!user) {
+      map(token => {
+        if (!token) {
           this.alertCtrl.create({
             header: 'Unauthorized',
-            message: 'You are not allowed to access that page',
+            message: 'You are not allowed to access that page! Please login first',
             buttons: ['OK']
           }).then(alert => alert.present());
 
