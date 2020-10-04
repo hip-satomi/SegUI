@@ -1,9 +1,9 @@
-import { concatMap, debounceTime, filter, map } from 'rxjs/operators';
-import { GUISegmentation } from './../services/seg-rest.service';
+import { concatMap, debounceTime, filter, map, tap } from 'rxjs/operators';
+import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
 import { TypedJSON } from 'typedjson';
 import { SegmentationModel, SegmentationChangedEvent, SegmentationHolder, ModelChanged } from './segmentation-model';
-import { ChangeType } from './tracking';
+import { ChangeType, TrackingModel } from './tracking';
 import { Observable, of } from 'rxjs';
 import { StorageConnector } from './storage';
 
@@ -114,6 +114,85 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
             return this.put();
         } else {
             return this.post();
+        }
+    }
+}
+
+export class TrackingRESTStorageConnector extends StorageConnector<TrackingModel> {
+
+    srsc: SegmentationRESTStorageConnector;
+    restRecord: GUITracking;
+    restService: SegRestService;
+
+    static createNew(restService: SegRestService, srsc: SegmentationRESTStorageConnector): TrackingRESTStorageConnector {
+        return new TrackingRESTStorageConnector(restService, new TrackingModel(), srsc);
+    }
+
+    static createFromExisting(restService: SegRestService, srsc: SegmentationRESTStorageConnector, guiTracking: GUITracking) {
+        const serializer = new TypedJSON(TrackingModel);
+
+        try {
+            const trackingModel = serializer.parse(guiTracking.json);
+
+            return new TrackingRESTStorageConnector(restService, trackingModel, srsc, guiTracking);
+        } catch (e) {
+            console.error(e);
+            return null;
+        }
+    }
+
+    constructor(restService: SegRestService,
+                trackingModel: TrackingModel,
+                srsc: SegmentationRESTStorageConnector,
+                restRecord?: GUITracking) {
+        super(trackingModel);
+        this.restService = restService;
+        this.srsc = srsc;
+        this.restRecord = restRecord;
+
+        // register with the on change event
+        this.model.onModelChanged.pipe(
+            filter((changeEvent: ModelChanged<TrackingModel>) => {
+                return changeEvent.changeType === ChangeType.HARD;
+            }),
+            debounceTime(5000),
+            concatMap((changeEvent: ModelChanged<TrackingModel>) => {
+                return this.update();
+            })
+        ).subscribe((val) => {
+            console.log('Updated tracking REST model!');
+        });
+    }
+
+    private put(): Observable<GUITracking> {
+        const serializer = new TypedJSON(TrackingModel);
+        const trackModelJSON = serializer.stringify(this.model);
+
+        this.restRecord.json = trackModelJSON;
+
+        return this.restService.putTracking(this.restRecord).pipe(
+            tap(r => this.restRecord = r)
+        );
+    }
+
+    private post(): Observable<GUITracking> {
+        const serializer = new TypedJSON(TrackingModel);
+        const trackModelJSON = serializer.stringify(this.model);
+
+        return this.restService.postTracking(this.restService.getSegmentationUrl(this.srsc.restRecord.id), trackModelJSON).pipe(
+            tap(r => this.restRecord = r)
+        );
+    }
+
+    public update(): Observable<GUITracking> {
+        if (this.srsc.restRecord) {
+            if (this.restRecord) {
+                return this.put();
+            } else {
+                return this.post();
+            }
+        } else {
+            return of(null);
         }
     }
 }
