@@ -1,7 +1,9 @@
+import { SynchronizedObject } from './storage';
 import { TrackingData, SelectedSegment } from './tracking-data';
 import { jsonMember, jsonObject } from 'typedjson';
 import { ActionManager, AddLinkAction, SelectSegmentAction, UnselectSegmentAction } from './action';
 import { EventEmitter } from '@angular/core';
+import { ModelChanged } from './segmentation-model';
 
 export enum ChangeType {
     SOFT,
@@ -19,18 +21,20 @@ export class TrackingChangedEvent {
 }
 
 @jsonObject({onDeserialized: 'onDeserialized'})
-export class TrackingModel {
+export class TrackingModel extends SynchronizedObject<TrackingModel> {
 
     trackingData = new TrackingData();
 
     @jsonMember
     actionManager: ActionManager = new ActionManager(0.25);
 
-    onModelChanged = new EventEmitter<TrackingChangedEvent>();
+    onModelChanged = new EventEmitter<ModelChanged<TrackingModel>>();
 
     constructor() {
+        super();
+
         this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
-            this.onModelChanged.emit(new TrackingChangedEvent(this));
+            this.onModelChanged.emit(new ModelChanged<TrackingModel>(this, ChangeType.HARD));
         });
     }
 
@@ -38,7 +42,7 @@ export class TrackingModel {
         this.actionManager.reapplyActions({trackingData: this.trackingData});
 
         this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
-            this.onModelChanged.emit(new TrackingChangedEvent(this));
+            this.onModelChanged.emit(new ModelChanged<TrackingModel>(this, ChangeType.HARD));
         });
     }
 

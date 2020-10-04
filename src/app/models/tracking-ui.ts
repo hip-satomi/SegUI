@@ -1,6 +1,6 @@
 import { AddLinkAction } from './action';
 import { ToastController } from '@ionic/angular';
-import { SegmentationModel } from './segmentation-model';
+import { ModelChanged, SegmentationModel } from './segmentation-model';
 
 import { UIInteraction, Drawer } from './drawing';
 import { Utils, Position, UIUtils } from './utils';
@@ -30,7 +30,7 @@ export class TrackingUI implements UIInteraction, Drawer {
     currentLinkColor = 'rgba(255, 0, 0, 1)';
 
 
-    constructor(segmentationModels: SegmentationModel[], trackingModel: TrackingModel, canvasElement, toastController: ToastController) {
+    constructor(segmentationModels: SegmentationModel[], trackingModel: TrackingModel, canvasElement, toastController: ToastController, currentFrame: number) {
         this.segmentationModels = segmentationModels;
         this.trackingModel = trackingModel;
 
@@ -38,6 +38,8 @@ export class TrackingUI implements UIInteraction, Drawer {
         this.ctx = canvasElement.getContext('2d');
 
         this.toastController = toastController;
+
+        this.currentFrame = currentFrame;
     }
 
     get curSegData() {
@@ -181,7 +183,7 @@ export class TrackingUI implements UIInteraction, Drawer {
 
         this.hoverPoly = poly;
 
-        this.trackingModel.onModelChanged.emit(new TrackingChangedEvent(this.trackingModel, ChangeType.SOFT));
+        this.trackingModel.onModelChanged.emit(new ModelChanged<TrackingModel>(this.trackingModel, ChangeType.SOFT));
     }
 
     get canTrack() {
