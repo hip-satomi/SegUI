@@ -9,7 +9,7 @@
         </ion-button>
         <ion-select [(ngModel)]="editMode" interface="action-sheet">
           <ion-select-option value="0">Segment</ion-select-option>
-          <ion-select-option value="1">Track</ion-select-option>
+          <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
         </ion-select>
         <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px">
           <ion-icon name="arrow-undo-outline"></ion-icon>
