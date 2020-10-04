@@ -52,7 +52,7 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
       }
     };
 
-    this.stateService.imateSetId = imSet.id;
+    this.stateService.imageSetId = imSet.id;
 
     this.router.navigate(['seg-track'], navigationExtras);
   }
