@@ -1,16 +1,17 @@
+import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
 import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
 import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap } from 'rxjs/operators';
 import { forkJoin, Observable, of } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
-import { ChangeType, TrackingChangedEvent, TrackingModel } from './../models/tracking';
+import { TrackingModel } from './../models/tracking';
 import { TypedJSON, jsonArrayMember, jsonObject } from 'typedjson';
 import { UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SegmentationModel,  SegmentationHolder, ModelChanged } from './../models/segmentation-model';
+import { SegmentationModel,  SegmentationHolder } from './../models/segmentation-model';
 import { ActionSheetController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angular/core';
 
@@ -259,7 +260,7 @@ export class HomePage implements AfterViewInit, Drawer, UIInteraction{
         this.imageDisplay.canvasElement,
         this.toastController,
         this.activeView);
-      this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: TrackingChangedEvent) => {
+      this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: ModelChanged<TrackingModel>) => {
         if (trackingChangedEvent.changeType === ChangeType.SOFT) {
           // if there are only soft changes we will just redraw
           this.draw(this.ctx);

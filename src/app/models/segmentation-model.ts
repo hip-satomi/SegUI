@@ -1,22 +1,12 @@
+import { ModelChanged, ChangeType, ChangableModel } from './change';
 import { EventEmitter } from '@angular/core';
 import { SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
 import { Polygon } from './geometry';
 import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper } from './action';
 import { jsonMember, jsonObject, jsonArrayMember } from 'typedjson';
-import { ChangeType } from './tracking';
 import { SynchronizedObject } from './storage';
 import { Subscription, Observable } from 'rxjs';
-
-export class SegmentationChangedEvent {
-    segmentationModel: SegmentationModel;
-    changeType: ChangeType;
-
-    constructor(segmentationModel: SegmentationModel, changeType = ChangeType.HARD) {
-        this.segmentationModel = segmentationModel;
-        this.changeType = changeType;
-    }
-}
 
 /**
  * Segmentation model contains all the information of the segmentation
@@ -69,6 +59,7 @@ export class SegmentationModel {
      * Has to reconstruct the polygons from actions
      */
     onDeserialized() {
+        console.log(this);
         // after deserialization load the image
         this.loadImage();
 
@@ -258,20 +249,6 @@ export class SegmentationModel {
     }
 }
 
-export class ModelChanged<T> {
-    model: T;
-    changeType: ChangeType;
-
-    constructor(model: T, changeType: ChangeType) {
-        this.model = model;
-        this.changeType = changeType;
-    }
-}
-
-export interface ChangableModel<T> {
-    modelChanged: EventEmitter<ModelChanged<T>>;
-}
-
 @jsonObject({onDeserialized: 'onDeserialized'})
 export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> implements ChangableModel<SegmentationModel> {
 
@@ -297,8 +274,8 @@ export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> i
 
     addSegmentation(model: SegmentationModel) {
         this.segmentations.push(model);
-        this.subscriptions.push(model.onModelChange.subscribe((event: SegmentationChangedEvent) => {
-        this.modelChanged.emit(new ModelChanged(event.segmentationModel, event.changeType));
+        this.subscriptions.push(model.onModelChange.subscribe((event: ModelChanged<SegmentationModel>) => {
+        this.modelChanged.emit(new ModelChanged(event.model, event.changeType));
         }));
     }
 

@@ -1,24 +1,10 @@
+import { ChangeType, ModelChanged } from './change';
 import { SynchronizedObject } from './storage';
 import { TrackingData, SelectedSegment } from './tracking-data';
 import { jsonMember, jsonObject } from 'typedjson';
 import { ActionManager, AddLinkAction, SelectSegmentAction, UnselectSegmentAction } from './action';
 import { EventEmitter } from '@angular/core';
-import { ModelChanged } from './segmentation-model';
 
-export enum ChangeType {
-    SOFT,
-    HARD
-}
-
-export class TrackingChangedEvent {
-    trackingModel: TrackingModel;
-    changeType: ChangeType;
-
-    constructor(trackingModel: TrackingModel, changeType = ChangeType.HARD) {
-        this.trackingModel = trackingModel;
-        this.changeType = changeType;
-    }
-}
 
 @jsonObject({onDeserialized: 'onDeserialized'})
 export class TrackingModel extends SynchronizedObject<TrackingModel> {

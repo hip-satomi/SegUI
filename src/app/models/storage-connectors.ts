@@ -1,9 +1,10 @@
+import { ModelChanged, ChangeType } from './change';
 import { concatMap, debounceTime, filter, map, tap } from 'rxjs/operators';
 import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
 import { TypedJSON } from 'typedjson';
-import { SegmentationModel, SegmentationChangedEvent, SegmentationHolder, ModelChanged } from './segmentation-model';
-import { ChangeType, TrackingModel } from './tracking';
+import { SegmentationModel, SegmentationHolder} from './segmentation-model';
+import { TrackingModel } from './tracking';
 import { Observable, of } from 'rxjs';
 import { StorageConnector } from './storage';
 
