@@ -3,22 +3,23 @@ import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
-    path: 'home',
-    loadChildren: () => import('./home/home.module').then( m => m.HomePageModule)
+    path: 'seg-track',
+    loadChildren: () => import('./home/home.module').then( m => m.HomePageModule),
+    canActivate: [AuthGuard]
   },
   {
     path: '',
-    redirectTo: 'image-set-list',
+    redirectTo: 'login',
     pathMatch: 'full'
   },
   {
-    path: 'seg-track',
-    redirectTo: 'home',
-    pathMatch: 'full'
+    path: 'list',
+    loadChildren: () => import('./pages/image-set-list/image-set-list.module').then( m => m.ImageSetListPageModule),
+    canActivate: [AuthGuard]
   },
   {
-    path: 'image-set-list',
-    loadChildren: () => import('./pages/image-set-list/image-set-list.module').then( m => m.ImageSetListPageModule)
+    path: 'login',
+    loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
   },
 ];
 
