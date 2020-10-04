@@ -1,11 +1,10 @@
+import 'reflect-metadata';
 import { EventEmitter } from '@angular/core';
 import { SelectedSegment, TrackingData, TrackingLink } from './tracking-data';
 import { SegmentationData } from './segmentation-data';
 import { Polygon } from 'src/app/models/geometry';
-import 'reflect-metadata';
 import { jsonArrayMember, jsonMember, jsonObject, toJson, TypedJSON } from 'typedjson';
 import { v4 as uuidv4 } from 'uuid';
-import { stringify as uuidStringify } from 'uuid';
 @jsonObject
 export abstract class Action {
 
@@ -154,6 +153,7 @@ export class SelectPolygon extends SegmentationAction {
     }
 
     join(action: Action): boolean {
+        console.log('joining');
         if (action instanceof SelectPolygon) {
             const selectAction = action as SelectPolygon;
 

@@ -1,4 +1,4 @@
-import { AlertController } from '@ionic/angular';
+import { AlertController, ToastController } from '@ionic/angular';
 import { AuthService } from './../services/auth.service';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
@@ -18,7 +18,8 @@ export class LoginPage implements OnInit {
   constructor(
     private auth: AuthService,
     private router: Router,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController
   ) { }
 
   ngOnInit() {
@@ -35,6 +36,12 @@ export class LoginPage implements OnInit {
           buttons: ['OK']
         });
       }
+    }, (err) => {
+      // now we have the id of the image set
+      const toast = this.toastCtrl.create({
+        message: JSON.stringify(err),
+        duration: 2000
+      }).then((toast) => toast.present());
     });
   }
 
