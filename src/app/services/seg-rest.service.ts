@@ -27,7 +27,18 @@ export interface GUISegmentationCandidate {
 export interface GUISegmentation extends GUISegmentationCandidate {
   id: number;
   modifiedDate: string;
-  creationDate: string;
+  createdDate: string;
+}
+
+export interface GUITrackingCandidate {
+  segmentation: string;
+  json: string;
+}
+
+export interface GUITracking extends GUITrackingCandidate {
+  id: number;
+  modifiedDate: string;
+  createdDate: string;
 }
 
 export class Result {
@@ -153,6 +164,10 @@ export class SegRestService {
     );
   }
 
+  public getSegmentationUrl(segId: number) {
+    return `${this.baseUrl}gui-segmentations/${segId}/`;
+  }
+
   public postSegmentation(imageSetId: number, json: string): Observable<GUISegmentation> {
     const imageSource = `${this.baseUrl}imageSets/${imageSetId}/`;
 
@@ -177,6 +192,12 @@ export class SegRestService {
     );
   }
 
+  public getSegmentationByUrl(segmentationUrl: string): Observable<GUISegmentation> {
+    return this.httpClient.get(segmentationUrl).pipe(
+      map(r => r as GUISegmentation)
+    );
+  }
+
   /**
    * 
    * TODO really get latest segmentation
@@ -194,4 +215,37 @@ export class SegRestService {
       })
     );
   }
+
+  public getLatestTracking(imageSetId: number): Observable<GUITracking> {
+    return this.httpClient.get(`${this.baseUrl}gui-trackings/?imageSet=${imageSetId}`).pipe(
+      this.rc,
+      map((result: Result) => {
+        if (result.results.length > 0) {
+          return result.results[0] as GUITracking;
+        } else {
+          return null;
+        }
+      })
+    );
+  }
+
+  public getTrackingSegmentation(tracking: GUITracking): Observable<GUISegmentation> {
+    return this.httpClient.get(`${tracking.segmentation}`).pipe(
+      map(r => r as GUISegmentation)
+    );
+  }
+
+  public putTracking(tracking: GUITracking): Observable<GUITracking> {
+    return this.httpClient.put(`${this.baseUrl}gui-trackings/${tracking.id}/`, tracking).pipe(
+      map(r => r as GUITracking)
+    );
+  }
+
+  public postTracking(segUrl: string, json: string): Observable<GUITracking> {
+    return this.httpClient.post(`${this.baseUrl}gui-trackings/`, {segmentation: segUrl, json}).pipe(
+      map(r => r as GUITracking)
+    );
+  }
+
+
 }
