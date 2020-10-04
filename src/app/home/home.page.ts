@@ -31,15 +31,12 @@ enum EditMode {
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
 })
-export class HomePage implements OnInit, Drawer, UIInteraction{
+export class HomePage implements AfterViewInit, Drawer, UIInteraction{
 
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
 
-  //segHolder = new SegmentationHolder();
-  //segmentationModels: SegmentationModel[] = [];
   segmentationUIs: SegmentationUI[] = [];
 
-  trackingModel: TrackingModel;
   trackingUI: TrackingUI;
 
   /** Key where the segmentation data is stored */
@@ -152,7 +149,7 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
     }
   }
 
-  async ngOnInit() {
+  async ngAfterViewInit() {
     console.log('Init test');
     // get the query param and fire the id
     this.id = this.route.queryParams.pipe(
@@ -165,125 +162,89 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
       })
     );
 
-    const id = this.stateService.imageSetId;
+    if (this.stateService.navImageSetId !== this.stateService.imageSetId) {
+      const id = this.stateService.navImageSetId;
 
-    // now we have the id of the image set
-    const toast = await this.toastController.create({
-      message: `The loaded imageSet id is ${id}`,
-      duration: 2000
-    });
-    toast.present();
-
-    // get image urls
-    this.segService.getImageUrls(id).pipe(
-      // get the latest tracking
-      mergeMap((urls: string[]) => {
-        return this.segService.getLatestTracking(id).pipe(
-          map(tr => ({urls, tracking: tr}))
-        );
-      }),
-      // depending on the tracking load the segmentation
-      mergeMap((joint) => {
-        let seg: Observable<GUISegmentation>;
-        if (joint.tracking) {
-          // we have a tracking --> load segmentation
-          seg = this.segService.getSegmentationByUrl(joint.tracking.segmentation);
-        } else {
-          // we have no tracking --> load segmentation
-          seg = this.segService.getLatestSegmentation(id);
-        }
-
-        return seg.pipe(
-          map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
-        );
-      }),
-      // create the segmentation connector
-      map((content) => {
-        let srsc: SegmentationRESTStorageConnector;
-        if (content.segm === null) {
-          srsc = SegmentationRESTStorageConnector.createNew(this.segService, id, content.urls);
-        } else {
-          srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
-        }
-
-        return {srsc, tracking: content.tracking};
-      }),
-      // create the tracking connector
-      map((content) => {
-        let trsc: TrackingRESTStorageConnector;
-        if (content.tracking === null) {
-          // create a tracking
-          trsc = TrackingRESTStorageConnector.createNew(this.segService, content.srsc);
-        } else {
-          trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
-        }
-
-        return {srsc: content.srsc, trsc};
-      })
-    ).subscribe(async (content) => {
-      await this.loadSegmentation(content.srsc);
-      await this.loadTracking(content.trsc);
-    });
-
-    /*// we request the latest segmentation on that image set
-    this.segService.getLatestSegmentation(id).pipe(
-      map((seg: GUISegmentation) => {
-        if (seg) {
-          // there was an existing segmentation --> we just have to load it and attach it to the storage
-          return of(SegmentationRESTStorageConnector.createFromExisting(this.segService, seg).getModel());
-        } else {
-          // there was no existing segmentation --> we get the image urls and create new ones
-          return this.segService.getImageUrls(id).pipe(
-            map((urls: string[]) => {
-              return SegmentationRESTStorageConnector.createNew(this.segService, id, urls).getModel();
-            })
-          );
-        }
-      }),
-      concatAll(),
-    ).subscribe((segHolder: SegmentationHolder) => {
-      // now that we have a holder we can start using it
-      this.segHolder = segHolder;
-      this.segHolder.modelChanged.subscribe((event: ModelChanged<SegmentationModel>) => {
-        this.segModelChanged(event);
-      });
-
-      this.segmentationModels = [];
-      this.segmentationUIs = [];
-
-      for (const model of this.segHolder.segmentations) {
-        this.segmentationModels.push(model);
-        this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement));
-      }
-    }, async (error) => {
-      console.error(error);
       // now we have the id of the image set
       const toast = await this.toastController.create({
-        message: `Error while loading segmentation for image set ${id}`,
+        message: `The loaded imageSet id is ${id}`,
         duration: 2000
       });
       toast.present();
-    });*/
+
+      // get image urls
+      this.segService.getImageUrls(id).pipe(
+        // get the latest tracking
+        mergeMap((urls: string[]) => {
+          return this.segService.getLatestTracking(id).pipe(
+            map(tr => ({urls, tracking: tr}))
+          );
+        }),
+        // depending on the tracking load the segmentation
+        mergeMap((joint) => {
+          let seg: Observable<GUISegmentation>;
+          if (joint.tracking) {
+            // we have a tracking --> load segmentation
+            seg = this.segService.getSegmentationByUrl(joint.tracking.segmentation);
+          } else {
+            // we have no tracking --> load segmentation
+            seg = this.segService.getLatestSegmentation(id);
+          }
+
+          return seg.pipe(
+            map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
+          );
+        }),
+        // create the segmentation connector
+        map((content) => {
+          let srsc: SegmentationRESTStorageConnector;
+          if (content.segm === null) {
+            srsc = SegmentationRESTStorageConnector.createNew(this.segService, id, content.urls);
+          } else {
+            srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
+          }
+
+          return {srsc, tracking: content.tracking};
+        }),
+        // create the tracking connector
+        map((content) => {
+          let trsc: TrackingRESTStorageConnector;
+          if (content.tracking === null) {
+            // create a tracking
+            trsc = TrackingRESTStorageConnector.createNew(this.segService, content.srsc);
+          } else {
+            trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
+          }
+
+          return {srsc: content.srsc, trsc};
+        })
+      ).subscribe(async (content) => {
+        this.stateService.imageSetId = id;
+        await this.loadSegmentation(content.srsc.getModel());
+        await this.loadTracking(content.trsc.getModel());
+      });
+    } else {
+      this.loadSegmentation(this.stateService.holder);
+      this.loadTracking(this.stateService.tracking);
+    }
   }
 
-  async loadSegmentation(srsc: StorageConnector<SegmentationHolder>) {
+  async loadSegmentation(segHolder: SegmentationHolder) {
     // now that we have a holder we can start using it
-    this.segHolder = srsc.getModel();
+    this.segHolder = segHolder;
     this.segHolder.modelChanged.subscribe((event: ModelChanged<SegmentationModel>) => {
       this.segModelChanged(event);
     });
 
-    this.segmentationModels = [];
     this.segmentationUIs = [];
 
     for (const model of this.segHolder.segmentations) {
-      this.segmentationModels.push(model);
       this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement));
     }
   }
 
-  async loadTracking(trsc: StorageConnector<TrackingModel>) {
-    if (trsc === null) {
+  async loadTracking(trackingModel: TrackingModel) {
+    if (trackingModel === null) {
       // There was an error while loading the tracking
       const toast = await this.toastController.create({
         message: `Error while loading tracking data`,
@@ -292,8 +253,12 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
       toast.present();
     } else {
       // loading the tracking
-      this.trackingModel = trsc.getModel();
-      this.trackingUI = new TrackingUI(this.segmentationModels, this.trackingModel, this.imageDisplay.canvasElement, this.toastController, this.activeView);
+      this.stateService.tracking = trackingModel;
+      this.trackingUI = new TrackingUI(this.segmentationModels,
+        this.trackingModel,
+        this.imageDisplay.canvasElement,
+        this.toastController,
+        this.activeView);
       this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: TrackingChangedEvent) => {
         if (trackingChangedEvent.changeType === ChangeType.SOFT) {
           // if there are only soft changes we will just redraw
@@ -312,11 +277,15 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
   }
 
   get segmentationModels() {
-    return this.stateService.models;
+    if (this.segHolder) {
+      return this.segHolder.segmentations;
+    } else {
+      return [];
+    }
   }
 
-  set segmentationModels(segModels: SegmentationModel[]) {
-    this.stateService.models = segModels;
+  get trackingModel() {
+    return this.stateService.tracking;
   }
 
   get isSegmentation() {
@@ -331,30 +300,8 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
     return this.segmentationModels[this.activeView];
   }
 
-
   segModelChanged(segModelChangedEvent: ModelChanged<SegmentationModel>) {
     this.draw(this.ctx);
-  }
-
-  initTracking(createNewTrackingModel = true) {
-    if (createNewTrackingModel) {
-      this.trackingModel = new TrackingModel();
-    }
-    //this.trackingUI = new TrackingUI(this.segmentationModels, this.trackingModel, this.imageDisplay.canvasElement, this.toastController);
-    this.trackingUI.canvasElement = this.imageDisplay.canvasElement;
-    this.trackingUI.ctx = this.imageDisplay.ctx;
-    this.trackingUI.toastController = this.toastController;
-    this.trackingUI.currentFrame = this.activeView;
-    this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: TrackingChangedEvent) => {
-      if (trackingChangedEvent.changeType === ChangeType.SOFT) {
-        // if there are only soft changes we will just redraw
-        this.draw(this.ctx);
-      } else {
-        // if there are hard changes in the model we will drwa & save
-        this.draw(this.ctx);
-        this.storeTracking();
-      }
-    });
   }
 
   async storeTracking() {
@@ -370,56 +317,7 @@ export class HomePage implements OnInit, Drawer, UIInteraction{
     });
   }
 
-  async restoreTracking(segRestored: boolean) {
-
-    if (!segRestored) {
-      // if the segmentation could not be restored then we can not restore any tracking
-      // --> create a new one
-      this.initTracking();
-      return false;
-    }
-
-    let restored = false;
-
-    const serializer = new TypedJSON(TrackingModel);
-
-    const jsonString = (await Storage.get({key: this.trackingKey})).value;
-
-    if (jsonString) {
-      const locTracking = serializer.parse(jsonString);
-
-      if (locTracking) {
-        // copy tracking model and attach ui
-        this.trackingModel = locTracking;
-        this.initTracking(false);
-
-        restored = true;
-
-        // otherwise we notify the user and use the old segmentation model
-        const toast = await this.toastController.create({
-          message: 'Successfully restored tracking model',
-          duration: 2000
-        });
-        toast.present();
-      }
-    }
-
-    if (!restored) {
-      // there must have been something wrong during tracking restoring
-      // --> create a new one
-      this.initTracking();
-      return false;
-    }
-
-    return true;
-  }
-
   async undo() {
-    /*const toast = await this.toastController.create({
-      message: 'TODO: Undo last segmentation',
-      duration: 2000
-    });
-    toast.present();*/
     if (this.editMode === EditMode.Segmentation && this.curSegModel) {
       this.curSegModel.undo();
     } else if (this.editMode === EditMode.Tracking && this.trackingUI) {

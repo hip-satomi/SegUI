@@ -1,3 +1,4 @@
+import { TrackingModel } from './../models/tracking';
 import { SegmentationHolder, SegmentationModel } from './../models/segmentation-model';
 import { Injectable } from '@angular/core';
 
@@ -6,9 +7,11 @@ import { Injectable } from '@angular/core';
 })
 export class StateService {
 
+  navImageSetId: number;
+
   imageSetId: number;
   holder: SegmentationHolder;
-  models: SegmentationModel[] = [];
+  tracking: TrackingModel;
 
   constructor() { }
 }
