@@ -36,7 +36,7 @@ export class AuthService {
 
   private tokenPair: Observable<TokenPair>;
 
-  private baseUrl = 'http://localhost:8000/';
+  private baseUrl = 'http://lara:8000/';
 
   constructor(private httpClient: HttpClient, private plt: Platform, private router: Router) {
     this.loadStoredToken();
