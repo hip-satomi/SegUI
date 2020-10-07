@@ -32,7 +32,7 @@ enum EditMode {
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
 })
-export class HomePage implements AfterViewInit, Drawer, UIInteraction{
+export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
 
@@ -147,6 +147,13 @@ export class HomePage implements AfterViewInit, Drawer, UIInteraction{
   delete() {
     if (this.isSegmentation) {
       this.segmentationUIs[this.activeView].delete();
+    }
+  }
+
+  ngOnInit() {
+    // if there is no resource defined --> go back to list view
+    if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
+      this.router.navigateByUrl('/list');
     }
   }
 
