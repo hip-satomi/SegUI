@@ -325,19 +325,25 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     });
   }
 
+  @HostListener('document:keydown.control.z')
   async undo() {
-    if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-      this.curSegModel.undo();
-    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-      this.trackingUI.undo();
+    if (this.canUndo) {
+      if (this.editMode === EditMode.Segmentation && this.curSegModel) {
+        this.curSegModel.undo();
+      } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
+        this.trackingUI.undo();
+      }
     }
   }
 
+  @HostListener('document:keydown.control.y')
   async redo() {
-    if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-      this.curSegModel.redo();
-    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-      this.trackingUI.redo();
+    if (this.canRedo) {
+      if (this.editMode === EditMode.Segmentation && this.curSegModel) {
+        this.curSegModel.redo();
+      } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
+        this.trackingUI.redo();
+      }
     }
   }
 
