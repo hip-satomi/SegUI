@@ -18,7 +18,6 @@ import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angu
 import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
-import { StorageConnector } from '../models/storage';
 
 const { Storage } = Plugins;
 
