@@ -99,6 +99,38 @@ export class AddEmptyPolygon extends SegmentationAction {
 
 }
 
+/**
+ * Action to add a full polygon
+ */
+@jsonObject
+export class AddPolygon extends SegmentationAction {
+
+    @jsonMember
+    uuid: string;
+
+    @jsonMember
+    poly: Polygon;
+
+    constructor(segmentationData: SegmentationData, poly: Polygon) {
+        super(segmentationData);
+
+        this.uuid = uuidv4();
+        this.poly = poly;
+    }
+
+    perform() {
+        this.segmentationData.addPolygon(this.uuid, this.poly);
+
+        this.updatePerformedTime();
+    }
+
+    reverse() {
+        this.segmentationData.removePolygon(this.uuid);
+    }
+
+}
+
+
 @jsonObject
 export class RemovePolygon extends SegmentationAction {
 
@@ -462,6 +494,7 @@ export class AddLinkAction extends TrackingAction {
 const knownTypes = [Action,
                     SegmentationAction,
                     AddEmptyPolygon,
+                    AddPolygon,
                     RemovePolygon,
                     AddPointAction,
                     RemovePointAction,

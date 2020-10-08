@@ -1,8 +1,12 @@
+import { UIUtils } from './../models/utils';
+import { Polygon, Point } from './../models/geometry';
+import { AddPolygon, JointAction } from './../models/action';
+import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
 import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
-import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap } from 'rxjs/operators';
+import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap, switchMap } from 'rxjs/operators';
 import { forkJoin, Observable, of } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
@@ -12,7 +16,7 @@ import { ImageDisplayComponent } from './../components/image-display/image-displ
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SegmentationModel,  SegmentationHolder } from './../models/segmentation-model';
-import { ActionSheetController, ToastController } from '@ionic/angular';
+import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
@@ -76,8 +80,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private route: ActivatedRoute,
               private router: Router,
               private segService: SegRestService,
-              private stateService: StateService) {
-
+              private stateService: StateService,
+              private segmentationService: SegmentationService,
+              private loadingCtrl: LoadingController) {
   }
 
   onTap(event: any) {
@@ -534,6 +539,80 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     await Storage.clear();
 
     //this.load(this.urls);
+  }
+
+  /**
+   * Get and apply proposal segmentations
+   */
+  async doSegment() {
+    // create progress loader
+    const loading = this.loadingCtrl.create({
+      message: 'Please wait while AI is doing the job...',
+    }).then(l => {l.present(); return l; });
+
+    // start http request --> get image urls
+    this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
+      // read the image in binary format
+      switchMap(url => {console.log(url); return this.segService.getBinary(url); }),
+      switchMap(data => {
+        console.log('have the binary data!');
+        console.log(data);
+
+        // send the image to a segmentation REST backend
+        return this.segmentationService.requestSegmentationProposal(data);
+      }),
+    ).subscribe(
+      (data) => {
+        console.log(`Number of proposal detections ${data.length}`);
+
+        // drop all segmentations with score lower 0.5
+        const threshold = 0.5;
+        data = data.filter(det => det.score >= threshold);
+        console.log(`Number of filtered detections ${data.length}`);
+        console.log(data);
+
+        const actions: AddPolygon[] = [];
+
+        // loop over every detection
+        for (const det of data) {
+          const label = det.label; // Should be cell
+          const bbox = det.bbox;
+          const contours = det.contours;
+
+          // loop over all contours
+          for (const cont of contours) {
+            const points: Point[] = [];
+
+            // merge x and y point lists into [x, y] list
+            cont.x.map((xItem, i) => {
+              const yItem = cont.y[i];
+              points.push([xItem, yItem]);
+            });
+
+            // create a polygon from points and set random color
+            const poly = new Polygon(...points);
+            poly.setColor(UIUtils.randomColor());
+
+            // collection new polygon actions
+            actions.push(new AddPolygon(this.curSegModel.segmentationData, poly));
+          }
+        }
+
+        // join all the new polygon actions
+        const finalAction = new JointAction(...actions);
+
+        // apply the actions to the current segmentation model
+        this.curSegModel.addAction(finalAction);
+
+        // segmentation proposals have been applied successfully
+        const toast = this.toastController.create({
+          message: 'Successfully requested segmentation proposals',
+          duration: 2000
+        }).then(toast => toast.present());
+      },
+      (error) => console.error(error),
+      () => loading.then(l => l.dismiss())
+    );
   }
 
 }

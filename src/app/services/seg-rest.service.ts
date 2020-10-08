@@ -54,7 +54,7 @@ export class Result {
 })
 export class SegRestService {
 
-  rootUrl: string = 'http://Lara:8000/';
+  rootUrl: string = 'http://192.168.0.123:8000/';
   baseUrl: string = `${this.rootUrl}seg-api/`;
   rc = map(resultObject => {
     console.log(resultObject);
@@ -98,6 +98,21 @@ export class SegRestService {
       })
     );
   }
+
+  /**
+   * Provides the binary download from an url, e.g. an image
+   * @param url the url 
+   */
+  public getBinary(url: string) {
+    // get a valid token first --> then we can execute the http call
+    return this.auth.getValidToken().pipe(
+      switchMap(token => {
+        const headers = SegRestService.createHttpOptions(token).headers;
+        return this.httpClient.get<Blob>(url,  {headers, responseType: 'blob' as 'json'});
+      })
+    );
+  }
+
 
   private put(url: string, body: any) {
     // get a valid token first --> then we can execute the http call
@@ -165,6 +180,19 @@ export class SegRestService {
 
   public getImageUrl(id: number) {
     return `${this.rootUrl}media/images/${id}.png`;
+  }
+
+  /**
+   * Requests url to binary image
+   * @param imageSetId the image set id
+   * @param frameId the frame id
+   */
+  public getImageUrlByFrame(imageSetId: number, frameId: number) {
+    return this.get(`${this.baseUrl}images/?imageSet=${imageSetId}&frameId=${frameId}`).pipe(
+      this.rc,
+      map(result => result.results[0] as Image),
+      map(image => this.getImageUrl(image.id))
+    );
   }
 
   public getImageIds(imageSetId: number): Observable<number[]> {

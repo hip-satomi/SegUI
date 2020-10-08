@@ -3,7 +3,7 @@ const inside = require('point-in-polygon');
 import { mean } from 'mathjs';
 import { jsonArrayMember, jsonMember, jsonObject } from 'typedjson';
 
-type Point = [number, number];
+export type Point = [number, number];
 
 @jsonObject
 export class Polygon {

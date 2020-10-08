@@ -36,7 +36,7 @@ export class AuthService {
 
   private tokenPair: Observable<TokenPair>;
 
-  private baseUrl = 'http://lara:8000/';
+  private baseUrl = '/api';// 'http://lara:8000/';
 
   constructor(private httpClient: HttpClient, private plt: Platform, private router: Router) {
     this.loadStoredToken();
@@ -99,7 +99,7 @@ export class AuthService {
 
   login(credential: {username: string, password: string}) {
     // make a post request here
-    return this.httpClient.post(`${this.baseUrl}api/token/`, credential).pipe(
+    return this.httpClient.post(`${this.baseUrl}/token/`, credential).pipe(
       take(1),
       map((res: {refresh: string, access: string}) => {
         return res;
@@ -113,7 +113,7 @@ export class AuthService {
   }
 
   private refreshToken(refreshToken: string): Observable<string> {
-    return this.httpClient.post(`${this.baseUrl}api/token/refresh/`, {refresh: refreshToken}).pipe(
+    return this.httpClient.post(`${this.baseUrl}/token/refresh/`, {refresh: refreshToken}).pipe(
       map(r => r as {access: string}),
       mergeMap(r => {
         return this.tokenPair.pipe(
