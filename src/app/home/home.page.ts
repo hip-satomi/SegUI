@@ -157,7 +157,16 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   async ngAfterViewInit() {
+  }
+
+  async ionViewWillEnter() {
     console.log('Init test');
+    console.log(this.stateService.navImageSetId);
+    console.log(this.stateService.imageSetId);
+    if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
+      return false;
+    }
+
     // get the query param and fire the id
     this.id = this.route.queryParams.pipe(
       map(params => {
