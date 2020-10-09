@@ -51,6 +51,24 @@ export class Polygon {
 
     }
 
+    /**
+     * Converts an arbitray index (pos or negative) to the correct array element
+     * @param index index
+     */
+    private runningIndex(index: number): number {
+        // fix negative indices
+        while (index < 0) {
+            index += this.points.length;
+        }
+
+        // fix too large indices
+        if (index >= this.points.length) {
+            index = index % this.points.length;
+        }
+
+        return index;
+    }
+
     distanceToOuterShape(point: Point) {
         const x = point[0];
         const y = point[1];
@@ -58,11 +76,11 @@ export class Polygon {
         let minDist = 0;
         let minIndex = -1;
 
-        for (let i = 1; i < this.numPoints; i++) {
+        for (let i = 0; i < this.numPoints; i++) {
             const lineDist = dotLineLength(
               x, y,
               this.points[i][0], this.points[i][1],
-              this.points[i - 1][0], this.points[i - 1][1],
+              this.points[this.runningIndex(i - 1)][0], this.points[this.runningIndex(i - 1)][1],
               true
             );
             if (lineDist < minDist || minIndex === -1) {

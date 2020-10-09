@@ -31,7 +31,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
         const poly = this.segmentationModel.activePolygon;
         let insertAt = poly.numPoints;
 
-        const mousePos = Utils.getMousePos(this.canvasElement, e);
+        const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         const x = mousePos.x;
         const y = mousePos.y;
 
