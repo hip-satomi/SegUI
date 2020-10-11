@@ -548,10 +548,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // create progress loader
     const loading = this.loadingCtrl.create({
       message: 'Please wait while AI is doing the job...',
+      backdropDismiss: true,
     }).then(l => {l.present(); return l; });
 
     // start http request --> get image urls
-    this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
+    const sub = this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
       // read the image in binary format
       switchMap(url => {console.log(url); return this.segService.getBinary(url); }),
       switchMap(data => {
@@ -605,7 +606,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         this.curSegModel.addAction(finalAction);
 
         // segmentation proposals have been applied successfully
-        const toast = this.toastController.create({
+        this.toastController.create({
           message: 'Successfully requested segmentation proposals',
           duration: 2000
         }).then(toast => toast.present());
@@ -613,6 +614,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       (error) => console.error(error),
       () => loading.then(l => l.dismiss())
     );
+
+    loading.then(l => l.onDidDismiss().then(() => sub.unsubscribe()));
+  }
+
   }
 
 }
