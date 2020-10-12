@@ -84,34 +84,39 @@ export class BrushTool implements UIInteraction, Drawer {
      * @param event event
      */
     onPointerDown(event: any): boolean {
-        this.brushActivated = true;
-        this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosMouse(this.canvasElement, event), this.ctx);
-        this.oldPoints = Utils.tree.clone(this.currentPolygon.points);
+        // left or right button
+        if (event.button === 0 || event.button === 2) {
+            event.preventDefault();
+            this.brushActivated = true;
+            this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosMouse(this.canvasElement, event), this.ctx);
+            this.oldPoints = Utils.tree.clone(this.currentPolygon.points);
 
 
-        if (this.currentPolygon.numPoints === 0) {
-            this.increase = true;
-        } else {
-            const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.radius);
-            let inter: Point[][];
             if (this.currentPolygon.numPoints === 0) {
-                inter = [];
-            } else {
-                inter = polygon.intersection(this.currentPolygon.points, circle.points);
-            }
-            
-            if (inter.length === 0) {
-                this.increase = false;
-            } else {
                 this.increase = true;
+            } else {
+                const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.radius);
+                let inter: Point[][];
+                if (this.currentPolygon.numPoints === 0) {
+                    inter = [];
+                } else {
+                    inter = polygon.intersection(this.currentPolygon.points, circle.points);
+                }
+                
+                if (inter.length === 0 || event.button === 2) {
+                    this.increase = false;
+                } else {
+                    this.increase = true;
+                }
             }
+            console.log('Brush mode increase?' + this.increase);
+
+            // Notify change event
+            this.changedEvent.emit();
+            return true;
         }
-        console.log('Brush mode increase?' + this.increase);
 
-        // Notify change event
-        this.changedEvent.emit();
-
-        return true;
+        return false;
     }
 
     /**
@@ -150,13 +155,17 @@ export class BrushTool implements UIInteraction, Drawer {
      * @param event 
      */
     onPointerUp(event: any): boolean {
-        this.brushActivated = false;
-        this.pointerPos = null;
+        if (event.button === 0) {
+            this.brushActivated = false;
+            this.pointerPos = null;
 
-        this.commitChanges();
+            this.commitChanges();
 
-        this.changedEvent.emit();
-        return true;
+            this.changedEvent.emit();
+            return true;
+        }
+
+        return false;
     }
 
     onTap(event: any): boolean {
