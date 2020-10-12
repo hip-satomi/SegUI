@@ -167,11 +167,16 @@ export class SelectPolygon extends SegmentationAction {
     @jsonMember newPolyId: string;
     @jsonMember oldPolyId: string;
 
-    constructor(segmentationData: SegmentationData, newPolyId: string, oldPolyId: string) {
+    constructor(segmentationData: SegmentationData, newPolyId: string, oldPolyId: string = null) {
         super(segmentationData);
 
         this.newPolyId = newPolyId;
-        this.oldPolyId = oldPolyId;
+        if (oldPolyId) {
+            this.oldPolyId = oldPolyId;
+        } else if (this.segmentationData) {
+            // use the currently active polygon for old id
+            this.oldPolyId = this.segmentationData.activePolygonId;
+        }
     }
 
     perform() {
