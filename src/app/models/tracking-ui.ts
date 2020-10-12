@@ -43,6 +43,16 @@ export class TrackingUI implements UIInteraction, Drawer {
         this.currentFrame = currentFrame;
     }
 
+    onPointerDown(event: any) {
+        return false;
+    }
+    onPointerMove(event: any) {
+        return false;
+    }
+    onPointerUp(event: any) {
+        return false;
+    }
+
     get curSegData() {
         return this.segmentationModels[this.currentFrame].segmentationData;
     }
@@ -111,9 +121,9 @@ export class TrackingUI implements UIInteraction, Drawer {
         return [null, null];
     }
 
-    async onTap(event: any) {
+    onTap(event: any) {
         if (!this.canTrack) {
-            return;
+            return true;
         }
 
         // we have to check whether we did hit a polygon of the current frame
@@ -127,11 +137,10 @@ export class TrackingUI implements UIInteraction, Drawer {
                 // if we did hit a polygon please add the selection
                 this.trackingModel.selectSegment(new SelectedSegment(polyIndex));
 
-                const toast = await this.toastController.create({
+                this.toastController.create({
                     message: 'Selected a source segmentation',
                     duration: 2000
-                });
-                toast.present();
+                }).then(t => t.present());
             }
         } else {
             // this is about selecting the targets or deselect the source
@@ -142,27 +151,28 @@ export class TrackingUI implements UIInteraction, Drawer {
                 // if we did hit a polygon please add the selection
                 this.trackingModel.selectSegment(new SelectedSegment(polyIndex));
 
-                const toast = await this.toastController.create({
+                this.toastController.create({
                     message: 'Selected a target segmentation',
                     duration: 2000
-                });
-                toast.present();
+                }).then(t => t.present());
             }
         }
+
+        return true;
     }
 
     onPress(event: any) {
-        throw new Error('Method not implemented.');
+        return false;
     }
 
     onPanStart(event: any) {
-        throw new Error('Method not implemented.');
+        return false;
     }
     onPan(event: any) {
-        throw new Error('Method not implemented.');
+        return false;
     }
     onPanEnd(event: any) {
-        throw new Error('Method not implemented.');
+        return false;
     }
 
     onMove(event: any) {
@@ -185,6 +195,8 @@ export class TrackingUI implements UIInteraction, Drawer {
         this.hoverPoly = poly;
 
         this.trackingModel.onModelChanged.emit(new ModelChanged<TrackingModel>(this.trackingModel, ChangeType.SOFT));
+        
+        return true;
     }
 
     get canTrack() {

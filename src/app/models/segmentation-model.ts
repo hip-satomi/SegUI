@@ -3,7 +3,7 @@ import { EventEmitter } from '@angular/core';
 import { SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
 import { Polygon } from './geometry';
-import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper } from './action';
+import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper, Action, JointAction } from './action';
 import { jsonMember, jsonObject, jsonArrayMember } from 'typedjson';
 import { SynchronizedObject } from './storage';
 import { Subscription, Observable } from 'rxjs';
@@ -108,13 +108,31 @@ export class SegmentationModel {
      * @param ctx canvas context to draw onto
      */
     draw(ctx, markActive = true) {
-        for (const [index, polygon] of this.segmentationData.getPolygonEntries()) {
+        this.drawPolygons(ctx, markActive);
+        this.drawImage(ctx);
+    }
+
+    /**
+     * Draws the polygons of the segmentation data
+     * @param ctx the target canvas context
+     * @param markActive iff true marks the currently active polygon
+     * @param polyFilter a filter function to draw only specific polygons
+     */
+    drawPolygons(ctx, markActive = true, polyFilter: (p: [string, Polygon]) => boolean = p => true) {
+        for (const [index, polygon] of Array.from(this.segmentationData.getPolygonEntries()).filter(polyFilter)) {
             if (markActive) {
                 UIUtils.drawSingle(polygon.points, index === this.activePolygonId, ctx, polygon.getColor());
             } else {
                 UIUtils.drawSingle(polygon.points, false, ctx, polygon.getColor());
             }
         }
+    }
+
+    /**
+     * Draws the models image
+     * @param ctx the target canvas context
+     */
+    drawImage(ctx) {
         ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
     }
 
@@ -155,11 +173,14 @@ export class SegmentationModel {
         // do not allow undo for the first segment (it should be always present)
         let allowUndo = true;
 
+        const actions: Action[] = [];
+
         if (this.segmentationData.numPolygons === 0) {
             // when there are no polygons we simply have to add one
             const newAction = new AddEmptyPolygon(this.segmentationData, UIUtils.randomColor());
             uuid = newAction.uuid;
-            this.addAction(newAction);
+            //this.addAction(newAction);
+            actions.push(newAction);
 
             allowUndo = false;
 
@@ -172,7 +193,8 @@ export class SegmentationModel {
             } else {
                 const newAction = new AddEmptyPolygon(this.segmentationData, UIUtils.randomColor());
                 uuid = newAction.uuid;
-                this.addAction(newAction);
+                //this.addAction(newAction);
+                actions.push(newAction);
 
                 this.activePointIndex = 0;
             }
@@ -180,10 +202,13 @@ export class SegmentationModel {
 
         // select the correct polygon
         if (allowUndo) {
-            this.addAction(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId));
+            actions.push(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId));
         } else {
-            this.addAction(new PreventUndoActionWrapper(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId)));
+            actions.push(new PreventUndoActionWrapper(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId)));
         }
+
+        // add all these actions as a joint action
+        this.addAction(new JointAction(...actions));
 
         return uuid;
     }

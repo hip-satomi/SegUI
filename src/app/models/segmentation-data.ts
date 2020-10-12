@@ -53,6 +53,10 @@ export class SegmentationData {
         return this.polygons.entries();
     }
 
+    getPolygons() {
+        return this.polygons;
+    }
+
     contains(uuid: string) {
         return this.polygons.has(uuid);
     }

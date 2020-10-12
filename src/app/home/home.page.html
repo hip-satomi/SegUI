@@ -1,19 +1,19 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>
-      Segmentation
-    </ion-title>
+    <ion-select [(ngModel)]="editMode" interface="action-sheet" slot="start">
+      <ion-select-option value="0">Segment</ion-select-option>
+      <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
+    </ion-select>
       <ion-buttons slot="end">
+        <ion-button (click)="brushTool()" [ngClass]="{active: this.tool !== null}">
+          Brush
+        </ion-button>
         <ion-button (click)="doSegment()">
           SegProp
         </ion-button>
         <ion-button (click)="deleteStorage()" style="padding-right:10px">
           <ion-icon name="trash-outline"></ion-icon>
         </ion-button>
-        <ion-select [(ngModel)]="editMode" interface="action-sheet">
-          <ion-select-option value="0">Segment</ion-select-option>
-          <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
-        </ion-select>
         <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px">
           <ion-icon name="arrow-undo-outline"></ion-icon>
         </ion-button>

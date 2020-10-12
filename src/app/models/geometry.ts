@@ -1,7 +1,8 @@
-import { Position, pairwiseDistanceMin, dotLineLength, UIUtils } from './utils';
+import { Position, pairwiseDistanceMin, dotLineLength, UIUtils, Utils } from './utils';
 const inside = require('point-in-polygon');
 import { mean } from 'mathjs';
 import { jsonArrayMember, jsonMember, jsonObject } from 'typedjson';
+import { polygon } from 'polygon-tools';
 
 export type Point = [number, number];
 
@@ -32,6 +33,10 @@ export class Polygon {
     setPoint(index: number, point: Point) {
         this.points[index][0] = point[0];
         this.points[index][1] = point[1];
+    }
+
+    setPoints(points: Point[]) {
+        this.points = points;
     }
 
     addPoint(index: number, point: Point) {
@@ -114,10 +119,96 @@ export class Polygon {
     get center(): Point {
         return mean(this.points, 0);
     }
+
+    /**
+     * Joins the current polygon with the other one if possible
+     * 
+     * @param other polygon
+     */
+    join(other: Polygon) {
+        if (this.points.length === 0) {
+            this.points = other.points;
+        } else { //if (polygon.intersection(this.points, other.points).length !== 0) {
+            try {
+                const points = this.takeLargest(polygon.union(this.points, other.points));
+                if (!points) {
+                    throw new Error('points are not valid!');
+                }
+                if (polygon.area(points) > polygon.area(this.points)) {
+                    this.points = points;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }
+
+    /**
+     * Subtracts the other polygon from the current
+     * @param other polygon
+     */
+    subtract(other: Polygon) {
+        const pointsCopy = Utils.tree.clone(this.points);
+        try {
+            const points = this.takeLargest(polygon.subtract(this.points, other.points));
+            this.points = points;
+        } catch (e) {
+            console.error('ERROR in subtract function');
+            console.error(e);
+        }
+
+        if (this.points === null) {
+            console.warn('Had to reset poly points!');
+            this.points = [];
+        }
+    }
+
+    /**
+     * Takes the largest polygon from a list of polygon point lists
+     * @param polygonPointLists list polygon points
+     */
+    private takeLargest(polygonPointLists: Point[][]): Point[] {
+        let maxArea = 0;
+        let maxIdx = -1;
+        for (const [idx, polList] of polygonPointLists.entries()) {
+            const area = polygon.area(polList);
+
+            if (area > maxArea || maxIdx === -1) {
+                maxArea = area;
+                maxIdx = idx;
+            }
+        }
+
+        if (maxIdx === -1) {
+            return [];
+        }
+        return polygonPointLists[maxIdx];
+    }
 }
 
 export class Rectangle extends Polygon {
     constructor(x: number, y: number, width: number, height: number) {
         super([x, y], [x + width, y], [x + width, y + height], [x, y + height]);
+    }
+}
+
+/**
+ * An approximated circle polygon class
+ * 
+ * Approximates a circle with a given number of contour points
+ */
+export class ApproxCircle extends Polygon {
+    constructor(centerX: number, centerY: number, radius: number, numPoints = 10) {
+        const stepAngle = 2 * Math.PI / numPoints;
+        const points: Point[] = [];
+        for (let pointIdx = 0; pointIdx < numPoints; pointIdx++) {
+            const angle = stepAngle * pointIdx;
+
+            const deltaX = Math.cos(angle) * radius;
+            const deltaY = Math.sin(angle) * radius;
+
+            points.push([centerX + deltaX, centerY + deltaY]);
+        }
+        super(...points);
     }
 }

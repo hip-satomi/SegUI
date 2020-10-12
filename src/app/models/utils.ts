@@ -1,13 +1,15 @@
+import { Point } from './geometry';
 import { multiply, inv } from 'mathjs';
 
 export interface Position {
-    x, y
+    x: number;
+    y: number;
 }
 
-export const dotLineLength = function(x, y, x0, y0, x1, y1, o) {
-    function lineLength(x, y, x0, y0){
+export const dotLineLength = (x: number, y: number, x0: number, y0: number, x1: number, y1: number, o) => {
+    const lineLength = (x: number, y: number, x0: number, y0: number) => {
       return Math.sqrt((x -= x0) * x + (y -= y0) * y);
-    }
+    };
     if(o && !(o = function(x, y, x0, y0, x1, y1){
       if(!(x1 - x0)) return {x: x0, y: y};
       else if(!(y1 - y0)) return {x: x, y: y0};
@@ -21,23 +23,23 @@ export const dotLineLength = function(x, y, x0, y0, x1, y1, o) {
       var a = y0 - y1, b = x1 - x0, c = x0 * y1 - y0 * x1;
       return Math.abs(a * x + b * y + c) / Math.sqrt(a * a + b * b);
     }
-  }
+  };
 
-export const hexToRgb = function(hex) {
-    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+export const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
       r: parseInt(result[1], 16),
       g: parseInt(result[2], 16),
       b: parseInt(result[3], 16)
     } : null;
-  }
+  };
 
 /**
 * returns [min distance index, min distance value]
 * @param pos single position (e.g. mouse)
 * @param positions list of positions (e.g. target points)
 */
-export const pairwiseDistanceMin = function(pos: number[], positions: number[][]) {
+export const pairwiseDistanceMin = (pos: number[], positions: number[][]) => {
  const x = pos[0];
  const y = pos[1];
  let minDisIndex = -1;
@@ -51,9 +53,11 @@ export const pairwiseDistanceMin = function(pos: number[], positions: number[][]
  }
 
  return {index: minDisIndex, distance: minDis};
-}
+};
 
 export class Utils {
+
+  static tree = require( 'tree-kit' );
 
   /**
    * Converts a canvas transform to a 3x3 transformation matrix
@@ -153,7 +157,7 @@ export class UIUtils {
    * @param points the list of polygon border
    * @param p index in the global polygon list
    */
-  static drawSingle(points, active, ctx, color) {
+  static drawSingle(points: Point[], active: boolean, ctx, color: string) {
     ctx.globalCompositeOperation = 'destination-over';
     ctx.fillStyle = 'rgb(255,255,255)';
     ctx.strokeStyle = color;

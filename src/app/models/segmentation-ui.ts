@@ -22,6 +22,16 @@ export class SegmentationUI implements UIInteraction, Drawer {
         this.ctx = canvasElement.getContext('2d');
     }
 
+    onPointerDown(event: any): boolean {
+        return false;
+    }
+    onPointerMove(event: any): boolean {
+        return false;
+    }
+    onPointerUp(event: any): boolean {
+        return false;
+    }
+
     onTap(event) {
         console.log("onTap");
         const e = event;
@@ -63,14 +73,14 @@ export class SegmentationUI implements UIInteraction, Drawer {
         this.segmentationModel.actionManager.addAction(act);
 
         this.segmentationModel.activePointIndex = insertAt;
+        return true;
+    }
+
+    onPress(event): boolean {
         return false;
     }
 
-    onPress(event) {
-        console.log("Press");
-    }
-
-    onPanStart(event) {
+    onPanStart(event): boolean {
         console.log('pan start');
 
         const poly = this.segmentationModel.activePolygon;
@@ -90,9 +100,10 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
             this.segmentationModel.activePointIndex = minDisIndex;
         }
+        return true;
     }
 
-    onPan(event) {
+    onPan(event): boolean {
         if (this.draggingPointIndex !== -1) {
             console.log("drag");
 
@@ -103,17 +114,27 @@ export class SegmentationUI implements UIInteraction, Drawer {
                                                 this.segmentationModel.activePointIndex,
                                                 this.segmentationModel.activePolygonId,
                                                 this.segmentationModel.segmentationData));
+
+            return true;
         }
+
+        return false;
     }
 
-    onPanEnd(event) {
+    onPanEnd(event): boolean {
         console.log('pan end');
 
-        this.draggingPointIndex = -1;
+        if (this.draggingPointIndex !== -1) {
+            this.draggingPointIndex = -1;
+            return true;
+        }
+
+        return false;
     }
 
-    onMove(event) {
+    onMove(event): boolean {
         // TODO: should show drag cursor
+        return false;
     }
 
     delete() {

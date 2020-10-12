@@ -1,3 +1,5 @@
+import { Utils } from './utils';
+import { Point } from './geometry';
 import 'reflect-metadata';
 import { EventEmitter } from '@angular/core';
 import { SelectedSegment, TrackingData, TrackingLink } from './tracking-data';
@@ -364,6 +366,52 @@ export class MovePointAction extends SegmentationAction {
     }
 }
 
+@jsonObject
+export class ChangePolygonPoints extends SegmentationAction {
+
+    @jsonArrayMember(Number, {dimensions: 2})
+    private newPoints: Point[];
+    @jsonArrayMember(Number, {dimensions: 2})
+    private oldPoints: Point[];
+    @jsonMember
+    private polygonId: string;
+
+    constructor(segmentationData: SegmentationData, newPoints: Point[], polygonId: string, oldPoints) {
+        super(segmentationData);
+
+        if (!segmentationData) {
+            // this is a json recreation
+            return;
+        }
+
+        this.polygonId = polygonId;
+        this.newPoints = [...newPoints];
+        /*if (oldPoints !== null) {
+            this.oldPoints = oldPoints;
+        } else {
+        }*/
+        this.oldPoints = Utils.tree.clone(oldPoints);
+
+        if (this.oldPoints === null) {
+            throw new Error('Invalid points!');
+        }
+    }
+
+    perform() {
+        this.getPolygon(this.polygonId).setPoints(this.newPoints);
+
+        this.updatePerformedTime();
+    }
+
+    reverse() {
+        this.getPolygon(this.polygonId).setPoints(this.oldPoints);
+    }
+
+    private get points() {
+        return this.getPolygon(this.polygonId).points;
+    }
+}
+
 /**
  * Basic tracking action
  * 
@@ -500,6 +548,7 @@ const knownTypes = [Action,
                     RemovePointAction,
                     SelectPolygon,
                     MovePointAction,
+                    ChangePolygonPoints,
 
                     // Actions for tracking
                     TrackingAction,
@@ -593,6 +642,8 @@ export class ActionManager {
      * @param toPerform if true action is performed before adding to list
      */
     addAction(action: Action, toPerform: boolean = true) {
+        console.log('Add action: ' + action.constructor.name);
+
         if (toPerform) {
             action.perform();
         }
@@ -631,6 +682,11 @@ export class ActionManager {
             return;
         }
         const lastAction = this.actions[this.currentActionPointer - 1];
+
+        console.log('Undo:');
+        console.log(lastAction.constructor.name);
+        console.log(lastAction);
+
         lastAction.reverse();
         this.currentActionPointer--;
 
@@ -649,6 +705,11 @@ export class ActionManager {
             return;
         }
         const nextAction = this.actions[this.currentActionPointer];
+
+        console.log('Undo:');
+        console.log(nextAction.constructor.name);
+        console.log(nextAction);
+
         nextAction.perform();
         this.currentActionPointer++;
 
@@ -686,8 +747,6 @@ export class ActionManager {
 
         for (let i = 0; i < this.currentActionPointer; i++) {
             const action = this.actions[i];
-
-            action.setData(info);
 
             action.perform();
         }

@@ -4,12 +4,16 @@ export interface Drawer {
 
 export interface UIInteraction {
 
-    onTap(event);
-    onPress(event);
+    onTap(event): boolean;
+    onPress(event): boolean;
 
-    onPanStart(event);
-    onPan(event);
-    onPanEnd(event);
+    onPointerDown(event): boolean;
+    onPointerMove(event): boolean;
+    onPointerUp(event): boolean;
 
-    onMove(event);
+    onPanStart(event): boolean;
+    onPan(event): boolean;
+    onPanEnd(event): boolean;
+
+    onMove(event): boolean;
 }
