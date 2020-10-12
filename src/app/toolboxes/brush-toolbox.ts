@@ -84,38 +84,6 @@ export class BrushTool implements UIInteraction, Drawer {
      * @param event event
      */
     onPointerDown(event: any): boolean {
-        // left or right button
-        if (event.button === 0 || event.button === 2) {
-            event.preventDefault();
-            this.brushActivated = true;
-            this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosMouse(this.canvasElement, event), this.ctx);
-            this.oldPoints = Utils.tree.clone(this.currentPolygon.points);
-
-
-            if (this.currentPolygon.numPoints === 0) {
-                this.increase = true;
-            } else {
-                const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.radius);
-                let inter: Point[][];
-                if (this.currentPolygon.numPoints === 0) {
-                    inter = [];
-                } else {
-                    inter = polygon.intersection(this.currentPolygon.points, circle.points);
-                }
-                
-                if (inter.length === 0 || event.button === 2) {
-                    this.increase = false;
-                } else {
-                    this.increase = true;
-                }
-            }
-            console.log('Brush mode increase?' + this.increase);
-
-            // Notify change event
-            this.changedEvent.emit();
-            return true;
-        }
-
         return false;
     }
 
@@ -126,13 +94,65 @@ export class BrushTool implements UIInteraction, Drawer {
      * @param event event
      */
     onPointerMove(event: any): boolean {
-        this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosMouse(this.canvasElement, event), this.ctx);
+        return false;
+    }
+
+    /**
+     * 
+     * @param event 
+     */
+    onPointerUp(event: any): boolean {
+        return false;
+    }
+
+    onTap(event: any): boolean {
+        this.brushActivated = false;
+
+        return false;
+    }
+
+    onPress(event: any): boolean {
+        // prevent brushing behavior but do not prevent default behavior
+        this.brushActivated = false;
+        return false;
+    }
+    onPanStart(event: any): boolean {
+        event.preventDefault();
+        this.brushActivated = true;
+        this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+        this.oldPoints = Utils.tree.clone(this.currentPolygon.points);
+
+
+        if (this.currentPolygon.numPoints === 0) {
+            this.increase = true;
+        } else {
+            const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.radius);
+            let inter: Point[][];
+            if (this.currentPolygon.numPoints === 0) {
+                inter = [];
+            } else {
+                inter = polygon.intersection(this.currentPolygon.points, circle.points);
+            }
+            
+            if (inter.length === 0 || event.button === 2) {
+                this.increase = false;
+            } else {
+                this.increase = true;
+            }
+        }
+        console.log('Brush mode increase?' + this.increase);
+
+        // Notify change event
+        this.changedEvent.emit();
+        return true;
+    }
+    onPan(event: any): boolean {
+        this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         if (this.brushActivated) {
             this.dirty = true;
             const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.radius);
-            // Increase/Decrease depending on selected mode
-            //this.currentExtension.join(circle);
 
+            // Increase/Decrease depending on selected mode
             if (this.increase) {
                 this.currentPolygon.join(circle);
             } else {
@@ -150,44 +170,16 @@ export class BrushTool implements UIInteraction, Drawer {
         return true;
     }
 
-    /**
-     * 
-     * @param event 
-     */
-    onPointerUp(event: any): boolean {
-        if (event.button === 0) {
-            this.brushActivated = false;
-            this.pointerPos = null;
-
-            this.commitChanges();
-
-            this.changedEvent.emit();
-            return true;
-        }
-
-        return false;
-    }
-
-    onTap(event: any): boolean {
-        this.brushActivated = false;
-
-        return false;
-    }
-
-    onPress(event: any): boolean {
-        // prevent brushing behavior but do not prevent default behavior
-        this.brushActivated = false;
-        return false;
-    }
-    onPanStart(event: any): boolean {
-        return true;
-    }
-    onPan(event: any): boolean {
-        return true;
-    }
     onPanEnd(event: any): boolean {
+        this.brushActivated = false;
+        this.pointerPos = null;
+
+        this.commitChanges();
+
+        this.changedEvent.emit();
         return true;
     }
+
     onMove(event: any): boolean {
         return true;
     }

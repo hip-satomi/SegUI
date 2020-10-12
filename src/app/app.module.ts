@@ -20,7 +20,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 export class MyHammerConfig extends HammerGestureConfig  {
   overrides = {
       // override hammerjs default configuration
-      'pan': {threshold: 5},
+      pan: {threshold: 2},
   };
 }
 
