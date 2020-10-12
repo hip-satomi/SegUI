@@ -160,26 +160,14 @@ export class BrushTool implements UIInteraction, Drawer {
     }
 
     onTap(event: any): boolean {
-        // find the polygon that is hit by the mouse
-        this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
-        for (const [id, poly] of this.segModel.segmentationData.getPolygonEntries()) {
-            if (poly.isInside([this.pointerPos.x, this.pointerPos.y])) {
-                // commit the changes to the actual poly
-                this.commitChanges();
+        this.brushActivated = false;
 
-                // select the polygon
-                const action = new SelectPolygon(this.segModel.segmentationData, id, this.segModel.activePolygonId);
-                this.segModel.addAction(action);
-
-                // notify changes
-                this.changedEvent.emit();
-                return true;
-            }
-        }
-        return true;
+        return false;
     }
 
     onPress(event: any): boolean {
+        // prevent brushing behavior but do not prevent default behavior
+        this.brushActivated = false;
         return false;
     }
     onPanStart(event: any): boolean {
