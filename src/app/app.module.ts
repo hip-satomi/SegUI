@@ -14,6 +14,7 @@ import { AngularResizedEventModule } from 'angular-resize-event';
 import { HammerGestureConfig, HAMMER_GESTURE_CONFIG} from '@angular/platform-browser';
 
 import {HttpClientModule} from '@angular/common/http';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 @Injectable({providedIn: 'root'})
 export class MyHammerConfig extends HammerGestureConfig  {
@@ -30,7 +31,8 @@ export class MyHammerConfig extends HammerGestureConfig  {
             AppRoutingModule,
             AngularResizedEventModule,
             HammerModule,
-            HttpClientModule],
+            HttpClientModule,
+            BrowserAnimationsModule],
   providers: [
     StatusBar,
     SplashScreen,
