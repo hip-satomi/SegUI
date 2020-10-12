@@ -78,7 +78,8 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     onPress(event): boolean {
-        let match : [string, Polygon] = null;
+        event.preventDefault();
+        let match: [string, Polygon] = null;
         const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         for (const [id, polygon] of this.segmentationModel.segmentationData.getPolygonEntries()) {
             if (polygon.isInside([mousePos.x, mousePos.y])) {
@@ -88,7 +89,14 @@ export class SegmentationUI implements UIInteraction, Drawer {
         }
 
         if (match) {
-            this.segmentationModel.addAction(new SelectPolygon(this.segmentationModel.segmentationData, match[0], this.segmentationModel.activePolygonId));
+            // match contains [uuid, Polygon] of the selected polygon
+
+            // select the polygon
+            this.segmentationModel.addAction(new SelectPolygon(this.segmentationModel.segmentationData,
+                                                               match[0],
+                                                               this.segmentationModel.activePolygonId));
+
+            // show action opportunities
             const actionSheet = this.actionSheetController.create({
                 header: 'Cell Actions',
                 buttons: [{
@@ -96,7 +104,12 @@ export class SegmentationUI implements UIInteraction, Drawer {
                   role: 'destructive',
                   icon: 'trash',
                   handler: () => {
-                    this.segmentationModel.addAction(new RemovePolygon(this.segmentationModel.segmentationData, match[0]));
+                    // create an action to remove the polygon
+                    const removeAction = new RemovePolygon(this.segmentationModel.segmentationData, match[0]);
+                    // add another polygon for safety
+                    this.segmentationModel.addNewPolygon();
+                    // execute the remove action
+                    this.segmentationModel.addAction(removeAction);
                   }
                 }, {
                   text: 'Cancel',
@@ -107,7 +120,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                   }
                 }]
               });
-              actionSheet.then(as => as.present());
+            actionSheet.then(as => as.present());
         }
 
         return true;
