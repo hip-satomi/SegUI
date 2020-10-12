@@ -335,7 +335,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.segmentationUIs = [];
 
     for (const model of this.segHolder.segmentations) {
-      this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement));
+      this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement, this.actionSheetController));
     }
   }
 
