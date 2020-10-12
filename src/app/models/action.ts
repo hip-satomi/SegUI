@@ -679,6 +679,11 @@ export class ActionManager {
     }
 
     reapplyActions(info) {
+        // attach actions with information
+        for (const action of this.actions) {
+            action.setData(info);
+        }
+
         for (let i = 0; i < this.currentActionPointer; i++) {
             const action = this.actions[i];
 
