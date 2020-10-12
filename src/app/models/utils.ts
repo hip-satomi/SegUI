@@ -167,8 +167,8 @@ export class UIUtils {
     ctx.beginPath();
     for (const point of points) {
       if (active) {
-        ctx.fillRect(point[0] - 2, point[1] - 2, 4, 4);
-        ctx.strokeRect(point[0] - 2, point[1] - 2, 4, 4);
+        ctx.fillRect(point[0] - 1, point[1] - 1, 2, 2);
+        ctx.strokeRect(point[0] - 1, point[1] - 1, 2, 2);
       }
       ctx.lineTo(point[0], point[1]);
     }
