@@ -1,3 +1,4 @@
+import { BrushTool } from './../toolboxes/brush-toolbox';
 import { UIUtils } from './../models/utils';
 import { Polygon, Point } from './../models/geometry';
 import { AddPolygon, JointAction } from './../models/action';
@@ -62,6 +63,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   _editMode: EditMode = EditMode.Segmentation;
 
+  tool: BrushTool = null;
+
   get editMode(): EditMode {
     return this._editMode;
   }
@@ -85,47 +88,119 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private loadingCtrl: LoadingController) {
   }
 
-  onTap(event: any) {
+  onPointerDown(event: any): boolean {
+    if (this.tool) {
+      if (this.tool.onPointerDown(event)) {
+        return true;
+      }
+    }
+    if (this.isSegmentation) {
+      return this.curSegUI.onPointerDown(event);
+    } else {
+      return this.trackingUI.onPointerDown(event);
+    }
+  }
+
+  onPointerMove(event: any): boolean {
+    if (this.tool) {
+      if (this.tool.onPointerMove(event)) {
+        return true;
+      }
+    }
+    if (this.isSegmentation) {
+      return this.curSegUI?.onPointerMove(event);
+    } else {
+      return this.trackingUI?.onPointerMove(event);
+    }
+  }
+
+  onPointerUp(event: any): boolean {
+    if (this.tool) {
+      if (this.tool.onPointerUp(event)) {
+        return true;
+      }
+    }
+    if (this.isSegmentation) {
+      return this.curSegUI?.onPointerUp(event);
+    } else {
+      return this.trackingUI?.onPointerUp(event);
+    }
+  }
+
+  onTap(event: any): boolean {
     this.justTapped = true;
 
+    if (this.tool) {
+      if (this.tool.onTap(event)) {
+        return true;
+      }
+    }
     if (this.isSegmentation) {
-      this.curSegUI.onTap(event);
+      return this.curSegUI?.onTap(event);
     } else {
-      this.trackingUI.onTap(event);
-    }
-  }
-  onPress(event: any) {
-    if (this.isSegmentation) {
-      this.curSegUI.onPress(event);
-    }
-  }
-  onPanStart(event: any) {
-    if (this.isSegmentation) {
-      this.curSegUI.onPanStart(event);
-    }
-  }
-  onPan(event: any) {
-    if (this.isSegmentation) {
-      this.curSegUI.onPan(event);
-    }
-  }
-  onPanEnd(event: any) {
-    if (this.isSegmentation) {
-      this.curSegUI.onPanEnd(event);
+      return this.trackingUI?.onTap(event);
     }
   }
 
-  onMove(event: any) {
+  onPress(event: any): boolean {
+    if (this.tool) {
+      if (this.tool.onPress(event)) {
+        return true;
+      }
+    }
+    if (this.isSegmentation) {
+      return this.curSegUI?.onPress(event);
+    }
+  }
+  onPanStart(event: any): boolean {
+    if (this.tool) {
+      if (this.tool.onPanStart(event)) {
+        return true;
+      }
+    }
+    if (this.isSegmentation) {
+      return this.curSegUI?.onPanStart(event);
+    }
+  }
+  onPan(event: any): boolean {
+    if (this.tool) {
+      if (this.tool.onPan(event)) {
+        return true;
+      }
+    }
+    if (this.isSegmentation) {
+      return this.curSegUI?.onPan(event);
+    }
+  }
+  onPanEnd(event: any): boolean {
+    if (this.tool) {
+      if (this.tool.onPanEnd(event)) {
+        return true;
+      }
+    }
+    if (this.isSegmentation) {
+      return this.curSegUI?.onPanEnd(event);
+    }
+  }
+
+  onMove(event: any): boolean {
+    if (this.tool) {
+      if (this.tool.onMove(event)) {
+        return true;
+      }
+    }
     if (this.justTapped) {
       this.justTapped = false;
     } else {
       // redirect move action to child handlers if they are created w.r.t. mode
       if (this.isSegmentation && this.curSegUI) {
-        this.curSegUI.onMove(event);
+        return this.curSegUI.onMove(event);
       } else if (this.trackingUI && this.trackingUI) {
-        this.trackingUI.onMove(event);
+        return this.trackingUI.onMove(event);
       }
     }
+
+    return true;
   }
 
   @HostListener('document:keydown.enter', ['$event'])
@@ -171,6 +246,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
       return false;
     }
+
+    // create progress loader
+    const loading = this.loadingCtrl.create({
+      message: 'Loading data...',
+    }).then(l => {l.present(); return l; });
 
     // get the query param and fire the id
     this.id = this.route.queryParams.pipe(
@@ -243,10 +323,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         this.stateService.imageSetId = id;
         await this.loadSegmentation(content.srsc.getModel());
         await this.loadTracking(content.trsc.getModel());
-      });
+      },
+      (err) => console.error(err),
+      () => loading.then(l => l.dismiss()));
     } else {
       this.loadSegmentation(this.stateService.holder);
       this.loadTracking(this.stateService.tracking);
+      loading.then(l => l.dismiss());
     }
   }
 
@@ -260,7 +343,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.segmentationUIs = [];
 
     for (const model of this.segHolder.segmentations) {
-      this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement));
+      this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement, this.actionSheetController));
     }
   }
 
@@ -361,6 +444,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   get canSave() {
+    if (this.tool) {
+      return this.tool.canSave;
+    }
     if (this.editMode === EditMode.Segmentation && this.curSegUI) {
       return this.curSegUI.canSave;
     } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
@@ -372,18 +458,22 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   async done() {
     if (this.canSave) {
+      if (this.tool) {
+        this.tool.save();
+      }
       if (this.editMode === EditMode.Segmentation && this.curSegUI) {
         this.curSegUI.save();
+        return;
       } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
         this.trackingUI.save();
+        return;
       }
-    } else {
-      const toast = await this.toastController.create({
-        message: 'Sorry but I cannot save the current state!',
-        duration: 2000
-      });
-      toast.present();
     }
+    const toast = await this.toastController.create({
+      message: 'Sorry but I cannot save the current state!',
+      duration: 2000
+    });
+    toast.present();
   }
 
   get canRedo() {
@@ -441,6 +531,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.trackingUI.currentFrame = this.activeView;
     }
 
+    if (this.isSegmentation && this.tool) {
+      this.tool.setModel(this.curSegModel);
+    }
+
     this.draw(this.ctx);
   }
 
@@ -454,10 +548,18 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.setImageIndex(event.detail.value);
   }
 
-  draw(ctx) {
+  draw(ctx = null) {
+
+    if (ctx === null) {
+      ctx = this.ctx;
+    }
+
     this.imageDisplay.clear();
 
-    if (this.editMode === EditMode.Segmentation) {
+    if (this.tool) {
+      this.tool.draw(ctx);
+    }
+    else if (this.editMode === EditMode.Segmentation) {
       // draw the segmentation stuff
       this.segmentationUIs[this.activeView]?.draw(ctx);
     } else {
@@ -470,88 +572,17 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   /**
-   * Shows ui to delete storage
-   */
-  async deleteStorage() {
-    const actionSheet = await this.actionSheetController.create({
-      header: 'Delete Storage',
-      cssClass: 'my-custom-class',
-      buttons: [{
-        text: 'Delete Segmentation (also deletes Tracking)',
-        role: 'destructive',
-        icon: 'trash',
-        handler: () => {
-          console.log('Delete Segmentation clicked');
-
-          this.deleteSegmentation();
-        }
-      }, {
-        text: 'Delete Tracking',
-        role: 'destructive',
-        icon: 'trash',
-        handler: () => {
-          console.log('Delete tracking clicked');
-          this.deleteTracking();
-        }
-      }, {
-        text: 'Delete All',
-        role: 'destructive',
-        icon: 'trash',
-        handler: () => {
-          console.log('Delete storage clicked');
-
-          this.deleteCompleteStorage();
-        }
-      }, {
-        text: 'Cancel',
-        icon: 'close',
-        role: 'cancel',
-        handler: () => {
-          console.log('Cancel clicked');
-        }
-      }]
-    });
-    await actionSheet.present();
-  }
-
-  /**
-   * Deletes the segmentation storage
-   */
-  async deleteSegmentation() {
-    await Storage.remove({key: this.segKey});
-
-    //this.load(this.urls);
-  }
-
-  /**
-   * Deletes the tracking storage
-   */
-  async deleteTracking() {
-    await Storage.remove({key: this.trackingKey});
-
-    //this.load(this.urls);
-  }
-
-  /**
-   * Clears complete storage
-   */
-  async deleteCompleteStorage() {
-    await Storage.clear();
-
-    //this.load(this.urls);
-  }
-
-  /**
    * Get and apply proposal segmentations
    */
   async doSegment() {
     // create progress loader
     const loading = this.loadingCtrl.create({
       message: 'Please wait while AI is doing the job...',
+      backdropDismiss: true,
     }).then(l => {l.present(); return l; });
 
     // start http request --> get image urls
-    this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
+    const sub = this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
       // read the image in binary format
       switchMap(url => {console.log(url); return this.segService.getBinary(url); }),
       switchMap(data => {
@@ -605,7 +636,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         this.curSegModel.addAction(finalAction);
 
         // segmentation proposals have been applied successfully
-        const toast = this.toastController.create({
+        this.toastController.create({
           message: 'Successfully requested segmentation proposals',
           duration: 2000
         }).then(toast => toast.present());
@@ -613,6 +644,23 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       (error) => console.error(error),
       () => loading.then(l => l.dismiss())
     );
+
+    loading.then(l => l.onDidDismiss().then(() => sub.unsubscribe()));
+  }
+
+  brushTool() {
+    if (this.tool) {
+      this.tool.stop();
+      this.tool = null;
+    }
+    else if (this.editMode === EditMode.Segmentation) {
+      this.tool = new BrushTool(this.curSegModel, this.imageDisplay.canvasElement);
+      this.tool.changedEvent.subscribe(() =>  {
+        this.draw();
+      });
+    }
+
+    this.draw();
   }
 
 }

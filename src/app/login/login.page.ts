@@ -1,4 +1,4 @@
-import { AlertController, ToastController } from '@ionic/angular';
+import { AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { AuthService } from './../services/auth.service';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
@@ -19,13 +19,19 @@ export class LoginPage implements OnInit {
     private auth: AuthService,
     private router: Router,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private loadingCtrl: LoadingController,
   ) { }
 
   ngOnInit() {
   }
 
   login() {
+    // create progress loader
+    const loading = this.loadingCtrl.create({
+      message: 'Logging in...',
+    }).then(l => {l.present(); return l; });
+    
     this.auth.login(this.credentials).subscribe(async res => {
       if (res) {
         this.router.navigateByUrl('/list');
@@ -42,7 +48,8 @@ export class LoginPage implements OnInit {
         message: JSON.stringify(err),
         duration: 2000
       }).then((toast) => toast.present());
-    });
+    },
+    () => loading.then(l => l.dismiss()));
   }
 
 }

@@ -1,6 +1,7 @@
+import { ActionSheetController } from '@ionic/angular';
 import { Polygon } from 'src/app/models/geometry';
 import { UIInteraction, Drawer } from './drawing';
-import { AddPointAction, MovePointAction, RemovePolygon } from './action';
+import { AddPointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
 import { UIUtils, Utils } from './utils';
 import { SegmentationModel } from './segmentation-model';
 export class SegmentationUI implements UIInteraction, Drawer {
@@ -16,10 +17,20 @@ export class SegmentationUI implements UIInteraction, Drawer {
      * @param segmentationModel 
      * @param canvasElement native canvas element
      */
-    constructor(segmentationModel: SegmentationModel, canvasElement) {
+    constructor(segmentationModel: SegmentationModel, canvasElement, private actionSheetController: ActionSheetController) {
         this.segmentationModel = segmentationModel;
         this.canvasElement = canvasElement;
         this.ctx = canvasElement.getContext('2d');
+    }
+
+    onPointerDown(event: any): boolean {
+        return false;
+    }
+    onPointerMove(event: any): boolean {
+        return false;
+    }
+    onPointerUp(event: any): boolean {
+        return false;
     }
 
     onTap(event) {
@@ -31,7 +42,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
         const poly = this.segmentationModel.activePolygon;
         let insertAt = poly.numPoints;
 
-        const mousePos = Utils.getMousePos(this.canvasElement, e);
+        const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         const x = mousePos.x;
         const y = mousePos.y;
 
@@ -63,14 +74,59 @@ export class SegmentationUI implements UIInteraction, Drawer {
         this.segmentationModel.actionManager.addAction(act);
 
         this.segmentationModel.activePointIndex = insertAt;
-        return false;
+        return true;
     }
 
-    onPress(event) {
-        console.log("Press");
+    onPress(event): boolean {
+        event.preventDefault();
+        let match: [string, Polygon] = null;
+        const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+        for (const [id, polygon] of this.segmentationModel.segmentationData.getPolygonEntries()) {
+            if (polygon.isInside([mousePos.x, mousePos.y])) {
+                match = [id, polygon];
+                break;
+            }
+        }
+
+        if (match) {
+            // match contains [uuid, Polygon] of the selected polygon
+
+            // select the polygon
+            this.segmentationModel.addAction(new SelectPolygon(this.segmentationModel.segmentationData,
+                                                               match[0],
+                                                               this.segmentationModel.activePolygonId));
+
+            // show action opportunities
+            const actionSheet = this.actionSheetController.create({
+                header: 'Cell Actions',
+                buttons: [{
+                  text: 'Delete',
+                  role: 'destructive',
+                  icon: 'trash',
+                  handler: () => {
+                    // create an action to remove the polygon
+                    const removeAction = new RemovePolygon(this.segmentationModel.segmentationData, match[0]);
+                    // add another polygon for safety
+                    this.segmentationModel.addNewPolygon();
+                    // execute the remove action
+                    this.segmentationModel.addAction(removeAction);
+                  }
+                }, {
+                  text: 'Cancel',
+                  icon: 'close',
+                  role: 'cancel',
+                  handler: () => {
+                    console.log('Cancel clicked');
+                  }
+                }]
+              });
+            actionSheet.then(as => as.present());
+        }
+
+        return true;
     }
 
-    onPanStart(event) {
+    onPanStart(event): boolean {
         console.log('pan start');
 
         const poly = this.segmentationModel.activePolygon;
@@ -90,9 +146,10 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
             this.segmentationModel.activePointIndex = minDisIndex;
         }
+        return true;
     }
 
-    onPan(event) {
+    onPan(event): boolean {
         if (this.draggingPointIndex !== -1) {
             console.log("drag");
 
@@ -103,17 +160,27 @@ export class SegmentationUI implements UIInteraction, Drawer {
                                                 this.segmentationModel.activePointIndex,
                                                 this.segmentationModel.activePolygonId,
                                                 this.segmentationModel.segmentationData));
+
+            return true;
         }
+
+        return false;
     }
 
-    onPanEnd(event) {
+    onPanEnd(event): boolean {
         console.log('pan end');
 
-        this.draggingPointIndex = -1;
+        if (this.draggingPointIndex !== -1) {
+            this.draggingPointIndex = -1;
+            return true;
+        }
+
+        return false;
     }
 
-    onMove(event) {
+    onMove(event): boolean {
         // TODO: should show drag cursor
+        return false;
     }
 
     delete() {

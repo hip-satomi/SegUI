@@ -253,6 +253,19 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit {
     this.draw();
   }
 
+  // --- Redirect pointer events ---
+  onPointerDown(event) {
+    this.interactor.onPointerDown(event);
+  }
+
+  onPointerMove(event) {
+    this.interactor.onPointerMove(event);
+  }
+
+  onPointerUp(event) {
+    this.interactor.onPointerUp(event);
+  }
+
   draw() {
     this.drawer.draw(this.ctx);
   }
