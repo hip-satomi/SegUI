@@ -1,5 +1,5 @@
 import { Router } from '@angular/router';
-import { Platform } from '@ionic/angular';
+import { Platform, AlertController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, from, Observable, of } from 'rxjs';
 import { Injectable } from '@angular/core';
@@ -38,7 +38,7 @@ export class AuthService {
 
   private baseUrl = '/api';// 'http://lara:8000/';
 
-  constructor(private httpClient: HttpClient, private plt: Platform, private router: Router) {
+  constructor(private httpClient: HttpClient, private plt: Platform, private router: Router, private alertController: AlertController) {
     this.loadStoredToken();
   }
 
@@ -150,9 +150,14 @@ export class AuthService {
             }
           }
         }
-    
+        this.alertController.create({
+          cssClass: 'my-custom-class',
+          header: 'Error',
+          subHeader: 'Authentication failure',
+          message: 'The automatic authentication has failed. Please login again...',
+          buttons: ['OK']
+        }).then(a => a.present());
         console.error('We have no tokens --> We definitively have to login');
-        throw new Error('Login required');
       })
     );
   }
