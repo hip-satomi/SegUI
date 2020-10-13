@@ -1,7 +1,7 @@
 import { StateService } from './../../services/state.service';
 import { map } from 'rxjs/operators';
 import { Component, OnInit } from '@angular/core';
-import { AlertController, ViewWillEnter, ToastController } from '@ionic/angular';
+import { AlertController, ViewWillEnter, ToastController, LoadingController } from '@ionic/angular';
 import { Image, ImageSet, SegRestService } from 'src/app/services/seg-rest.service';
 import { NavigationExtras, Router } from '@angular/router';
 
@@ -16,7 +16,8 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
               private alertController: AlertController,
               private router: Router,
               private toastController: ToastController,
-              private stateService: StateService) { }
+              private stateService: StateService,
+              private loadingCtrl: LoadingController) { }
 
   imageSets = [];
 
@@ -24,6 +25,11 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
   }
 
   ionViewWillEnter() {
+    // create progress loader
+    const loading = this.loadingCtrl.create({
+      message: 'Loading data...',
+    }).then(l => {l.present(); return l; });
+
     this.segService.getImageSets().pipe(
       map((imageSets: ImageSet[]) => {
         return imageSets.map((imageSet: any) => {
@@ -42,7 +48,8 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
         duration: 10000
       });
       toast.present();
-    });
+    },
+    () => loading.then(l => l.dismiss()));
   }
 
   async showImageSet(imSet) {

@@ -247,6 +247,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       return false;
     }
 
+    // create progress loader
+    const loading = this.loadingCtrl.create({
+      message: 'Loading data...',
+    }).then(l => {l.present(); return l; });
+
     // get the query param and fire the id
     this.id = this.route.queryParams.pipe(
       map(params => {
@@ -318,10 +323,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         this.stateService.imageSetId = id;
         await this.loadSegmentation(content.srsc.getModel());
         await this.loadTracking(content.trsc.getModel());
-      });
+      },
+      (err) => console.error(err),
+      () => loading.then(l => l.dismiss()));
     } else {
       this.loadSegmentation(this.stateService.holder);
       this.loadTracking(this.stateService.tracking);
+      loading.then(l => l.dismiss());
     }
   }
 
