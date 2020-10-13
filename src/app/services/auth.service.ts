@@ -151,8 +151,7 @@ export class AuthService {
           }
         }
         this.alertController.create({
-          header: 'Error',
-          subHeader: 'Authentication failure',
+          header: 'Authentication failure',
           message: 'The automatic authentication has failed. Please login again...',
           buttons: ['OK']
         }).then(a => a.present());
