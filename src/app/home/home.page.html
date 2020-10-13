@@ -5,6 +5,9 @@
       <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
     </ion-select>
       <ion-buttons slot="end">
+        <ion-button (click)="openToolkit()">
+          <ion-icon name="medkit-outline"></ion-icon>
+        </ion-button>
         <ion-button (click)="brushTool()" [ngClass]="{active: this.tool !== null}">
           Brush
         </ion-button>
