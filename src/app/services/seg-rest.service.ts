@@ -31,6 +31,17 @@ export interface GUISegmentation extends GUISegmentationCandidate {
   createdDate: string;
 }
 
+
+export interface SimpleSegmentationCandidate {
+  json: string;
+  /** url to related GUI Segmentation */
+  segmentation: string;
+}
+export interface SimpleSegmentation extends SimpleSegmentationCandidate {
+  id: number;
+}
+
+
 export interface GUITrackingCandidate {
   segmentation: string;
   json: string;
@@ -280,6 +291,39 @@ export class SegRestService {
       })
     );
   }
+
+// ----- Simple Segmentation related stuff begins -----
+
+  /**
+   * TODO do not only return a single one. Think about selection
+   * @param guiSegId 
+   */
+  public getSimpleSegFromGUISegmentationId(guiSegId: number): Observable<SimpleSegmentation> {
+    return this.get(`${this.baseUrl}simple-segmentations/?segmentation=${guiSegId}`).pipe(
+      this.rc,
+      map((result: Result) => {
+        if (result.results.length > 0) {
+          return result.results[0] as SimpleSegmentation;
+        } else {
+          return null;
+        }
+      })
+    );
+  }
+
+  public postSimpleSegmentation(simpleSeg: SimpleSegmentation) {
+    return this.post(`${this.baseUrl}simple-segmentations/`, simpleSeg).pipe(
+      map(r => r as SimpleSegmentation)
+    );
+  }
+
+  public putSimpleSegmentation(simpleSeg: SimpleSegmentation) {
+    return this.put(`${this.baseUrl}simple-segmentations/${simpleSeg.id}/`, simpleSeg).pipe(
+      map(r => r as SimpleSegmentation)
+    );
+  }
+
+// ----- Tracking related stuff begins -----
 
   public getLatestTracking(imageSetId: number): Observable<GUITracking> {
     return this.get(`${this.baseUrl}gui-trackings/?imageSet=${imageSetId}`).pipe(

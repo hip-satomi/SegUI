@@ -2,11 +2,11 @@ import { ModelChanged, ChangeType, ChangableModel } from './change';
 import { EventEmitter } from '@angular/core';
 import { SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
-import { Polygon } from './geometry';
+import { Polygon, Point } from './geometry';
 import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper, Action, JointAction } from './action';
 import { jsonMember, jsonObject, jsonArrayMember } from 'typedjson';
 import { SynchronizedObject } from './storage';
-import { Subscription, Observable } from 'rxjs';
+import { Subscription, Observable, combineLatest } from 'rxjs';
 
 /**
  * Segmentation model contains all the information of the segmentation
@@ -308,4 +308,50 @@ export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> i
         this.subscriptions.forEach(sub => sub.unsubscribe());
         this.segmentations = [];
     }
+}
+
+interface SimpleDetection {
+    label: string;
+    contour: Array<Point>;
+}
+
+interface SimpleSegmentation {
+    frame: number;
+    detections: Array<SimpleDetection>;
+}
+
+export class DerivedSegmentationHolder
+    implements ChangableModel<DerivedSegmentationHolder> {
+
+    modelChanged = new EventEmitter<ModelChanged<DerivedSegmentationHolder>>();
+    baseHolder: SegmentationHolder;
+
+    content: Array<SimpleSegmentation>;
+    
+    constructor(baseHolder: SegmentationHolder) {
+        this.baseHolder = baseHolder;
+        this.baseHolder.modelChanged.subscribe((changedEvent: ModelChanged<SegmentationModel>) => {
+            if (changedEvent.changeType === ChangeType.HARD) {
+                // update the models simple representation
+                this.update();
+            }
+        });
+    }
+
+    update() {
+        this.content = [];
+        for (const [frameId, segModel] of this.baseHolder.segmentations.entries()) {
+            const detections: SimpleDetection[] = [];
+
+            for (const [uuid, poly] of segModel.segmentationData.getPolygonEntries()) {
+                detections.push({label: 'cell', contour: poly.points});
+            }
+
+            const ss = {frame: frameId, detections};
+
+            this.content.push(ss);
+        }
+        this.modelChanged.emit(new ModelChanged(this, ChangeType.HARD));
+    }
+
 }

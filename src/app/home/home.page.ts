@@ -5,7 +5,7 @@ import { AddPolygon, JointAction } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
-import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector } from './../models/storage-connectors';
+import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector, DerivedSegmentationRESTStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
 import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap, switchMap } from 'rxjs/operators';
 import { forkJoin, Observable, of } from 'rxjs';
@@ -16,7 +16,7 @@ import { UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SegmentationModel,  SegmentationHolder } from './../models/segmentation-model';
+import { SegmentationModel,  SegmentationHolder, DerivedSegmentationHolder } from './../models/segmentation-model';
 import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angular/core';
 
@@ -304,6 +304,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           } else {
             srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
           }
+
+          // add the simple model
+          // TODO the construction here is a little bit weird
+          const derived = new DerivedSegmentationHolder(srsc.getModel());
+          const derivedConnector = new DerivedSegmentationRESTStorageConnector(this.segService, derived, srsc);
 
           return {srsc, tracking: content.tracking};
         }),

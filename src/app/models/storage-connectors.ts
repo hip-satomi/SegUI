@@ -1,11 +1,12 @@
+import { EventEmitter } from '@angular/core';
 import { ModelChanged, ChangeType } from './change';
-import { concatMap, debounceTime, filter, map, tap } from 'rxjs/operators';
-import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
+import { concatMap, debounceTime, filter, map, tap, switchMap } from 'rxjs/operators';
+import { GUISegmentation, GUITracking, SimpleSegmentation } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
 import { TypedJSON } from 'typedjson';
-import { SegmentationModel, SegmentationHolder} from './segmentation-model';
+import { SegmentationModel, SegmentationHolder, DerivedSegmentationHolder } from './segmentation-model';
 import { TrackingModel } from './tracking';
-import { Observable, of } from 'rxjs';
+import { Observable, of, combineLatest, zip } from 'rxjs';
 import { StorageConnector } from './storage';
 
 
@@ -17,6 +18,7 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
     imageSetId: number;
     restService: SegRestService;
     restRecord: GUISegmentation;
+    updateEvent: EventEmitter<SegmentationRESTStorageConnector> = new EventEmitter();
 
     public static createFromExisting(segService: SegRestService, segmentation: GUISegmentation): SegmentationRESTStorageConnector {
         const serializer = new TypedJSON(SegmentationHolder);
@@ -111,11 +113,110 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
      * Update the object representation in the rest api
      */
     public update(): Observable<GUISegmentation> {
+        let result: Observable<GUISegmentation>;
         if (this.restRecord) {
-            return this.put();
+            result = this.put();
         } else {
-            return this.post();
+            result = this.post();
         }
+
+        // also integrate update events into the pipeline
+        result = result.pipe(
+            tap((x: GUISegmentation) => this.updateEvent.emit(this)),
+        );
+
+        return result;
+    }
+}
+
+export class DerivedSegmentationRESTStorageConnector extends StorageConnector<DerivedSegmentationHolder> {
+
+    restService: SegRestService;
+    restRecord: SimpleSegmentation;
+    parentREST: SegmentationRESTStorageConnector;
+
+    updateEvent: EventEmitter<DerivedSegmentationRESTStorageConnector> = new EventEmitter();
+
+    /**
+     * Attaches the storage connector to a model instance
+     * @param model segmentation model
+     * @param imageId optional image id (the image id can only be missing if we are using an existing REST record)
+     */
+    constructor(restService: SegRestService,
+                model: DerivedSegmentationHolder,
+                parentREST: SegmentationRESTStorageConnector) {
+        super(model);
+
+        this.restService = restService;
+        this.parentREST = parentREST;
+
+        // listen to parent rest events
+        // zip operator combines both observables --> i.e. waits for rest update and model update
+        zip(parentREST.updateEvent.pipe(
+                filter((x: SegmentationRESTStorageConnector) => x.restRecord !== null)
+            ),
+            model.modelChanged)
+        .pipe(
+            map((data: [SegmentationRESTStorageConnector, ModelChanged<DerivedSegmentationHolder>]) => data[0])
+        ).subscribe((restConnector: SegmentationRESTStorageConnector) => {
+            this.update().subscribe(
+                s => console.log('Updated SimpleSegmentation backend!')
+            );
+        });
+    }
+
+    /**
+     * Posts a new object into the rest api
+     */
+    private post(parentGUISegId: number): Observable<SimpleSegmentation> {
+        const simpleSeg: SimpleSegmentation = {
+            id: -1,
+            json: JSON.stringify(this.model.content),
+            segmentation: this.restService.getSegmentationUrl(parentGUISegId)
+        };
+
+        return this.restService.postSimpleSegmentation(simpleSeg).pipe(
+            tap(s => {console.log('Posted simple segmentation'); })
+        );
+    }
+
+    /**
+     * Updates an existing object via the rest api
+     */
+    private put(): Observable<SimpleSegmentation> {
+        this.restRecord.json = JSON.stringify(this.model.content);
+
+        return this.restService.putSimpleSegmentation(this.restRecord).pipe(
+            tap(s => {console.log('Put simple segmentation'); })
+        );
+    }
+
+    /**
+     * Update the object representation in the rest api
+     */
+    public update(): Observable<SimpleSegmentation> {
+        let startingPipe: Observable<SimpleSegmentation>;
+        if (this.restRecord) {
+            startingPipe = of(this.restRecord);
+        } else {
+            startingPipe = this.restService.getSimpleSegFromGUISegmentationId(this.parentREST.restRecord.id).pipe(
+                tap((ss: SimpleSegmentation) => this.restRecord = ss)
+            );
+        }
+
+        return startingPipe.pipe(
+            switchMap((simpleSeg: SimpleSegmentation) => {
+                if (simpleSeg) {
+                    return this.put();
+                } else {
+                    return this.post(this.parentREST.restRecord.id);
+                }
+            }),
+            tap((s: SimpleSegmentation) => {
+                this.restRecord = s;
+                this.updateEvent.emit(this);
+            })
+        );
     }
 }
 
