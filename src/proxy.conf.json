@@ -1,12 +1,24 @@
 {
-    "/predictions/*": {
-        "target": "http://192.168.0.206:8080/",
+    "/tf/predictions/*": {
+        "target": "http://localhost/",
+        "secure": false,
+        "logLevel": "debug",
+        "changeOrigin": true
+    },
+    "/seg-api/*": {
+        "target": "http://localhost/",
+        "secure": false,
+        "logLevel": "debug",
+        "changeOrigin": true
+    },
+    "/mediafiles/*": {
+        "target": "http://localhost/",
         "secure": false,
         "logLevel": "debug",
         "changeOrigin": true
     },
     "/api/*": {
-        "target": "http://lara:8000/",
+        "target": "http://localhost/",
         "secure": false,
         "logLevel": "debug",
         "changeOrigin": true
