@@ -48,6 +48,7 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
         duration: 10000
       });
       toast.present();
+      loading.then(l => l.dismiss());
     },
     () => loading.then(l => l.dismiss()));
   }
