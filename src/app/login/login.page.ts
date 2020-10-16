@@ -48,6 +48,7 @@ export class LoginPage implements OnInit {
         message: JSON.stringify(err),
         duration: 2000
       }).then((toast) => toast.present());
+      loading.then(l => l.dismiss());
     },
     () => loading.then(l => l.dismiss()));
   }
