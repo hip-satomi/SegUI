@@ -27,13 +27,24 @@ export class SegmentationService {
 
   constructor(private httpClient: HttpClient) { }
 
-  public requestSegmentationProposal(imageBlob) {
+  public requestCSSegmentationProposal(imageBlob) {
     // put the binary image data into form data
     const fd = new FormData();
     fd.append('data', imageBlob);
 
     // post this to a segmentation service
     return this.httpClient.post('/tf/predictions/cellcmaskrcnn/', fd).pipe(
+      map(data => data as Array<Detection>)
+    );
+  }
+
+  public requestJSSegmentationProposal(imageBlob) {
+    // put the binary image data into form data
+    const fd = new FormData();
+    fd.append('data', imageBlob);
+
+    // post this to a segmentation service
+    return this.httpClient.post('/pt/predictions/cellcmaskrcnn/', fd).pipe(
       map(data => data as Array<Detection>)
     );
   }

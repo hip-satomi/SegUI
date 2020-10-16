@@ -1,5 +1,6 @@
 import { Point } from './geometry';
 import { multiply, inv } from 'mathjs';
+import * as simplify from 'simplify-js';
 
 export interface Position {
     x: number;
@@ -148,6 +149,17 @@ export class Utils {
     const y: number = touchEvent.center.y - rect.top;
 
     return {x, y};
+  }
+
+  /**
+   * Simplifies a point list using simplify-js http://mourner.github.io/simplify-js/
+   * @param pointList the point list
+   * @param tolerance tolerance value. the lower the closer it is to the original shape
+   */
+  static simplifyPointList(pointList: Point[], tolerance: number): Point[] {
+    const points = pointList.map(p => ({x: p[0], y: p[1]}) );
+    const simplePoints = simplify(points, tolerance);
+    return simplePoints.map(sp => [sp.x, sp.y]);
   }
 }
 

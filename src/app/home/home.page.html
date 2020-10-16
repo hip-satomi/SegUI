@@ -11,8 +11,11 @@
         <ion-button (click)="brushTool()" [ngClass]="{active: this.tool !== null}">
           Brush
         </ion-button>
-        <ion-button (click)="doSegment()">
-          SegProp
+        <ion-button (click)="doSegment('cs')">
+          SP-CS
+        </ion-button>
+        <ion-button (click)="doSegment('js')">
+          SP-JS
         </ion-button>
         <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px">
           <ion-icon name="arrow-undo-outline"></ion-icon>

@@ -7,7 +7,6 @@ import { EventEmitter } from '@angular/core';
 import { SegmentationModel } from './../models/segmentation-model';
 import { Drawer } from 'src/app/models/drawing';
 import { UIInteraction } from './../models/drawing';
-import * as simplify from 'simplify-js';
 import { polygon } from 'polygon-tools';
 
 
@@ -160,9 +159,10 @@ export class BrushTool implements UIInteraction, Drawer {
             }
 
             // simplify polygon points
-            const points = this.currentPolygon.points.map(p => ({x: p[0], y: p[1]}) );
+            this.currentPolygon.points = Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance);
+            /*const points = this.currentPolygon.points.map(p => ({x: p[0], y: p[1]}) );
             const simplePoints = simplify(points, this.simplificationTolerance);
-            this.currentPolygon.points = simplePoints.map(sp => [sp.x, sp.y]);
+            this.currentPolygon.points = simplePoints.map(sp => [sp.x, sp.y]);*/
 
         }
         // Notify change

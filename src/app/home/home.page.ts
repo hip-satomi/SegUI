@@ -1,5 +1,5 @@
 import { BrushTool } from './../toolboxes/brush-toolbox';
-import { UIUtils } from './../models/utils';
+import { UIUtils, Utils } from './../models/utils';
 import { Polygon, Point } from './../models/geometry';
 import { AddPolygon, JointAction } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
@@ -579,7 +579,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   /**
    * Get and apply proposal segmentations
    */
-  async doSegment() {
+  async doSegment(type: string) {
     // create progress loader
     const loading = this.loadingCtrl.create({
       message: 'Please wait while AI is doing the job...',
@@ -595,7 +595,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         console.log(data);
 
         // send the image to a segmentation REST backend
-        return this.segmentationService.requestSegmentationProposal(data);
+        if (type === 'cs') {
+          return this.segmentationService.requestCSSegmentationProposal(data);
+        } else {
+          return this.segmentationService.requestJSSegmentationProposal(data);
+        }
       }),
     ).subscribe(
       (data) => {
@@ -625,8 +629,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               points.push([xItem, yItem]);
             });
 
+            const simplifiedPoints = Utils.simplifyPointList(points, 0.15);
+
             // create a polygon from points and set random color
-            const poly = new Polygon(...points);
+            const poly = new Polygon(...simplifiedPoints);
             poly.setColor(UIUtils.randomColor());
 
             // collection new polygon actions
