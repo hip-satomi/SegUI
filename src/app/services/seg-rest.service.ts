@@ -54,7 +54,7 @@ export class Result {
 })
 export class SegRestService {
 
-  rootUrl: string = 'http://192.168.0.123:8000/';
+  rootUrl: string = '/';
   baseUrl: string = `${this.rootUrl}seg-api/`;
   rc = map(resultObject => {
     console.log(resultObject);
@@ -179,7 +179,7 @@ export class SegRestService {
   }
 
   public getImageUrl(id: number) {
-    return `${this.rootUrl}media/images/${id}.png`;
+    return `${this.rootUrl}mediafiles/images/${id}.png`;
   }
 
   /**
