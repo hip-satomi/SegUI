@@ -192,8 +192,8 @@ export class SelectPolygon extends SegmentationAction {
     }
 
     join(action: Action): boolean {
-        console.log('joining');
         if (action instanceof SelectPolygon) {
+            console.log('Joining Select polygon');
             const selectAction = action as SelectPolygon;
 
             this.newPolyId = selectAction.newPolyId;
