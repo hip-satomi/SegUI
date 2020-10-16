@@ -33,7 +33,7 @@ export class SegmentationService {
     fd.append('data', imageBlob);
 
     // post this to a segmentation service
-    return this.httpClient.post('/predictions/cellcmaskrcnn/', fd).pipe(
+    return this.httpClient.post('/tf/predictions/cellcmaskrcnn/', fd).pipe(
       map(data => data as Array<Detection>)
     );
   }
