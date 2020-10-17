@@ -660,4 +660,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.draw();
   }
 
+  openToolkit() {
+    // segmentation proposals have been applied successfully
+    this.toastController.create({
+      message: 'Toolkit not yet implemented!',
+      duration: 2000
+    }).then(toast => toast.present());
+  }
+
 }
