@@ -11,7 +11,6 @@ import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll,
 import { forkJoin, Observable, of } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
-import { TypedJSON, jsonArrayMember, jsonObject } from 'typedjson';
 import { UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
@@ -411,19 +410,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   segModelChanged(segModelChangedEvent: ModelChanged<SegmentationModel>) {
     this.draw(this.ctx);
-  }
-
-  async storeTracking() {
-    const serializer = new TypedJSON(TrackingModel);
-
-    const jsonString =  serializer.stringify(this.trackingModel);
-
-    console.log(jsonString);
-
-    Storage.set({
-      key: this.trackingKey,
-      value: jsonString
-    });
   }
 
   @HostListener('document:keydown.control.z')
