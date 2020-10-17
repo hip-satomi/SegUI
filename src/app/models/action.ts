@@ -5,27 +5,45 @@ import { EventEmitter } from '@angular/core';
 import { SelectedSegment, TrackingData, TrackingLink } from './tracking-data';
 import { SegmentationData } from './segmentation-data';
 import { Polygon } from 'src/app/models/geometry';
-import { jsonArrayMember, jsonMember, jsonObject, toJson, TypedJSON } from 'typedjson';
 import { v4 as uuidv4 } from 'uuid';
-@jsonObject
+
+import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
+
+enum ActionTypes {
+    AddEmptyPolygon,
+    AddPolygon,
+    RemovePolygon,
+    AddPointAction,
+    RemovePointAction,
+    SelectPolygon,
+    MovePointAction,
+    ChangePolygonPoints,
+
+    // Actions for tracking
+    SelectSegmentAction,
+    AddLinkAction,
+    UnselectSegmentAction,
+
+    JointAction,
+    PreventUndoActionWrapper
+}
+
+@Serializable()
 export abstract class Action {
 
-    @jsonMember
-    lastPerformedTime: Date;
+    @JsonProperty()
+    type: ActionTypes;
 
     abstract perform(): void;
     abstract reverse(): void;
     abstract setData(info): void;
 
-    constructor() {
+    constructor(type: ActionTypes) {
+        this.type = type;
     }
 
     join(action: Action): boolean {
         return false;
-    }
-
-    updatePerformedTime() {
-        this.lastPerformedTime = new Date();
     }
 
     allowUndo() {
@@ -37,18 +55,18 @@ export abstract class Action {
     }
 }
 
-@jsonObject
+@Serializable()
 export abstract class DataAction extends Action {
     abstract setData(info): void;
 }
 
-@jsonObject
+@Serializable()
 export abstract class SegmentationAction extends DataAction {
 
     protected segmentationData: SegmentationData;
 
-    constructor(segmentationData: SegmentationData) {
-        super();
+    constructor(type: ActionTypes, segmentationData: SegmentationData) {
+        super(type);
         this.segmentationData = segmentationData;
     }
 
@@ -71,17 +89,17 @@ export abstract class SegmentationAction extends DataAction {
     }
 }
 
-@jsonObject
+@Serializable()
 export class AddEmptyPolygon extends SegmentationAction {
 
-    @jsonMember
+    @JsonProperty()
     color: string;
 
-    @jsonMember
+    @JsonProperty()
     uuid: string;
 
     constructor(segmentationData: SegmentationData, color: string) {
-        super(segmentationData);
+        super(ActionTypes.AddEmptyPolygon, segmentationData);
 
         this.color = color;
         this.uuid = uuidv4();
@@ -91,8 +109,6 @@ export class AddEmptyPolygon extends SegmentationAction {
         const poly = new Polygon();
         poly.setColor(this.color);
         this.segmentationData.addPolygon(this.uuid, poly);
-
-        this.updatePerformedTime();
     }
 
     reverse() {
@@ -104,17 +120,17 @@ export class AddEmptyPolygon extends SegmentationAction {
 /**
  * Action to add a full polygon
  */
-@jsonObject
+@Serializable()
 export class AddPolygon extends SegmentationAction {
 
-    @jsonMember
+    @JsonProperty()
     uuid: string;
 
-    @jsonMember
+    @JsonProperty()
     poly: Polygon;
 
     constructor(segmentationData: SegmentationData, poly: Polygon) {
-        super(segmentationData);
+        super(ActionTypes.AddPolygon, segmentationData);
 
         this.uuid = uuidv4();
         this.poly = poly;
@@ -122,8 +138,6 @@ export class AddPolygon extends SegmentationAction {
 
     perform() {
         this.segmentationData.addPolygon(this.uuid, this.poly);
-
-        this.updatePerformedTime();
     }
 
     reverse() {
@@ -133,17 +147,17 @@ export class AddPolygon extends SegmentationAction {
 }
 
 
-@jsonObject
+@Serializable()
 export class RemovePolygon extends SegmentationAction {
 
-    @jsonMember
+    @JsonProperty()
     polygonId: string;
 
-    @jsonMember
+    @JsonProperty()
     polygon: Polygon;
 
     constructor(segData: SegmentationData, polgonId: string) {
-        super(segData);
+        super(ActionTypes.RemovePolygon, segData);
 
         this.polygonId = polgonId;
     }
@@ -161,14 +175,14 @@ export class RemovePolygon extends SegmentationAction {
 
 }
 
-@jsonObject
+@Serializable()
 export class SelectPolygon extends SegmentationAction {
 
-    @jsonMember newPolyId: string;
-    @jsonMember oldPolyId: string;
+    @JsonProperty() newPolyId: string;
+    @JsonProperty() oldPolyId: string;
 
     constructor(segmentationData: SegmentationData, newPolyId: string, oldPolyId: string = null) {
-        super(segmentationData);
+        super(ActionTypes.SelectPolygon, segmentationData);
 
         this.newPolyId = newPolyId;
         if (oldPolyId) {
@@ -182,8 +196,6 @@ export class SelectPolygon extends SegmentationAction {
     perform() {
         this.segmentationData.activePolygonId = this.newPolyId;
         this.segmentationData.activePointIndex = 0;
-
-        this.updatePerformedTime();
     }
 
     reverse() {
@@ -205,18 +217,18 @@ export class SelectPolygon extends SegmentationAction {
     }
 }
 
-@jsonObject
+@Serializable()
 export class AddPointAction extends SegmentationAction {
 
-    @jsonArrayMember(Number)
+    @JsonProperty()
     private point: [number, number];
-    @jsonMember
+    @JsonProperty()
     private index: number;
-    @jsonMember
+    @JsonProperty()
     private polygonId: string;
 
     constructor(point: [number, number], index: number, polygonId: string, segmentationData: SegmentationData) {
-        super(segmentationData);
+        super(ActionTypes.AddPointAction, segmentationData);
         this.point = point;
         this.index = index;
         this.polygonId = polygonId;
@@ -224,8 +236,6 @@ export class AddPointAction extends SegmentationAction {
 
     perform() {
         this.getPolygon(this.polygonId).addPoint(this.index, this.point);
-
-        this.updatePerformedTime();
     }
 
     reverse() {
@@ -233,19 +243,19 @@ export class AddPointAction extends SegmentationAction {
     }
 }
 
-@jsonObject
+@Serializable()
 export class RemovePointAction extends SegmentationAction {
 
-    @jsonMember
+    @JsonProperty()
     polygonId: string;
-    @jsonMember
+    @JsonProperty()
     pointIndex: number;
 
-    @jsonArrayMember(Number)
+    @JsonProperty()
     point: [number, number];
 
     constructor(segData: SegmentationData, polygonId: string, pointIndex: number) {
-        super(segData);
+        super(ActionTypes.RemovePointAction, segData);
 
         if (!segData) {
             // this is just loaded from json
@@ -269,64 +279,20 @@ export class RemovePointAction extends SegmentationAction {
     }
 }
 
-@jsonObject
-export class MovedPointAction extends SegmentationAction {
-
-    @jsonArrayMember(Number)
-    private newPoint: [number, number];
-    @jsonArrayMember(Number)
-    private oldPoint: [number, number];
-    @jsonMember
-    private polygonId: string;
-    @jsonMember
-    private pointIndex: number;
-
-    constructor(oldPoint: [number, number], pointIndex: number, polygonId: string, segmentationData: SegmentationData) {
-        super(segmentationData);
-
-        if (!segmentationData) {
-            // this is a json recreation
-            return;
-        }
-
-        this.polygonId = polygonId;
-        this.pointIndex = pointIndex;
-        //const point = this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
-        this.newPoint = [...this.point];
-        this.oldPoint = [...oldPoint];
-    }
-
-    perform() {
-        this.point[0] = this.newPoint[0];
-        this.point[1] = this.newPoint[1];
-
-        this.updatePerformedTime();
-    }
-
-    reverse() {
-        this.point[0] = this.oldPoint[0];
-        this.point[1] = this.oldPoint[1];
-    }
-
-    private get point() {
-        return this.getPolygon(this.polygonId).getPoint(this.pointIndex);
-    }
-}
-
-@jsonObject
+@Serializable()
 export class MovePointAction extends SegmentationAction {
 
-    @jsonArrayMember(Number)
+    @JsonProperty()
     private newPoint: [number, number];
-    @jsonArrayMember(Number)
+    @JsonProperty()
     private oldPoint: [number, number];
-    @jsonMember
+    @JsonProperty()
     private polygonId: string;
-    @jsonMember
+    @JsonProperty()
     private pointIndex: number;
 
     constructor(newPoint: [number, number], pointIndex: number, polygonId: string, segmentationData: SegmentationData) {
-        super(segmentationData);
+        super(ActionTypes.MovePointAction, segmentationData);
 
         if (!segmentationData) {
             // this is a json recreation
@@ -335,7 +301,7 @@ export class MovePointAction extends SegmentationAction {
 
         this.polygonId = polygonId;
         this.pointIndex = pointIndex;
-        //const point = this.polygonList[this.polygonIndex].getPoint(this.pointIndex);
+
         this.newPoint = [...newPoint];
         this.oldPoint = [...this.point];
     }
@@ -343,8 +309,6 @@ export class MovePointAction extends SegmentationAction {
     perform() {
         this.point[0] = this.newPoint[0];
         this.point[1] = this.newPoint[1];
-
-        this.updatePerformedTime();
     }
 
     reverse() {
@@ -371,18 +335,18 @@ export class MovePointAction extends SegmentationAction {
     }
 }
 
-@jsonObject
+@Serializable()
 export class ChangePolygonPoints extends SegmentationAction {
 
-    @jsonArrayMember(Number, {dimensions: 2})
+    @JsonProperty()
     private newPoints: Point[];
-    @jsonArrayMember(Number, {dimensions: 2})
+    @JsonProperty()
     private oldPoints: Point[];
-    @jsonMember
+    @JsonProperty()
     private polygonId: string;
 
     constructor(segmentationData: SegmentationData, newPoints: Point[], polygonId: string, oldPoints) {
-        super(segmentationData);
+        super(ActionTypes.ChangePolygonPoints, segmentationData);
 
         if (!segmentationData) {
             // this is a json recreation
@@ -404,8 +368,6 @@ export class ChangePolygonPoints extends SegmentationAction {
 
     perform() {
         this.getPolygon(this.polygonId).setPoints(this.newPoints);
-
-        this.updatePerformedTime();
     }
 
     reverse() {
@@ -422,13 +384,13 @@ export class ChangePolygonPoints extends SegmentationAction {
  * 
  * works on tracking data
  */
-@jsonObject
+@Serializable()
 export abstract class TrackingAction extends DataAction {
 
     protected trackingData: TrackingData;
 
-    constructor(trackingData: TrackingData) {
-        super();
+    constructor(type: ActionTypes, trackingData: TrackingData) {
+        super(type);
         this.trackingData = trackingData;
     }
 
@@ -444,13 +406,13 @@ export abstract class TrackingAction extends DataAction {
 /**
  * Select a segmentation during the tracking process
  */
-@jsonObject
+@Serializable()
 export class SelectSegmentAction extends TrackingAction {
-    @jsonMember
+    @JsonProperty()
     selection: SelectedSegment;
 
     constructor(selectedSegment: SelectedSegment, trackingData: TrackingData) {
-        super(trackingData);
+        super(ActionTypes.SelectSegmentAction, trackingData);
         this.selection = selectedSegment;
     }
 
@@ -463,13 +425,13 @@ export class SelectSegmentAction extends TrackingAction {
     }
 }
 
-@jsonObject
+@Serializable()
 export class UnselectSegmentAction extends TrackingAction {
-    @jsonMember
+    @JsonProperty()
     selection: SelectedSegment;
 
     constructor(selectedSegment: SelectedSegment, trackingData: TrackingData) {
-        super(trackingData);
+        super(ActionTypes.UnselectSegmentAction, trackingData);
 
         this.selection = selectedSegment;
     }
@@ -490,17 +452,17 @@ export class UnselectSegmentAction extends TrackingAction {
 /**
  * Add a link during the tracking process
  */
-@jsonObject
+@Serializable()
 export class AddLinkAction extends TrackingAction {
 
-    @jsonMember
+    @JsonProperty()
     link: TrackingLink;
 
-    @jsonArrayMember(UnselectSegmentAction)
+    @JsonProperty({type: UnselectSegmentAction})
     unselections: UnselectSegmentAction[] = [];
 
     constructor(trackingData: TrackingData, source: SelectedSegment, targets: SelectedSegment[]) {
-        super(trackingData);
+        super(ActionTypes.AddLinkAction, trackingData);
 
         if (!trackingData) {
             // restoring from json
@@ -562,14 +524,48 @@ const knownTypes = [Action,
                     UnselectSegmentAction];
 
 
-@jsonObject({knownTypes: [...knownTypes, JointAction]})
+const actionRestorer = action => {
+
+    const lookupList: Array<[ActionTypes, any]> = [
+        [ActionTypes.AddEmptyPolygon, AddEmptyPolygon],
+        [ActionTypes.AddPolygon, AddPolygon],
+        [ActionTypes.RemovePolygon, RemovePolygon],
+        [ActionTypes.AddPointAction, AddPointAction],
+        [ActionTypes.SelectPolygon, SelectPolygon],
+        [ActionTypes.MovePointAction, MovePointAction],
+        [ActionTypes.ChangePolygonPoints, ChangePolygonPoints],
+
+        [ActionTypes.SelectSegmentAction, SelectSegmentAction],
+        [ActionTypes.AddLinkAction, AddLinkAction],
+        [ActionTypes.UnselectSegmentAction, UnselectSegmentAction],
+
+        [ActionTypes.JointAction, JointAction],
+        [ActionTypes.PreventUndoActionWrapper, PreventUndoActionWrapper]
+    ];
+
+    const lookup = new Map<ActionTypes, any>();
+
+    for (const [actionType, classConstr] of lookupList) {
+        lookup.set(actionType, classConstr);
+    }
+
+
+    const type = action['type'];
+    if (lookup.has(type)) {
+        return lookup.get(type);
+    } else {
+        throw new Error(`Unknown action type: ${type}`);
+    }
+};
+
+@Serializable()
 export class JointAction extends Action{
 
-    @jsonArrayMember(Action)
+    @JsonProperty({predicate: actionRestorer})
     actions: Action[];
 
     constructor(...actions: Action[]) {
-        super();
+        super(ActionTypes.JointAction);
         this.actions = actions;
     }
 
@@ -577,8 +573,6 @@ export class JointAction extends Action{
         for (const act of this.actions) {
             act.perform();
         }
-
-        this.updatePerformedTime();
     }
 
     reverse() {
@@ -594,14 +588,14 @@ export class JointAction extends Action{
     }
 }
 
-@jsonObject({knownTypes: [...knownTypes, JointAction]})
+@Serializable()
 export class PreventUndoActionWrapper extends DataAction {
 
-    @jsonMember
+    @JsonProperty({predicate: actionRestorer})
     action: DataAction;
 
     constructor(action: DataAction) {
-        super();
+        super(ActionTypes.PreventUndoActionWrapper);
         this.action = action;
     }
 
@@ -622,16 +616,16 @@ export class PreventUndoActionWrapper extends DataAction {
     }
 }
 
-@jsonObject({knownTypes: [...knownTypes, JointAction, PreventUndoActionWrapper]})
+@Serializable()
 export class ActionManager {
 
-    @jsonArrayMember(Action)
+    @JsonProperty({predicate: actionRestorer})
     actions: Action[] = [];
-    @jsonMember actionTimeSplitThreshold: number;
-    @jsonMember
+    @JsonProperty() actionTimeSplitThreshold: number;
+    @JsonProperty()
     currentActionPointer: number;
 
-    @jsonMember
+    @JsonProperty()
     recordedActionPointer: number;
 
     onDataChanged = new EventEmitter<ActionManager>();

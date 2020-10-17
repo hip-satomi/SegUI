@@ -1,17 +1,17 @@
 import { Position, pairwiseDistanceMin, dotLineLength, UIUtils, Utils } from './utils';
 const inside = require('point-in-polygon');
 import { mean } from 'mathjs';
-import { jsonArrayMember, jsonMember, jsonObject } from 'typedjson';
+import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
 import { polygon } from 'polygon-tools';
 
 export type Point = [number, number];
 
-@jsonObject
+@Serializable()
 export class Polygon {
-    @jsonArrayMember(Number, { dimensions: 2 })
+    @JsonProperty()
     points: Point[] = [];
 
-    @jsonMember
+    @JsonProperty()
     color: string;
 
     constructor(...points: Point[]) {

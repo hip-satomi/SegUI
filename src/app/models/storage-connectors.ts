@@ -1,9 +1,9 @@
+import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
 import { EventEmitter } from '@angular/core';
 import { ModelChanged, ChangeType } from './change';
 import { concatMap, debounceTime, filter, map, tap, switchMap } from 'rxjs/operators';
 import { GUISegmentation, GUITracking, SimpleSegmentation } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
-import { TypedJSON } from 'typedjson';
 import { SegmentationModel, SegmentationHolder, DerivedSegmentationHolder } from './segmentation-model';
 import { TrackingModel } from './tracking';
 import { Observable, of, combineLatest, zip } from 'rxjs';
@@ -20,15 +20,32 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
     restRecord: GUISegmentation;
     updateEvent: EventEmitter<SegmentationRESTStorageConnector> = new EventEmitter();
 
+    /**
+     * Creates the segmentation holder from an existing json entry in db
+     * @param segService segmentation service
+     * @param segmentation the segmentation REST entry
+     */
     public static createFromExisting(segService: SegRestService, segmentation: GUISegmentation): SegmentationRESTStorageConnector {
-        const serializer = new TypedJSON(SegmentationHolder);
-        const model = serializer.parse(segmentation.json);
+        const model = deserialize<SegmentationHolder>(JSON.parse(segmentation.json), SegmentationHolder);
+
+        for (const segModel of model.segmentations) {
+            segModel.onDeserialized();
+        }
+
+        // TODO: this should be implemented into the serializer
+        model.onDeserialized();
 
         const srsc = new SegmentationRESTStorageConnector(segService, model, null, segmentation);
 
         return srsc;
     }
 
+    /**
+     * Creates a new segmentation holder
+     * @param segService segmentation REST SErvice
+     * @param imageSetId the image set id
+     * @param imageUrls the image urls
+     */
     public static createNew(segService: SegRestService, imageSetId: number, imageUrls: string[]) {
         const holder = new SegmentationHolder();
 
@@ -80,8 +97,9 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
     private post(): Observable<GUISegmentation> {
         const imageId = this.imageSetId;
 
-        const serializer = new TypedJSON(SegmentationHolder);
-        const segModelJSON = serializer.stringify(this.model);
+        const serializedData = serialize(this.model);
+
+        const segModelJSON: string = JSON.stringify(serializedData);
 
         // post the segmentation model to the rest service
         return this.restService.postSegmentation(imageId, segModelJSON).pipe(
@@ -96,8 +114,7 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
      * Updates an existing object via the rest api
      */
     private put(): Observable<GUISegmentation> {
-        const serializer = new TypedJSON(SegmentationHolder);
-        const segModelJSON = serializer.stringify(this.model);
+        const segModelJSON: string = JSON.stringify(serialize(this.model));
 
         this.restRecord.json = segModelJSON;
 
@@ -231,10 +248,10 @@ export class TrackingRESTStorageConnector extends StorageConnector<TrackingModel
     }
 
     static createFromExisting(restService: SegRestService, srsc: SegmentationRESTStorageConnector, guiTracking: GUITracking) {
-        const serializer = new TypedJSON(TrackingModel);
-
         try {
-            const trackingModel = serializer.parse(guiTracking.json);
+            const trackingModel: TrackingModel = deserialize<TrackingModel>(JSON.parse(guiTracking.json), TrackingModel);
+
+            trackingModel.onDeserialized();
 
             return new TrackingRESTStorageConnector(restService, trackingModel, srsc, guiTracking);
         } catch (e) {
@@ -267,8 +284,7 @@ export class TrackingRESTStorageConnector extends StorageConnector<TrackingModel
     }
 
     private put(): Observable<GUITracking> {
-        const serializer = new TypedJSON(TrackingModel);
-        const trackModelJSON = serializer.stringify(this.model);
+        const trackModelJSON: string = JSON.stringify(serialize(this.model));
 
         this.restRecord.json = trackModelJSON;
 
@@ -278,8 +294,7 @@ export class TrackingRESTStorageConnector extends StorageConnector<TrackingModel
     }
 
     private post(): Observable<GUITracking> {
-        const serializer = new TypedJSON(TrackingModel);
-        const trackModelJSON = serializer.stringify(this.model);
+        const trackModelJSON = JSON.stringify(serialize(this.model));
 
         return this.restService.postTracking(this.restService.getSegmentationUrl(this.srsc.restRecord.id), trackModelJSON).pipe(
             tap(r => this.restRecord = r)

@@ -1,17 +1,17 @@
+import { Serializable, JsonProperty } from 'typescript-json-serializer';
 import { ChangeType, ModelChanged } from './change';
 import { SynchronizedObject } from './storage';
 import { TrackingData, SelectedSegment } from './tracking-data';
-import { jsonMember, jsonObject } from 'typedjson';
 import { ActionManager, AddLinkAction, SelectSegmentAction, UnselectSegmentAction } from './action';
 import { EventEmitter } from '@angular/core';
 
 
-@jsonObject({onDeserialized: 'onDeserialized'})
+@Serializable()
 export class TrackingModel extends SynchronizedObject<TrackingModel> {
 
     trackingData = new TrackingData();
 
-    @jsonMember
+    @JsonProperty()
     actionManager: ActionManager = new ActionManager(0.25);
 
     onModelChanged = new EventEmitter<ModelChanged<TrackingModel>>();

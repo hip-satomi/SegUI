@@ -1,8 +1,7 @@
-import { jsonArrayMember, jsonMember, jsonObject } from 'typedjson';
-
-@jsonObject
+import { Serializable, JsonProperty } from 'typescript-json-serializer';
+@Serializable()
 export class SelectedSegment {
-    @jsonMember
+    @JsonProperty()
     polygonId: string;
 
     constructor(polyonId: string) {
@@ -10,12 +9,12 @@ export class SelectedSegment {
     }
 }
 
-@jsonObject
+@Serializable()
 export class TrackingLink {
-    @jsonMember
+    @JsonProperty()
     source: SelectedSegment;
 
-    @jsonArrayMember(SelectedSegment)
+    @JsonProperty({type: SelectedSegment})
     targets: SelectedSegment[];
 
     constructor(source: SelectedSegment, targets: SelectedSegment[]) {

@@ -1,10 +1,10 @@
+import { Serializable, JsonProperty } from 'typescript-json-serializer';
 import { ModelChanged, ChangeType, ChangableModel } from './change';
 import { EventEmitter } from '@angular/core';
 import { SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
 import { Polygon, Point } from './geometry';
 import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper, Action, JointAction } from './action';
-import { jsonMember, jsonObject, jsonArrayMember } from 'typedjson';
 import { SynchronizedObject } from './storage';
 import { Subscription, Observable, combineLatest } from 'rxjs';
 
@@ -13,7 +13,7 @@ import { Subscription, Observable, combineLatest } from 'rxjs';
  * 
  * 
  */
-@jsonObject({onDeserialized: 'onDeserialized'})
+@Serializable()
 export class SegmentationModel {
 
     // underlying image for the segmentation
@@ -21,10 +21,10 @@ export class SegmentationModel {
     // true iff image is loaded
     imageLoaded = false;
     // imageUrl
-    @jsonMember
+    @JsonProperty()
     private imageUrl: string;
     // action Manager that contains the actions forming the segmentation
-    @jsonMember
+    @JsonProperty()
     actionManager: ActionManager;
 
     onModelChange = new EventEmitter<ModelChanged<SegmentationModel>>();
@@ -274,10 +274,10 @@ export class SegmentationModel {
     }
 }
 
-@jsonObject({onDeserialized: 'onDeserialized'})
+@Serializable()
 export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> implements ChangableModel<SegmentationModel> {
 
-    @jsonArrayMember(SegmentationModel)
+    @JsonProperty({type: SegmentationModel})
     segmentations: SegmentationModel[] = [];
 
     private subscriptions: Subscription[] = [];
