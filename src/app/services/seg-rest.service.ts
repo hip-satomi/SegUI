@@ -101,53 +101,11 @@ export class SegRestService {
     };
   }
 
-  private get(url: string) {
-    // get a valid token first --> then we can execute the http call
-    return this.auth.getValidToken().pipe(
-      switchMap(token => {
-        return this.httpClient.get(url, SegRestService.createHttpOptions(token));
-      })
-    );
-  }
-
-  /**
-   * Provides the binary download from an url, e.g. an image
-   * @param url the url 
-   */
-  public getBinary(url: string) {
-    // get a valid token first --> then we can execute the http call
-    return this.auth.getValidToken().pipe(
-      switchMap(token => {
-        const headers = SegRestService.createHttpOptions(token).headers;
-        return this.httpClient.get<Blob>(url,  {headers, responseType: 'blob' as 'json'});
-      })
-    );
-  }
-
-
-  private put(url: string, body: any) {
-    // get a valid token first --> then we can execute the http call
-    return this.auth.getValidToken().pipe(
-      switchMap(token => {
-        return this.httpClient.put(url, body, SegRestService.createHttpOptions(token));
-      })
-    );
-  }
-
-  private post(url: string, body: any) {
-    // get a valid token first --> then we can execute the http call
-    return this.auth.getValidToken().pipe(
-      switchMap(token => {
-        return this.httpClient.post(url, body, SegRestService.createHttpOptions(token));
-      })
-    );
-  }
-
   /*
    * Sending a GET request to imageSets/
    */
   public getImageSets(): Observable<ImageSet[]> {
-    return this.get(this.baseUrl + 'imageSets/')
+    return this.httpClient.get(this.baseUrl + 'imageSets/')
       .pipe(
         this.rc,
         map((resultObject: Result): ImageSet[] => {
@@ -162,7 +120,7 @@ export class SegRestService {
    * @param id of the image set
    */
   public getImageSetById(id: number): Observable<ImageSet> {
-    return this.get(this.baseUrl + `imageSets/${id}`)
+    return this.httpClient.get(this.baseUrl + `imageSets/${id}`)
       .pipe(
         map((data) => data as ImageSet)
       );
@@ -172,7 +130,7 @@ export class SegRestService {
    * Sending a get request to images/
    */
   public getImages(): Observable<Image[]> {
-    return this.get(this.baseUrl + 'images/')
+    return this.httpClient.get(this.baseUrl + 'images/')
       .pipe(
         this.rc,
         map((result: Result): Image[] => result.results.map(image => image as Image))
@@ -183,7 +141,7 @@ export class SegRestService {
    * Sending a get request to image
    */
   public getImageByUrl(url: string): Observable<Image> {
-    return this.get(url)
+    return this.httpClient.get(url)
       .pipe(
         map((data) => data as Image)
       );
@@ -199,7 +157,7 @@ export class SegRestService {
    * @param frameId the frame id
    */
   public getImageUrlByFrame(imageSetId: number, frameId: number) {
-    return this.get(`${this.baseUrl}images/?imageSet=${imageSetId}&frameId=${frameId}`).pipe(
+    return this.httpClient.get(`${this.baseUrl}images/?imageSet=${imageSetId}&frameId=${frameId}`).pipe(
       this.rc,
       map(result => result.results[0] as Image),
       map(image => this.getImageUrl(image.id))
@@ -249,27 +207,27 @@ export class SegRestService {
 
     const segCand: GUISegmentationCandidate = {imageSet: imageSource, json};
 
-    return this.post(`${this.baseUrl}gui-segmentations/`, segCand)
+    return this.httpClient.post(`${this.baseUrl}gui-segmentations/`, segCand)
       .pipe(
         map((result) => result as GUISegmentation)
       );
   }
 
   public putSegmentation(segItem: GUISegmentation): Observable<GUISegmentation> {
-    return this.put(`${this.baseUrl}gui-segmentations/${segItem.id}/`, segItem)
+    return this.httpClient.put(`${this.baseUrl}gui-segmentations/${segItem.id}/`, segItem)
       .pipe(
         map((result) => result as GUISegmentation)
       );
   }
 
   public getSegmentation(segmentationId: number): Observable<GUISegmentation> {
-    return this.get(`${this.baseUrl}gui-segmentations/${segmentationId}/`).pipe(
+    return this.httpClient.get(`${this.baseUrl}gui-segmentations/${segmentationId}/`).pipe(
       map(result => result as GUISegmentation)
     );
   }
 
   public getSegmentationByUrl(segmentationUrl: string): Observable<GUISegmentation> {
-    return this.get(segmentationUrl).pipe(
+    return this.httpClient.get(segmentationUrl).pipe(
       map(r => r as GUISegmentation)
     );
   }
@@ -280,7 +238,7 @@ export class SegRestService {
    * @param imageSetId 
    */
   public getLatestSegmentation(imageSetId: number): Observable<GUISegmentation> {
-    return this.get(`${this.baseUrl}gui-segmentations/?imageSet=${imageSetId}`).pipe(
+    return this.httpClient.get(`${this.baseUrl}gui-segmentations/?imageSet=${imageSetId}`).pipe(
       this.rc,
       map((result: Result) => {
         if (result.results.length > 0) {
@@ -299,7 +257,7 @@ export class SegRestService {
    * @param guiSegId 
    */
   public getSimpleSegFromGUISegmentationId(guiSegId: number): Observable<SimpleSegmentation> {
-    return this.get(`${this.baseUrl}simple-segmentations/?segmentation=${guiSegId}`).pipe(
+    return this.httpClient.get(`${this.baseUrl}simple-segmentations/?segmentation=${guiSegId}`).pipe(
       this.rc,
       map((result: Result) => {
         if (result.results.length > 0) {
@@ -312,13 +270,13 @@ export class SegRestService {
   }
 
   public postSimpleSegmentation(simpleSeg: SimpleSegmentation) {
-    return this.post(`${this.baseUrl}simple-segmentations/`, simpleSeg).pipe(
+    return this.httpClient.post(`${this.baseUrl}simple-segmentations/`, simpleSeg).pipe(
       map(r => r as SimpleSegmentation)
     );
   }
 
   public putSimpleSegmentation(simpleSeg: SimpleSegmentation) {
-    return this.put(`${this.baseUrl}simple-segmentations/${simpleSeg.id}/`, simpleSeg).pipe(
+    return this.httpClient.put(`${this.baseUrl}simple-segmentations/${simpleSeg.id}/`, simpleSeg).pipe(
       map(r => r as SimpleSegmentation)
     );
   }
@@ -326,7 +284,7 @@ export class SegRestService {
 // ----- Tracking related stuff begins -----
 
   public getLatestTracking(imageSetId: number): Observable<GUITracking> {
-    return this.get(`${this.baseUrl}gui-trackings/?imageSet=${imageSetId}`).pipe(
+    return this.httpClient.get(`${this.baseUrl}gui-trackings/?imageSet=${imageSetId}`).pipe(
       this.rc,
       map((result: Result) => {
         if (result.results.length > 0) {
@@ -339,19 +297,19 @@ export class SegRestService {
   }
 
   public getTrackingSegmentation(tracking: GUITracking): Observable<GUISegmentation> {
-    return this.get(`${tracking.segmentation}`).pipe(
+    return this.httpClient.get(`${tracking.segmentation}`).pipe(
       map(r => r as GUISegmentation)
     );
   }
 
   public putTracking(tracking: GUITracking): Observable<GUITracking> {
-    return this.put(`${this.baseUrl}gui-trackings/${tracking.id}/`, tracking).pipe(
+    return this.httpClient.put(`${this.baseUrl}gui-trackings/${tracking.id}/`, tracking).pipe(
       map(r => r as GUITracking)
     );
   }
 
   public postTracking(segUrl: string, json: string): Observable<GUITracking> {
-    return this.post(`${this.baseUrl}gui-trackings/`, {segmentation: segUrl, json}).pipe(
+    return this.httpClient.post(`${this.baseUrl}gui-trackings/`, {segmentation: segUrl, json}).pipe(
       map(r => r as GUITracking)
     );
   }

@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { BrushTool } from './../toolboxes/brush-toolbox';
 import { UIUtils, Utils } from './../models/utils';
@@ -86,7 +87,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private stateService: StateService,
               private segmentationService: SegmentationService,
               private loadingCtrl: LoadingController,
-              private authService: AuthService) {
+              private authService: AuthService,
+              private httpClient: HttpClient) {
   }
 
   onPointerDown(event: any): boolean {
@@ -578,7 +580,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     const sub = this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
       tap(() => loading.then(l => l.present())),
       // read the image in binary format
-      switchMap(url => {console.log(url); return this.segService.getBinary(url); }),
+      switchMap((url: string) => {console.log(url); return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'}); }),
       switchMap(data => {
         console.log('have the binary data!');
         console.log(data);
