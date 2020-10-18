@@ -615,7 +615,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               points.push([xItem, yItem]);
             });
 
-            const simplifiedPoints = Utils.simplifyPointList(points, 0.15);
+            const simplifiedPoints = Utils.simplifyPointList(points, 0.1);
 
             // create a polygon from points and set random color
             const poly = new Polygon(...simplifiedPoints);
