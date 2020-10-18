@@ -13,8 +13,9 @@ import { AngularResizedEventModule } from 'angular-resize-event';
 
 import { HammerGestureConfig, HAMMER_GESTURE_CONFIG} from '@angular/platform-browser';
 
-import {HttpClientModule} from '@angular/common/http';
+import {HttpClientModule, HTTP_INTERCEPTORS} from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { TokenInterceptorService } from './services/token-interceptor.service';
 
 @Injectable({providedIn: 'root'})
 export class MyHammerConfig extends HammerGestureConfig  {
@@ -40,6 +41,11 @@ export class MyHammerConfig extends HammerGestureConfig  {
     {
       provide: HAMMER_GESTURE_CONFIG,
       useClass: MyHammerConfig
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: TokenInterceptorService,
+      multi: true
     }
   ],
   bootstrap: [AppComponent]

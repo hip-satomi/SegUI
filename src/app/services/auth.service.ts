@@ -6,12 +6,18 @@ import { Injectable } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
 import { JwtHelperService } from '@auth0/angular-jwt';
-import { switchMap, map, take, mapTo, mergeMap } from 'rxjs/operators';
+import { switchMap, map, take, mapTo, mergeMap, finalize } from 'rxjs/operators';
 
 const { Storage } = Plugins;
 
 const helper = new JwtHelperService();
 const TOKEN_KEY = 'jwt-token';
+
+export class NoValidTokenException extends Error {
+  constructor() {
+    super('No valid token available');
+  }
+}
 
 export interface DecodedToken {
   exp: number;
@@ -39,7 +45,10 @@ export class AuthService {
 
   private baseUrl = '/api';// 'http://lara:8000/';
 
-  constructor(private httpClient: HttpClient, private plt: Platform, private router: Router, private alertController: AlertController) {
+  constructor(private httpClient: HttpClient,
+              private plt: Platform,
+              private router: Router,
+              private alertController: AlertController) {
     this.loadStoredToken();
   }
 
@@ -86,6 +95,54 @@ export class AuthService {
         }
       })
     );
+  }
+
+  /**
+   * Shows an login alert dialog that allow to login.
+   * 
+   * Returns an observable that is fired when the dialog is closed.
+   * @param loginAttemptInfo info about login attempts
+   */
+  public showAlertLogin(loginAttemptInfo = {index: -1, totalAvailable: -1}): Observable<void> {
+    return new Observable(sub => {
+      this.alertController.create({
+        header: 'Login',
+        subHeader: (loginAttemptInfo) ? `You have ${loginAttemptInfo.totalAvailable - loginAttemptInfo.index} login attempts remaining!` : null,
+        inputs: [
+          {
+            name: 'username',
+            placeholder: 'Username'
+          },
+          {
+            name: 'password',
+            placeholder: 'Password',
+            type: 'password'
+          }
+        ],
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel',
+            handler: data => {
+              console.log('Cancel clicked');
+              sub.next();
+              sub.complete();
+            }
+          },
+          {
+            text: 'Login',
+            handler: data => {
+              this.login({username: data.username, password: data.password}).pipe(
+                finalize(() => {sub.next(); sub.complete(); })
+              ).subscribe(
+                () => console.log('Successfull relogin!'),
+                () => console.error('Error while relogin')
+              );
+            }
+          }
+        ]
+      }).then(a => {a.present(); });
+    });
   }
 
   /**
@@ -188,12 +245,9 @@ export class AuthService {
             }
           }
         }
-        this.alertController.create({
-          header: 'Authentication failure',
-          message: 'The automatic authentication has failed. Please login again...',
-          buttons: ['OK']
-        }).then(a => a.present());
-        console.error('We have no tokens --> We definitively have to login');
+        console.error('We have no tokens --> We definitively have to login again');
+
+        throw new NoValidTokenException();
       })
     );
   }
@@ -202,11 +256,15 @@ export class AuthService {
     return this.userData.getValue();
   }
 
+  dummyLogout() {
+    this.handleTokenPair({access: '', refresh: ''}).subscribe();
+  }
+
   logout() {
     Storage.remove({key: TOKEN_KEY}).then(() => {
       this.router.navigateByUrl('/');
       this.userData.next(null);
-      this.tokens.next(null);
+      this.handleTokenPair({access: '', refresh: ''}).subscribe();
     });
   }
 }
