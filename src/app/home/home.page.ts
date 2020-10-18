@@ -1,3 +1,4 @@
+import { AuthService } from './../services/auth.service';
 import { BrushTool } from './../toolboxes/brush-toolbox';
 import { UIUtils, Utils } from './../models/utils';
 import { Polygon, Point } from './../models/geometry';
@@ -7,7 +8,7 @@ import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
 import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector, DerivedSegmentationRESTStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
-import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap, switchMap } from 'rxjs/operators';
+import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap, switchMap, tap, finalize } from 'rxjs/operators';
 import { forkJoin, Observable, of } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
@@ -84,7 +85,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private segService: SegRestService,
               private stateService: StateService,
               private segmentationService: SegmentationService,
-              private loadingCtrl: LoadingController) {
+              private loadingCtrl: LoadingController,
+              private authService: AuthService) {
   }
 
   onPointerDown(event: any): boolean {
@@ -249,7 +251,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // create progress loader
     const loading = this.loadingCtrl.create({
       message: 'Loading data...',
-    }).then(l => {l.present(); return l; });
+    });
 
     // get the query param and fire the id
     this.id = this.route.queryParams.pipe(
@@ -262,79 +264,79 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       })
     );
 
-    if (this.stateService.navImageSetId !== this.stateService.imageSetId) {
-      const id = this.stateService.navImageSetId;
+    const id = this.stateService.navImageSetId;
 
-      // now we have the id of the image set
-      const toast = await this.toastController.create({
-        message: `The loaded imageSet id is ${id}`,
-        duration: 2000
-      });
-      toast.present();
+    // now we have the id of the image set
+    const toast = await this.toastController.create({
+      message: `The loaded imageSet id is ${id}`,
+      duration: 2000
+    });
+    toast.present();
 
-      // get image urls
-      this.segService.getImageUrls(id).pipe(
-        // get the latest tracking
-        mergeMap((urls: string[]) => {
-          return this.segService.getLatestTracking(id).pipe(
-            map(tr => ({urls, tracking: tr}))
-          );
-        }),
-        // depending on the tracking load the segmentation
-        mergeMap((joint) => {
-          let seg: Observable<GUISegmentation>;
-          if (joint.tracking) {
-            // we have a tracking --> load segmentation
-            seg = this.segService.getSegmentationByUrl(joint.tracking.segmentation);
-          } else {
-            // we have no tracking --> load segmentation
-            seg = this.segService.getLatestSegmentation(id);
-          }
+    // get image urls
+    this.segService.getImageUrls(id).pipe(
+      // show loading
+      tap(() => loading.then(l => l.present())),
+      // get the latest tracking
+      mergeMap((urls: string[]) => {
+        return this.segService.getLatestTracking(id).pipe(
+          map(tr => ({urls, tracking: tr}))
+        );
+      }),
+      // depending on the tracking load the segmentation
+      mergeMap((joint) => {
+        let seg: Observable<GUISegmentation>;
+        if (joint.tracking) {
+          // we have a tracking --> load segmentation
+          seg = this.segService.getSegmentationByUrl(joint.tracking.segmentation);
+        } else {
+          // we have no tracking --> load segmentation
+          seg = this.segService.getLatestSegmentation(id);
+        }
 
-          return seg.pipe(
-            map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
-          );
-        }),
-        // create the segmentation connector
-        map((content) => {
-          let srsc: SegmentationRESTStorageConnector;
-          if (content.segm === null) {
-            srsc = SegmentationRESTStorageConnector.createNew(this.segService, id, content.urls);
-          } else {
-            srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
-          }
+        return seg.pipe(
+          map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
+        );
+      }),
+      // create the segmentation connector
+      map((content) => {
+        let srsc: SegmentationRESTStorageConnector;
+        if (content.segm === null) {
+          srsc = SegmentationRESTStorageConnector.createNew(this.segService, id, content.urls);
+        } else {
+          srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
+        }
 
-          // add the simple model
-          // TODO the construction here is a little bit weird
-          const derived = new DerivedSegmentationHolder(srsc.getModel());
-          const derivedConnector = new DerivedSegmentationRESTStorageConnector(this.segService, derived, srsc);
+        // add the simple model
+        // TODO the construction here is a little bit weird
+        const derived = new DerivedSegmentationHolder(srsc.getModel());
+        const derivedConnector = new DerivedSegmentationRESTStorageConnector(this.segService, derived, srsc);
 
-          return {srsc, tracking: content.tracking};
-        }),
-        // create the tracking connector
-        map((content) => {
-          let trsc: TrackingRESTStorageConnector;
-          if (content.tracking === null) {
-            // create a tracking
-            trsc = TrackingRESTStorageConnector.createNew(this.segService, content.srsc);
-          } else {
-            trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
-          }
+        return {srsc, tracking: content.tracking};
+      }),
+      // create the tracking connector
+      map((content) => {
+        let trsc: TrackingRESTStorageConnector;
+        if (content.tracking === null) {
+          // create a tracking
+          trsc = TrackingRESTStorageConnector.createNew(this.segService, content.srsc);
+        } else {
+          trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
+        }
 
-          return {srsc: content.srsc, trsc};
-        })
-      ).subscribe(async (content) => {
+        return {srsc: content.srsc, trsc};
+      }),
+      tap(async (content) => {
         this.stateService.imageSetId = id;
         await this.loadSegmentation(content.srsc.getModel());
         await this.loadTracking(content.trsc.getModel());
+      }),
+      finalize(() => loading.then(l => l.dismiss()))
+    ).subscribe((content) => {
       },
-      (err) => console.error(err),
-      () => loading.then(l => l.dismiss()));
-    } else {
-      this.loadSegmentation(this.stateService.holder);
-      this.loadTracking(this.stateService.tracking);
-      loading.then(l => l.dismiss());
-    }
+      (err) => console.error(err)
+    );
+    
   }
 
   async loadSegmentation(segHolder: SegmentationHolder) {
@@ -570,10 +572,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     const loading = this.loadingCtrl.create({
       message: 'Please wait while AI is doing the job...',
       backdropDismiss: true,
-    }).then(l => {l.present(); return l; });
+    });
 
     // start http request --> get image urls
     const sub = this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
+      tap(() => loading.then(l => l.present())),
       // read the image in binary format
       switchMap(url => {console.log(url); return this.segService.getBinary(url); }),
       switchMap(data => {
@@ -587,51 +590,55 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           return this.segmentationService.requestJSSegmentationProposal(data);
         }
       }),
-    ).subscribe(
-      (data) => {
-        console.log(`Number of proposal detections ${data.length}`);
-
-        // drop all segmentations with score lower 0.5
-        const threshold = 0.5;
-        data = data.filter(det => det.score >= threshold);
-        console.log(`Number of filtered detections ${data.length}`);
-        console.log(data);
-
-        const actions: AddPolygon[] = [];
-
-        // loop over every detection
-        for (const det of data) {
-          const label = det.label; // Should be cell
-          const bbox = det.bbox;
-          const contours = det.contours;
-
-          // loop over all contours
-          for (const cont of contours) {
-            const points: Point[] = [];
-
-            // merge x and y point lists into [x, y] list
-            cont.x.map((xItem, i) => {
-              const yItem = cont.y[i];
-              points.push([xItem, yItem]);
-            });
-
-            const simplifiedPoints = Utils.simplifyPointList(points, 0.1);
-
-            // create a polygon from points and set random color
-            const poly = new Polygon(...simplifiedPoints);
-            poly.setColor(UIUtils.randomColor());
-
-            // collection new polygon actions
-            actions.push(new AddPolygon(this.curSegModel.segmentationData, poly));
+      tap(
+        (data) => {
+          console.log(`Number of proposal detections ${data.length}`);
+  
+          // drop all segmentations with score lower 0.5
+          const threshold = 0.5;
+          data = data.filter(det => det.score >= threshold);
+          console.log(`Number of filtered detections ${data.length}`);
+          console.log(data);
+  
+          const actions: AddPolygon[] = [];
+  
+          // loop over every detection
+          for (const det of data) {
+            const label = det.label; // Should be cell
+            const bbox = det.bbox;
+            const contours = det.contours;
+  
+            // loop over all contours
+            for (const cont of contours) {
+              const points: Point[] = [];
+  
+              // merge x and y point lists into [x, y] list
+              cont.x.map((xItem, i) => {
+                const yItem = cont.y[i];
+                points.push([xItem, yItem]);
+              });
+  
+              const simplifiedPoints = Utils.simplifyPointList(points, 0.1);
+  
+              // create a polygon from points and set random color
+              const poly = new Polygon(...simplifiedPoints);
+              poly.setColor(UIUtils.randomColor());
+  
+              // collection new polygon actions
+              actions.push(new AddPolygon(this.curSegModel.segmentationData, poly));
+            }
           }
+  
+          // join all the new polygon actions
+          const finalAction = new JointAction(...actions);
+  
+          // apply the actions to the current segmentation model
+          this.curSegModel.addAction(finalAction);
         }
-
-        // join all the new polygon actions
-        const finalAction = new JointAction(...actions);
-
-        // apply the actions to the current segmentation model
-        this.curSegModel.addAction(finalAction);
-
+      ),
+      finalize(() => loading.then(l => l.dismiss()))
+    ).subscribe(
+      () => {
         // segmentation proposals have been applied successfully
         this.toastController.create({
           message: 'Successfully requested segmentation proposals',
@@ -639,10 +646,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         }).then(toast => toast.present());
       },
       (error) => console.error(error),
-      () => loading.then(l => l.dismiss())
     );
-
-    loading.then(l => l.onDidDismiss().then(() => sub.unsubscribe()));
   }
 
   brushTool() {
@@ -661,6 +665,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   openToolkit() {
+    this.authService.dummyLogout();
+
     // segmentation proposals have been applied successfully
     this.toastController.create({
       message: 'Toolkit not yet implemented!',

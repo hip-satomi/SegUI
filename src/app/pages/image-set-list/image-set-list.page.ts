@@ -1,5 +1,5 @@
 import { StateService } from './../../services/state.service';
-import { map } from 'rxjs/operators';
+import { map, tap, finalize } from 'rxjs/operators';
 import { Component, OnInit } from '@angular/core';
 import { AlertController, ViewWillEnter, ToastController, LoadingController } from '@ionic/angular';
 import { Image, ImageSet, SegRestService } from 'src/app/services/seg-rest.service';
@@ -28,9 +28,10 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
     // create progress loader
     const loading = this.loadingCtrl.create({
       message: 'Loading data...',
-    }).then(l => {l.present(); return l; });
+    });
 
     this.segService.getImageSets().pipe(
+      tap(() => loading.then(l => l.present())),
       map((imageSets: ImageSet[]) => {
         return imageSets.map((imageSet: any) => {
           imageSet.url = this.segService.getImageByUrl(imageSet.image_set[0]).pipe(
@@ -38,7 +39,8 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
           );
           return imageSet;
         });
-      })
+      }),
+      finalize(() => loading.then(l => l.dismiss()))
     ).subscribe((imageSets) => {
       this.imageSets = imageSets;
     }, async (err) => {
@@ -48,9 +50,7 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
         duration: 10000
       });
       toast.present();
-      loading.then(l => l.dismiss());
-    },
-    () => loading.then(l => l.dismiss()));
+    });
   }
 
   async showImageSet(imSet) {
