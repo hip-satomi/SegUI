@@ -11,12 +11,6 @@
         "logLevel": "debug",
         "changeOrigin": true
     },
-    "/seg-api/*": {
-        "target": "http://localhost/",
-        "secure": false,
-        "logLevel": "debug",
-        "changeOrigin": true
-    },
     "/mediafiles/*": {
         "target": "http://localhost/",
         "secure": false,

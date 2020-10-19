@@ -33,28 +33,28 @@ describe('SegRestService', () => {
                 "name": "test",
                 "creationDate": "2020-09-28T14:53:37.899134Z",
                 "image_set": [
-                    "http://127.0.0.1:8000/seg-api/images/29/",
-                    "http://127.0.0.1:8000/seg-api/images/30/",
-                    "http://127.0.0.1:8000/seg-api/images/31/",
-                    "http://127.0.0.1:8000/seg-api/images/32/",
-                    "http://127.0.0.1:8000/seg-api/images/33/",
-                    "http://127.0.0.1:8000/seg-api/images/34/",
-                    "http://127.0.0.1:8000/seg-api/images/35/",
-                    "http://127.0.0.1:8000/seg-api/images/36/",
-                    "http://127.0.0.1:8000/seg-api/images/37/",
-                    "http://127.0.0.1:8000/seg-api/images/38/",
-                    "http://127.0.0.1:8000/seg-api/images/39/",
-                    "http://127.0.0.1:8000/seg-api/images/40/",
-                    "http://127.0.0.1:8000/seg-api/images/41/",
-                    "http://127.0.0.1:8000/seg-api/images/42/",
-                    "http://127.0.0.1:8000/seg-api/images/43/",
-                    "http://127.0.0.1:8000/seg-api/images/44/",
-                    "http://127.0.0.1:8000/seg-api/images/45/",
-                    "http://127.0.0.1:8000/seg-api/images/46/",
-                    "http://127.0.0.1:8000/seg-api/images/47/",
-                    "http://127.0.0.1:8000/seg-api/images/48/",
-                    "http://127.0.0.1:8000/seg-api/images/49/",
-                    "http://127.0.0.1:8000/seg-api/images/50/"
+                    "http://127.0.0.1:8000/api/images/29/",
+                    "http://127.0.0.1:8000/api/images/30/",
+                    "http://127.0.0.1:8000/api/images/31/",
+                    "http://127.0.0.1:8000/api/images/32/",
+                    "http://127.0.0.1:8000/api/images/33/",
+                    "http://127.0.0.1:8000/api/images/34/",
+                    "http://127.0.0.1:8000/api/images/35/",
+                    "http://127.0.0.1:8000/api/images/36/",
+                    "http://127.0.0.1:8000/api/images/37/",
+                    "http://127.0.0.1:8000/api/images/38/",
+                    "http://127.0.0.1:8000/api/images/39/",
+                    "http://127.0.0.1:8000/api/images/40/",
+                    "http://127.0.0.1:8000/api/images/41/",
+                    "http://127.0.0.1:8000/api/images/42/",
+                    "http://127.0.0.1:8000/api/images/43/",
+                    "http://127.0.0.1:8000/api/images/44/",
+                    "http://127.0.0.1:8000/api/images/45/",
+                    "http://127.0.0.1:8000/api/images/46/",
+                    "http://127.0.0.1:8000/api/images/47/",
+                    "http://127.0.0.1:8000/api/images/48/",
+                    "http://127.0.0.1:8000/api/images/49/",
+                    "http://127.0.0.1:8000/api/images/50/"
                 ]
             }
         ]
@@ -78,7 +78,7 @@ describe('SegRestService', () => {
       const someItems =
       {
           "count": 22,
-          "next": "http://127.0.0.1:8000/seg-api/images/?page=2",
+          "next": "http://127.0.0.1:8000/api/images/?page=2",
           "previous": null,
           "results": [
               {
@@ -164,7 +164,7 @@ describe('SegRestService', () => {
         "width": 487,
         "height": 653,
         "frameId": 0,
-        "imageSet": "http://127.0.0.1:8000/seg-api/imageSets/10/"
+        "imageSet": "http://127.0.0.1:8000/api/imageSets/10/"
       };
 
       service.getImageByUrl(service.baseUrl + 'images/29/').subscribe((image) => {

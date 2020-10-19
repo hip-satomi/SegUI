@@ -66,7 +66,7 @@ export class Result {
 export class SegRestService {
 
   rootUrl: string = '/';
-  baseUrl: string = `${this.rootUrl}seg-api/`;
+  baseUrl: string = `${this.rootUrl}api/`;
   rc = map(resultObject => {
     console.log(resultObject);
     return resultObject as Result;
