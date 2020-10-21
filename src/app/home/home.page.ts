@@ -253,6 +253,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // create progress loader
     const loading = this.loadingCtrl.create({
       message: 'Loading data...',
+      backdropDismiss: true
     });
 
     // get the query param and fire the id
@@ -271,14 +272,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // now we have the id of the image set
     const toast = await this.toastController.create({
       message: `The loaded imageSet id is ${id}`,
-      duration: 2000
+      duration: 2000,
     });
     toast.present();
 
+    loading.then(l => l.present());
     // get image urls
     this.segService.getImageUrls(id).pipe(
-      // show loading
-      tap(() => loading.then(l => l.present())),
       // get the latest tracking
       mergeMap((urls: string[]) => {
         return this.segService.getLatestTracking(id).pipe(
@@ -581,7 +581,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
     // start http request --> get image urls
     const sub = this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
-      tap(() => loading.then(l => l.present())),
+      tap(() => {
+        console.log('show loading');
+        loading.then(l => l.present());
+      }),
       // read the image in binary format
       switchMap((url: string) => {console.log(url); return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'}); }),
       switchMap(data => {
