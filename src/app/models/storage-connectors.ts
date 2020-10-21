@@ -1,12 +1,12 @@
 import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
 import { EventEmitter } from '@angular/core';
 import { ModelChanged, ChangeType } from './change';
-import { concatMap, debounceTime, filter, map, tap, switchMap } from 'rxjs/operators';
+import { concatMap, debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/operators';
 import { GUISegmentation, GUITracking, SimpleSegmentation } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
 import { SegmentationModel, SegmentationHolder, DerivedSegmentationHolder } from './segmentation-model';
 import { TrackingModel } from './tracking';
-import { Observable, of, combineLatest, zip } from 'rxjs';
+import { Observable, of, combineLatest, zip, empty } from 'rxjs';
 import { StorageConnector } from './storage';
 
 
@@ -83,12 +83,18 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
                 return changeEvent.changeType === ChangeType.HARD;
             }),
             debounceTime(5000),
-            concatMap((changeEvent: ModelChanged<SegmentationModel>) => {
-                return this.update();
-            })
-        ).subscribe((val) => {
+            switchMap((changeEvent: ModelChanged<SegmentationModel>) => {
+                return this.update().pipe(
+                    catchError((err) => {
+                        console.error('Failed updating GUI segmentation REST model;');
+                        console.error(err);
+                        return empty();
+                    })
+                );
+            }))
+        .subscribe((val) => {
             console.log('Updated REST model!');
-        });
+        }, err => { console.error(err); });
     }
 
     /**
@@ -174,11 +180,18 @@ export class DerivedSegmentationRESTStorageConnector extends StorageConnector<De
             ),
             model.modelChanged)
         .pipe(
-            map((data: [SegmentationRESTStorageConnector, ModelChanged<DerivedSegmentationHolder>]) => data[0])
-        ).subscribe((restConnector: SegmentationRESTStorageConnector) => {
-            this.update().subscribe(
-                s => console.log('Updated SimpleSegmentation backend!')
-            );
+            // switch to backend update observable
+            switchMap(() => {
+                return this.update().pipe(
+                    catchError((err) => {
+                        console.error('Error while updating Simple segmentation backend!');
+                        console.error(err);
+                        return empty();
+                    })
+                );
+            })
+        ).subscribe(() => {
+            console.log('Updated SimpleSegmentation backend!');
         });
     }
 
@@ -275,8 +288,14 @@ export class TrackingRESTStorageConnector extends StorageConnector<TrackingModel
                 return changeEvent.changeType === ChangeType.HARD;
             }),
             debounceTime(5000),
-            concatMap((changeEvent: ModelChanged<TrackingModel>) => {
-                return this.update();
+            switchMap(() => {
+                return this.update().pipe(
+                    catchError((err) => {
+                        console.error('Error while updating tracking REST backend!');
+                        console.error(err);
+                        return empty();
+                    })
+                );
             })
         ).subscribe((val) => {
             console.log('Updated tracking REST model!');
