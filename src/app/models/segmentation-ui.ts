@@ -14,7 +14,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
     draggingPointIndex = -1;
     imageUrl: string;
     imageLoaded: boolean;
-    image;
+    image = null;
 
     /**
      * 
@@ -28,8 +28,6 @@ export class SegmentationUI implements UIInteraction, Drawer {
         this.canvasElement = canvasElement;
         this.ctx = canvasElement.getContext('2d');
         this.imageUrl = imageUrl;
-
-        this.loadImage();
     }
 
     loadImage() {
@@ -231,6 +229,9 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     draw(ctx) {
+        if (this.image === null) {
+            this.loadImage();
+        }
         this.segmentationModel.draw(ctx);
         this.drawImage(ctx);
     }

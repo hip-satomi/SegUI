@@ -335,10 +335,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       }),
       finalize(() => loading.then(l => l.dismiss()))
     ).subscribe((content) => {
+      // refresh the canvas
+      this.draw();
       },
       (err) => console.error(err)
     );
-    
   }
 
   async loadSegmentation(segHolder: SegmentationHolder, imageUrls: string[]) {
