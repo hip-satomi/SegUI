@@ -50,7 +50,7 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
         const holder = new SegmentationHolder();
 
         for (const url of imageUrls) {
-            holder.addSegmentation(new SegmentationModel(url));
+            holder.addSegmentation(new SegmentationModel());
         }
 
         const srsc = new SegmentationRESTStorageConnector(segService, holder, imageSetId, null);

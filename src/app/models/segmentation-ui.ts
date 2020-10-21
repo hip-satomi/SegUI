@@ -4,6 +4,7 @@ import { UIInteraction, Drawer } from './drawing';
 import { AddPointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
 import { UIUtils, Utils } from './utils';
 import { SegmentationModel } from './segmentation-model';
+import { ModelChanged, ChangeType } from './change';
 export class SegmentationUI implements UIInteraction, Drawer {
 
     segmentationModel: SegmentationModel;
@@ -11,16 +12,36 @@ export class SegmentationUI implements UIInteraction, Drawer {
     ctx;
     distanceThreshold: number = 25;
     draggingPointIndex = -1;
+    imageUrl: string;
+    imageLoaded: boolean;
+    image;
 
     /**
      * 
      * @param segmentationModel 
      * @param canvasElement native canvas element
      */
-    constructor(segmentationModel: SegmentationModel, canvasElement, private actionSheetController: ActionSheetController) {
+    constructor(segmentationModel: SegmentationModel,
+                imageUrl: string, canvasElement,
+                private actionSheetController: ActionSheetController) {
         this.segmentationModel = segmentationModel;
         this.canvasElement = canvasElement;
         this.ctx = canvasElement.getContext('2d');
+        this.imageUrl = imageUrl;
+
+        this.loadImage();
+    }
+
+    loadImage() {
+        this.image = new Image();
+
+        this.image.onload = () => {
+            this.imageLoaded = true;
+            // TODO: this is a dirty hack to get redrawn
+            this.segmentationModel.onModelChange.emit(new ModelChanged(this.segmentationModel, ChangeType.SOFT));
+        };
+
+        this.image.src = this.imageUrl;
     }
 
     onPointerDown(event: any): boolean {
@@ -211,5 +232,12 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
     draw(ctx) {
         this.segmentationModel.draw(ctx);
+        this.drawImage(ctx);
+    }
+
+    drawImage(ctx) {
+        if (this.imageLoaded) {
+            ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+        }
     }
 }

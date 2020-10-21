@@ -314,7 +314,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         const derived = new DerivedSegmentationHolder(srsc.getModel());
         const derivedConnector = new DerivedSegmentationRESTStorageConnector(this.segService, derived, srsc);
 
-        return {srsc, tracking: content.tracking};
+        return {srsc, tracking: content.tracking, urls: content.urls};
       }),
       // create the tracking connector
       map((content) => {
@@ -326,11 +326,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
         }
 
-        return {srsc: content.srsc, trsc};
+        return {srsc: content.srsc, trsc, urls: content.urls};
       }),
       tap(async (content) => {
         this.stateService.imageSetId = id;
-        await this.loadSegmentation(content.srsc.getModel());
+        await this.loadSegmentation(content.srsc.getModel(), content.urls);
         await this.loadTracking(content.trsc.getModel());
       }),
       finalize(() => loading.then(l => l.dismiss()))
@@ -341,7 +341,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     
   }
 
-  async loadSegmentation(segHolder: SegmentationHolder) {
+  async loadSegmentation(segHolder: SegmentationHolder, imageUrls: string[]) {
     // now that we have a holder we can start using it
     this.segHolder = segHolder;
     this.segHolder.modelChanged.subscribe((event: ModelChanged<SegmentationModel>) => {
@@ -350,8 +350,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
     this.segmentationUIs = [];
 
-    for (const model of this.segHolder.segmentations) {
-      this.segmentationUIs.push(new SegmentationUI(model, this.imageDisplay.canvasElement, this.actionSheetController));
+    for (const [index, model] of this.segHolder.segmentations.entries()) {
+      this.segmentationUIs.push(new SegmentationUI(model, imageUrls[index], this.imageDisplay.canvasElement, this.actionSheetController));
     }
   }
 
@@ -413,7 +413,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   segModelChanged(segModelChangedEvent: ModelChanged<SegmentationModel>) {
-    this.draw(this.ctx);
+    if (this.curSegModel === segModelChangedEvent.model) {
+      this.draw(this.ctx);
+    }
   }
 
   @HostListener('document:keydown.control.z')
@@ -657,7 +659,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.tool = null;
     }
     else if (this.editMode === EditMode.Segmentation) {
-      this.tool = new BrushTool(this.curSegModel, this.imageDisplay.canvasElement);
+      this.tool = new BrushTool(this.curSegModel, this.curSegUI, this.imageDisplay.canvasElement);
       this.tool.changedEvent.subscribe(() =>  {
         this.draw();
       });

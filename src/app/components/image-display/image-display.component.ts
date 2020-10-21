@@ -1,7 +1,7 @@
 import { UIInteraction } from './../../models/drawing';
 import { Indicator } from './indicators';
 import { UIUtils, Utils, Position } from './../../models/utils';
-import { Component, Input, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, OnInit, AfterViewInit, ViewChild, ElementRef, HostListener, AfterViewChecked } from '@angular/core';
 import { Drawer } from 'src/app/models/drawing';
 import { multiply} from 'mathjs';
 
@@ -10,7 +10,7 @@ import { multiply} from 'mathjs';
   templateUrl: './image-display.component.html',
   styleUrls: ['./image-display.component.scss'],
 })
-export class ImageDisplayComponent implements OnInit, AfterViewInit {
+export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewChecked {
 
   @ViewChild('myCanvas', {static: false}) canvas: ElementRef;
 
@@ -40,11 +40,16 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit {
   ngAfterViewInit() {
     this.canvasElement = this.canvas.nativeElement;
     this.ctx = this.canvasElement.getContext('2d');
+  }
 
-    // activate delayed fit container function
-    setTimeout( () => {
-      this.fitToContainer(this.canvasElement);
-    }, 500);
+  ngAfterViewChecked() {
+    // after all the views are present we update the canvas size
+    this.fitToContainer(this.canvasElement);
+  }
+
+  @HostListener('window:resize', [])
+  private onResize() {
+    this.fitToContainer(this.canvasElement);
   }
 
   /**
@@ -61,11 +66,6 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit {
         this.drawer.draw(this.ctx);
       }
     }
-
-    // TODO: this is a dirty hack to resize the container if the window size changes (resize borser, rotate device)
-    setTimeout(() => {
-      this.fitToContainer(this.canvasElement);
-    }, 1000);
   }
 
   clear() {

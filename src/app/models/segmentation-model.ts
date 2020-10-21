@@ -16,13 +16,6 @@ import { Subscription, Observable, combineLatest } from 'rxjs';
 @Serializable()
 export class SegmentationModel {
 
-    // underlying image for the segmentation
-    image;
-    // true iff image is loaded
-    imageLoaded = false;
-    // imageUrl
-    @JsonProperty()
-    private imageUrl: string;
     // action Manager that contains the actions forming the segmentation
     @JsonProperty()
     actionManager: ActionManager;
@@ -33,23 +26,17 @@ export class SegmentationModel {
     segmentationData: SegmentationData = new SegmentationData();
 
 
-    constructor(imageUrl: string) {
-
-        if (!imageUrl) {
-            // this is a call during json deserialize
-            return;
-        }
+    constructor() {
 
         this.actionManager = new ActionManager(0.5);
-        this.imageUrl = imageUrl;
 
         // clear segmentation data
         this.clear();
         // load the image
-        this.loadImage();
+        //this.loadImage();
 
         this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
-            this.actionManagerChanged(actionManager);
+            this.notfiyModelChanged();
         });
     }
 
@@ -61,7 +48,7 @@ export class SegmentationModel {
     onDeserialized() {
         console.log(this);
         // after deserialization load the image
-        this.loadImage();
+        //this.loadImage();
 
         // clear the model
         this.clear();
@@ -70,29 +57,12 @@ export class SegmentationModel {
         this.actionManager.reapplyActions({segmentationData: this.segmentationData});
 
         this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
-            this.actionManagerChanged(actionManager);
+            this.notfiyModelChanged();
         });
     }
 
-    actionManagerChanged(actionManager: ActionManager) {
+    notfiyModelChanged() {
         this.onModelChange.emit(new ModelChanged<SegmentationModel>(this, ChangeType.HARD));
-    }
-
-    /**
-     * loading the image
-     */
-    loadImage() {
-        this.image = new Image();
-
-        this.imageLoaded = false;
-        this.image.onload = () => {
-          this.imageLoaded = true;
-
-          // notify that the model changed
-          this.onModelChange.emit(new ModelChanged<SegmentationModel>(this, ChangeType.SOFT));
-        };
-
-        this.image.src = this.imageUrl;
     }
 
     /**
@@ -109,7 +79,7 @@ export class SegmentationModel {
      */
     draw(ctx, markActive = true) {
         this.drawPolygons(ctx, markActive);
-        this.drawImage(ctx);
+        //this.drawImage(ctx);
     }
 
     /**
@@ -128,14 +98,6 @@ export class SegmentationModel {
         }
     }
 
-    /**
-     * Draws the models image
-     * @param ctx the target canvas context
-     */
-    drawImage(ctx) {
-        ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
-    }
-
     drawAdvanced(ctx, colorGenerator: (polygon: Polygon) => string = (poly: Polygon) => poly.getColor()) {
         const markActive = false;
 
@@ -151,7 +113,7 @@ export class SegmentationModel {
             }
             //UIUtils.drawCircle(ctx, polygon.center, 4, '#00FF00');
         }
-        ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+        //ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
     }
 
     /**
