@@ -45,6 +45,8 @@ export class AuthService {
 
   private baseUrl = '/api';// 'http://lara:8000/';
 
+  alertObs: Observable<void>;
+
   constructor(private httpClient: HttpClient,
               private plt: Platform,
               private router: Router,
@@ -104,45 +106,51 @@ export class AuthService {
    * @param loginAttemptInfo info about login attempts
    */
   public showAlertLogin(loginAttemptInfo = {index: -1, totalAvailable: -1}): Observable<void> {
-    return new Observable(sub => {
-      this.alertController.create({
-        header: 'Login',
-        subHeader: (loginAttemptInfo) ? `You have ${loginAttemptInfo.totalAvailable - loginAttemptInfo.index} login attempts remaining!` : null,
-        inputs: [
-          {
-            name: 'username',
-            placeholder: 'Username'
-          },
-          {
-            name: 'password',
-            placeholder: 'Password',
-            type: 'password'
-          }
-        ],
-        buttons: [
-          {
-            text: 'Cancel',
-            role: 'cancel',
-            handler: data => {
-              console.log('Cancel clicked');
-              sub.next();
-              sub.complete();
+    // only have one aler login at the same time
+    if (this.alertObs === null) {
+      this.alertObs = new Observable(sub => {
+        this.alertController.create({
+          header: 'Login',
+          subHeader: (loginAttemptInfo) ? `You have ${loginAttemptInfo.totalAvailable - loginAttemptInfo.index} login attempts remaining!` : null,
+          inputs: [
+            {
+              name: 'username',
+              placeholder: 'Username'
+            },
+            {
+              name: 'password',
+              placeholder: 'Password',
+              type: 'password'
             }
-          },
-          {
-            text: 'Login',
-            handler: data => {
-              this.login({username: data.username, password: data.password}).pipe(
-                finalize(() => {sub.next(); sub.complete(); })
-              ).subscribe(
-                () => console.log('Successfull relogin!'),
-                () => console.error('Error while relogin')
-              );
+          ],
+          buttons: [
+            {
+              text: 'Cancel',
+              role: 'cancel',
+              handler: data => {
+                console.log('Cancel clicked');
+              }
+            },
+            {
+              text: 'Login',
+              handler: data => {
+                this.login({username: data.username, password: data.password}).subscribe(
+                  () => console.log('Successfull relogin!'),
+                  () => console.error('Error while relogin')
+                );
+              }
             }
-          }
-        ]
-      }).then(a => {a.present(); });
-    });
+          ]
+        }).then(a => {
+          // when dismissed send out observable
+          // destroy observable afterwards
+          a.onDidDismiss().then(() => {sub.next(); sub.complete(); this.alertObs = null; });
+          a.present();
+        });
+      });
+    } else {
+      return this.alertObs;
+    }
   }
 
   /**
