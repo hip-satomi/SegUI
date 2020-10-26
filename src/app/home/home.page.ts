@@ -368,6 +368,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       // loading the tracking
       this.stateService.tracking = trackingModel;
       this.trackingUI = new TrackingUI(this.segmentationModels,
+        this.segmentationUIs,
         this.trackingModel,
         this.imageDisplay.canvasElement,
         this.toastController,

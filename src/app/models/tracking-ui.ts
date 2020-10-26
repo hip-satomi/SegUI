@@ -1,3 +1,4 @@
+import { SegmentationUI } from './segmentation-ui';
 import { ModelChanged, ChangeType } from './change';
 import { AddLinkAction } from './action';
 import { ToastController } from '@ionic/angular';
@@ -12,6 +13,7 @@ import { SelectedSegment, TrackingLink } from './tracking-data';
 export class TrackingUI implements UIInteraction, Drawer {
 
     segmentationModels: SegmentationModel[];
+    segUIs: SegmentationUI[];
     trackingModel: TrackingModel;
     currentFrame: number;
     canvasElement;
@@ -31,8 +33,14 @@ export class TrackingUI implements UIInteraction, Drawer {
     currentLinkColor = 'rgba(255, 0, 0, 1)';
 
 
-    constructor(segmentationModels: SegmentationModel[], trackingModel: TrackingModel, canvasElement, toastController: ToastController, currentFrame: number) {
+    constructor(segmentationModels: SegmentationModel[],
+                segUIs: SegmentationUI[],
+                trackingModel: TrackingModel,
+                canvasElement,
+                toastController: ToastController,
+                currentFrame: number) {
         this.segmentationModels = segmentationModels;
+        this.segUIs = segUIs;
         this.trackingModel = trackingModel;
 
         this.canvasElement = canvasElement;
@@ -285,9 +293,11 @@ export class TrackingUI implements UIInteraction, Drawer {
         if (this.selectSource) {
             // we simply draw the source image + segmentations
             this.segmentationModels[this.currentFrame].drawAdvanced(canvasContext, (polygon: Polygon) => this.standardTrackingColor);
+            this.segUIs[this.currentFrame].drawImage(canvasContext);
         } else {
             // draw target image + target segmentations
             this.segmentationModels[this.currentFrame + 1].drawAdvanced(canvasContext, (polygon: Polygon) => this.standardTrackingColor);
+            this.segUIs[this.currentFrame + 1].drawImage(canvasContext);
         }
     }
 
