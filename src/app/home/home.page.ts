@@ -531,7 +531,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
 
     if (this.isSegmentation && this.tool) {
-      this.tool.setModel(this.curSegModel);
+      this.tool.setModel(this.curSegModel, this.curSegUI);
     }
 
     this.draw(this.ctx);

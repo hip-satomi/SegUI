@@ -1,3 +1,4 @@
+import { SegmentationUI } from './../models/segmentation-ui';
 import { Point } from './../models/geometry';
 import { AddPolygon, RemovePolygon, JointAction, ChangePolygonPoints, SelectPolygon} from './../models/action';
 import { ApproxCircle, Polygon } from 'src/app/models/geometry';
@@ -15,6 +16,7 @@ const tree = require( 'tree-kit' ) ;
 export class BrushTool implements UIInteraction, Drawer {
 
     segModel: SegmentationModel;
+    segUI: SegmentationUI;
     ctx;
     canvasElement;
 
@@ -36,8 +38,9 @@ export class BrushTool implements UIInteraction, Drawer {
      * @param segModel current segmentation model
      * @param canvasElement canvas element for mouse position
      */
-    constructor(segModel: SegmentationModel, canvasElement) {
+    constructor(segModel: SegmentationModel, segUI: SegmentationUI, canvasElement) {
         this.segModel = segModel;
+        this.segUI = segUI;
         this.canvasElement = canvasElement;
         this.ctx = canvasElement.getContext('2d');
     }
@@ -50,8 +53,9 @@ export class BrushTool implements UIInteraction, Drawer {
      * Updates segmentation model and resets the brush tool
      * @param segModel the new segmentation model
      */
-    setModel(segModel: SegmentationModel) {
+    setModel(segModel: SegmentationModel, segUI: SegmentationUI) {
         this.segModel = segModel;
+        this.segUI = segUI;
     }
 
     /**
@@ -73,7 +77,7 @@ export class BrushTool implements UIInteraction, Drawer {
         // 1. Draw all other detections
         this.segModel.drawPolygons(ctx, false);
         // 2. draw the backgound image
-        this.segModel.drawImage(ctx);
+        this.segUI.drawImage(ctx);
     }
 
     /**
