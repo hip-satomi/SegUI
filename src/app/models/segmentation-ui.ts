@@ -228,15 +228,26 @@ export class SegmentationUI implements UIInteraction, Drawer {
         }
     }
 
+    /**
+     * Draws both image + segmentation to the canvas
+     * 
+     * @param ctx canvas context
+     */
     draw(ctx) {
-        if (this.image === null) {
-            this.loadImage();
-        }
         this.segmentationModel.draw(ctx);
         this.drawImage(ctx);
     }
 
+    /**
+     * Draws the image onto the canvas context
+     * 
+     * If the image is not yet loaded. It starts loading the image and delays the drawing.
+     * @param ctx canvas context
+     */
     drawImage(ctx) {
+        if (this.image === null) {
+            this.loadImage();
+        }
         if (this.imageLoaded) {
             ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
         }
