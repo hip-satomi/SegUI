@@ -13,7 +13,7 @@ import { AngularResizedEventModule } from 'angular-resize-event';
 
 import { HammerGestureConfig, HAMMER_GESTURE_CONFIG} from '@angular/platform-browser';
 
-import {HttpClientModule, HTTP_INTERCEPTORS} from '@angular/common/http';
+import {HttpClientModule, HttpClientXsrfModule, HttpXsrfTokenExtractor, HTTP_INTERCEPTORS} from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { TokenInterceptorService } from './services/token-interceptor.service';
 
@@ -33,7 +33,11 @@ export class MyHammerConfig extends HammerGestureConfig  {
             AngularResizedEventModule,
             HammerModule,
             HttpClientModule,
-            BrowserAnimationsModule],
+            BrowserAnimationsModule,
+            HttpClientXsrfModule.withOptions({
+              cookieName: 'csrftoken', // this is optional
+              headerName: 'X-CSRFToken' // this is optional
+            }) ],
   providers: [
     StatusBar,
     SplashScreen,
@@ -46,7 +50,7 @@ export class MyHammerConfig extends HammerGestureConfig  {
       provide: HTTP_INTERCEPTORS,
       useClass: TokenInterceptorService,
       multi: true
-    }
+    },
   ],
   bootstrap: [AppComponent]
 })
