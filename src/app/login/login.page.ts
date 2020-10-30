@@ -1,3 +1,4 @@
+import { OmeroAuthService } from './../services/omero-auth.service';
 import { AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { AuthService } from './../services/auth.service';
 import { Component, OnInit } from '@angular/core';
@@ -17,6 +18,7 @@ export class LoginPage implements OnInit {
 
   constructor(
     private auth: AuthService,
+    private omeroAuth: OmeroAuthService,
     private router: Router,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
@@ -32,9 +34,9 @@ export class LoginPage implements OnInit {
       message: 'Logging in...',
     }).then(l => {l.present(); return l; });
     
-    this.auth.login(this.credentials).subscribe(async res => {
+    this.omeroAuth.login(this.credentials).subscribe(async res => {
       if (res) {
-        this.router.navigateByUrl('/list');
+        this.router.navigateByUrl('/omero-dashboard');
       } else {
         const alert = await this.alertCtrl.create({
           header: 'Login Failed',
@@ -44,6 +46,7 @@ export class LoginPage implements OnInit {
       }
     }, (err) => {
       // now we have the id of the image set
+      console.log(err);
       const toast = this.toastCtrl.create({
         message: JSON.stringify(err),
         duration: 2000

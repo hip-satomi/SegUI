@@ -17,8 +17,14 @@
         "logLevel": "debug",
         "changeOrigin": true
     },
-    "/api/*": {
-        "target": "http://localhost/",
+    "/omero/api/*": {
+        "target": "http://localhost:4080/",
+        "secure": false,
+        "logLevel": "debug",
+        "changeOrigin": true,
+        "pathRewrite": {"^/omero/api/" : "/api/v0/"}
+    },
+    "/omero/webclient/*": {
         "secure": false,
         "logLevel": "debug",
         "changeOrigin": true
