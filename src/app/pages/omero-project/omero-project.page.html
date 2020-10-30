@@ -1,0 +1,26 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>omeroProject</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ng-container *ngIf="(project$ | async) as project">
+    <p>{{ project.name }}</p>
+    <p>{{ project.description }}</p>
+    <p>{{ project.urlDatasets }}</p>
+  </ng-container>
+  <ng-container *ngIf="(datasets$ | async) as datasets">
+    <p>Num datasets: {{datasets.length}}</p>
+  </ng-container>
+  <ion-list>
+    <ion-card *ngFor="let dataset of datasets$ | async" [routerLink]="['/omero-dataset', {dataset: dataset.id}]">
+      <ion-card-header>
+        <h4>{{dataset.name}}</h4>
+      </ion-card-header>
+      <ion-card-content>
+        {{dataset.description}}
+      </ion-card-content>
+    </ion-card>
+  </ion-list>
+</ion-content>

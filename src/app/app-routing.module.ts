@@ -22,6 +22,18 @@ const routes: Routes = [
     path: 'login',
     loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
   },
+  {
+    path: 'omero-dashboard',
+    loadChildren: () => import('./pages/omero-dashboard/omero-dashboard.module').then( m => m.OmeroDashboardPageModule)
+  },
+  {
+    path: 'omero-project',
+    loadChildren: () => import('./pages/omero-project/omero-project.module').then( m => m.OmeroProjectPageModule)
+  },
+  {
+    path: 'omero-dataset',
+    loadChildren: () => import('./pages/omero-dataset/omero-dataset.module').then( m => m.OmeroDatasetPageModule)
+  },
 ];
 
 @NgModule({

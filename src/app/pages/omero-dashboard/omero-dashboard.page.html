@@ -1,0 +1,21 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>omeroDashboard</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  <ion-list>
+    <ion-card *ngFor="let project of projects$ | async" [routerLink]="['/omero-project/', {id: project.id}]">
+      <ion-card-header >
+        <h1>{{ project.name }}</h1>
+      </ion-card-header>
+      <ion-card-content>
+        <p>{{ project.description }}</p>
+      </ion-card-content>
+    </ion-card>
+    <p *ngIf="(projects$ | async)?.length === 0">There are no projects!</p>
+  </ion-list>
+
+</ion-content>
