@@ -6,16 +6,20 @@
 
 <ion-content>
 
-  <ion-list>
-    <ion-card *ngFor="let project of projects$ | async" [routerLink]="['/omero-project/', {id: project.id}]">
-      <ion-card-header >
-        <h1>{{ project.name }}</h1>
-      </ion-card-header>
-      <ion-card-content>
-        <p>{{ project.description }}</p>
-      </ion-card-content>
-    </ion-card>
-    <p *ngIf="(projects$ | async)?.length === 0">There are no projects!</p>
-  </ion-list>
+  <ion-grid>
+    <ion-row>
+      <ion-col *ngFor="let project of projects$ | async" size-sm="6" size-xl="3">
+        <ion-card [routerLink]="['/omero-project/', {id: project.id}]">
+          <ion-card-header >
+            <h1>{{ project.name }}</h1>
+          </ion-card-header>
+          <ion-card-content>
+            <p>{{ project.description }}</p>
+          </ion-card-content>
+        </ion-card>
+        <p *ngIf="(projects$ | async)?.length === 0">There are no projects!</p>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
 
 </ion-content>

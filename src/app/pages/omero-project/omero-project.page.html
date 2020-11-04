@@ -13,14 +13,18 @@
   <ng-container *ngIf="(datasets$ | async) as datasets">
     <p>Num datasets: {{datasets.length}}</p>
   </ng-container>
-  <ion-list>
-    <ion-card *ngFor="let dataset of datasets$ | async" [routerLink]="['/omero-dataset', {dataset: dataset.id}]">
-      <ion-card-header>
-        <h4>{{dataset.name}}</h4>
-      </ion-card-header>
-      <ion-card-content>
-        {{dataset.description}}
-      </ion-card-content>
-    </ion-card>
-  </ion-list>
+  <ion-grid>
+    <ion-row>
+      <ion-col *ngFor="let dataset of datasets$ | async" size-sm="6" size-xl="3">
+        <ion-card [routerLink]="['/omero-dataset', {dataset: dataset.id}]">
+          <ion-card-header>
+            <h4>{{dataset.name}}</h4>
+          </ion-card-header>
+          <ion-card-content>
+            {{dataset.description}}
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
 </ion-content>
