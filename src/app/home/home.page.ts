@@ -1,3 +1,4 @@
+import { OmeroAPIService } from './../services/omero-api.service';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { BrushTool } from './../toolboxes/brush-toolbox';
@@ -7,7 +8,7 @@ import { AddPolygon, JointAction } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
-import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector, DerivedSegmentationRESTStorageConnector } from './../models/storage-connectors';
+import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector, DerivedSegmentationRESTStorageConnector, SegmentationOMEROStorageConnector, DerivedSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
 import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap, switchMap, tap, finalize } from 'rxjs/operators';
 import { forkJoin, Observable, of } from 'rxjs';
@@ -24,12 +25,18 @@ import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angu
 import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
+import * as dayjs from 'dayjs';
 
 const { Storage } = Plugins;
 
 enum EditMode {
   Segmentation = '0',
   Tracking = '1'
+}
+
+enum BackendMode {
+  SegTrack,
+  OMERO
 }
 
 @Component({
@@ -51,6 +58,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   trackingKey = 'tracking';
 
   justTapped = false;
+
+  backendMode = BackendMode.OMERO;
 
   _activeView = 0;
 
@@ -86,6 +95,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private segService: SegRestService,
               private stateService: StateService,
               private segmentationService: SegmentationService,
+              private omeroAPI: OmeroAPIService,
               private loadingCtrl: LoadingController,
               private authService: AuthService,
               private httpClient: HttpClient) {
@@ -234,9 +244,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   ngOnInit() {
     // if there is no resource defined --> go back to list view
-    if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
+    /*if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
       this.router.navigateByUrl('/list');
-    }
+    }*/
   }
 
   async ngAfterViewInit() {
@@ -246,9 +256,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     console.log('Init test');
     console.log(this.stateService.navImageSetId);
     console.log(this.stateService.imageSetId);
-    if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
+    /*if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
       return false;
-    }
+    }*/
 
     // create progress loader
     const loading = this.loadingCtrl.create({
@@ -257,89 +267,162 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     });
 
     // get the query param and fire the id
-    this.id = this.route.queryParams.pipe(
+    this.id = this.route.paramMap.pipe(
       map(params => {
-        if (!this.router.getCurrentNavigation().extras.state) {
+        /*if (!this.router.getCurrentNavigation().extras.state) {
           throw new Error('No state information available');
         } else {
           return this.router.getCurrentNavigation().extras.state?.imageSetId;
-        }
-      })
+        }*/
+        return Number(params.get('imageSetId'));
+      }),
+      tap(imageSetId => {
+        this.loadImageSetById(imageSetId);
+      }),
+      finalize(() => loading.then(l => l.dismiss()))
     );
 
-    const id = this.stateService.navImageSetId;
+    this.id.subscribe();
 
-    // now we have the id of the image set
-    const toast = await this.toastController.create({
-      message: `The loaded imageSet id is ${id}`,
-      duration: 2000,
-    });
-    toast.present();
 
-    loading.then(l => l.present());
+    if (this.backendMode === BackendMode.SegTrack) {
+      const id = this.stateService.navImageSetId;
+
+      // now we have the id of the image set
+      const toast = await this.toastController.create({
+        message: `The loaded imageSet id is ${id}`,
+        duration: 2000,
+      });
+      toast.present();
+
+      loading.then(l => l.present());
+      // get image urls
+      this.segService.getImageUrls(id).pipe(
+        // get the latest tracking
+        mergeMap((urls: string[]) => {
+          return this.segService.getLatestTracking(id).pipe(
+            map(tr => ({urls, tracking: tr}))
+          );
+        }),
+        // depending on the tracking load the segmentation
+        mergeMap((joint) => {
+          let seg: Observable<GUISegmentation>;
+          if (joint.tracking) {
+            // we have a tracking --> load segmentation
+            seg = this.segService.getSegmentationByUrl(joint.tracking.segmentation);
+          } else {
+            // we have no tracking --> load segmentation
+            seg = this.segService.getLatestSegmentation(id);
+          }
+
+          return seg.pipe(
+            map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
+          );
+        }),
+        // create the segmentation connector
+        map((content) => {
+          let srsc: SegmentationRESTStorageConnector;
+          if (content.segm === null) {
+            srsc = SegmentationRESTStorageConnector.createNew(this.segService, id, content.urls);
+          } else {
+            srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
+          }
+
+          // add the simple model
+          // TODO the construction here is a little bit weird
+          const derived = new DerivedSegmentationHolder(srsc.getModel());
+          const derivedConnector = new DerivedSegmentationRESTStorageConnector(this.segService, derived, srsc);
+
+          return {srsc, tracking: content.tracking, urls: content.urls};
+        }),
+        // create the tracking connector
+        map((content) => {
+          let trsc: TrackingRESTStorageConnector;
+          if (content.tracking === null) {
+            // create a tracking
+            trsc = TrackingRESTStorageConnector.createNew(this.segService, content.srsc);
+          } else {
+            trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
+          }
+
+          return {srsc: content.srsc, trsc, urls: content.urls};
+        }),
+        tap(async (content) => {
+          this.stateService.imageSetId = id;
+          await this.loadSegmentation(content.srsc.getModel(), content.urls);
+          await this.loadTracking(content.trsc.getModel());
+        }),
+        finalize(() => loading.then(l => l.dismiss()))
+      ).subscribe((content) => {
+        // refresh the canvas
+        this.draw();
+        },
+        (err) => console.error(err)
+      );
+    }
+  }
+
+  /**
+   * Load imageset from OMERO
+   * @param imageSetId image set id
+   */
+  loadImageSetById(imageSetId: number) {
     // get image urls
-    this.segService.getImageUrls(id).pipe(
+    this.omeroAPI.getImageUrls(imageSetId).pipe(
       // get the latest tracking
       mergeMap((urls: string[]) => {
-        return this.segService.getLatestTracking(id).pipe(
+        return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUITracking.json').pipe(
           map(tr => ({urls, tracking: tr}))
         );
       }),
       // depending on the tracking load the segmentation
       mergeMap((joint) => {
-        let seg: Observable<GUISegmentation>;
-        if (joint.tracking) {
-          // we have a tracking --> load segmentation
-          seg = this.segService.getSegmentationByUrl(joint.tracking.segmentation);
-        } else {
-          // we have no tracking --> load segmentation
-          seg = this.segService.getLatestSegmentation(id);
-        }
-
-        return seg.pipe(
+        return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUISegmentation.json').pipe(
           map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
         );
       }),
+      //map((imageUrls: string[]) => ({urls: imageUrls, tracking: null, segm: null})),
       // create the segmentation connector
       map((content) => {
-        let srsc: SegmentationRESTStorageConnector;
+        let srsc: SegmentationOMEROStorageConnector;
         if (content.segm === null) {
-          srsc = SegmentationRESTStorageConnector.createNew(this.segService, id, content.urls);
+          srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls);
         } else {
-          srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
+          srsc = SegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId);
         }
 
         // add the simple model
         // TODO the construction here is a little bit weird
         const derived = new DerivedSegmentationHolder(srsc.getModel());
-        const derivedConnector = new DerivedSegmentationRESTStorageConnector(this.segService, derived, srsc);
+        const derivedConnector = new DerivedSegmentationOMEROStorageConnector(this.omeroAPI, derived, srsc);
 
         return {srsc, tracking: content.tracking, urls: content.urls};
       }),
       // create the tracking connector
       map((content) => {
-        let trsc: TrackingRESTStorageConnector;
+        let trsc: TrackingOMEROStorageConnector;
         if (content.tracking === null) {
           // create a tracking
-          trsc = TrackingRESTStorageConnector.createNew(this.segService, content.srsc);
+          trsc = TrackingOMEROStorageConnector.createNew(this.omeroAPI, content.srsc);
         } else {
-          trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
+          trsc = TrackingOMEROStorageConnector.createFromExisting(this.omeroAPI, content.srsc, content.tracking);
         }
 
         return {srsc: content.srsc, trsc, urls: content.urls};
       }),
       tap(async (content) => {
-        this.stateService.imageSetId = id;
+        this.stateService.imageSetId = imageSetId;
         await this.loadSegmentation(content.srsc.getModel(), content.urls);
         await this.loadTracking(content.trsc.getModel());
       }),
-      finalize(() => loading.then(l => l.dismiss()))
+      //finalize(() => loading.then(l => l.dismiss()))
     ).subscribe((content) => {
       // refresh the canvas
       this.draw();
       },
       (err) => console.error(err)
     );
+
   }
 
   async loadSegmentation(segHolder: SegmentationHolder, imageUrls: string[]) {
@@ -581,7 +664,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     });
 
     // start http request --> get image urls
-    const sub = this.segService.getImageUrlByFrame(this.stateService.imageSetId, this.activeView).pipe(
+    const sub = of(this.curSegUI.imageUrl).pipe(
       tap(() => {
         console.log('show loading');
         loading.then(l => l.present());
@@ -674,7 +757,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   openToolkit() {
-    this.authService.dummyLogout();
+    //this.authService.logout();
 
     // segmentation proposals have been applied successfully
     this.toastController.create({
