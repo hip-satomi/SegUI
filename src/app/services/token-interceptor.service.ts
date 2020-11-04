@@ -30,6 +30,8 @@ export class TokenInterceptorService implements HttpInterceptor {
           return next.handle(newRequest);
         })
       );*/
+    } else if (req.url.match('^/pt') || req.url.match('^/tf')) {
+      return next.handle(req);
     } else {
       // use custom backend
       return this.authService.getValidToken().pipe(
