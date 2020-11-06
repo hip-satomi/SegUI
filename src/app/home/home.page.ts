@@ -267,7 +267,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     });
 
     // get the query param and fire the id
-    this.id = this.route.paramMap.pipe(
+    this.route.paramMap.pipe(
       map(params => {
         /*if (!this.router.getCurrentNavigation().extras.state) {
           throw new Error('No state information available');
@@ -276,13 +276,19 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         }*/
         return Number(params.get('imageSetId'));
       }),
-      tap(imageSetId => {
-        this.loadImageSetById(imageSetId);
+      tap(() => {
+        loading.then(l => l.present());
       }),
-      finalize(() => loading.then(l => l.dismiss()))
+      switchMap(imageSetId => this.loadImageSetById(imageSetId)),
+      // take only once --> pipe is closed immediately and finalize stuff is called
+      take(1),
+      finalize(() => {
+        console.log('done loading');
+        loading.then(l => l.dismiss());
+      })
+    ).subscribe(
+      () => console.log('Successfully loaded!')
     );
-
-    this.id.subscribe();
 
 
     if (this.backendMode === BackendMode.SegTrack) {
@@ -368,7 +374,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    */
   loadImageSetById(imageSetId: number) {
     // get image urls
-    this.omeroAPI.getImageUrls(imageSetId).pipe(
+    return this.omeroAPI.getImageUrls(imageSetId).pipe(
       // get the latest tracking
       mergeMap((urls: string[]) => {
         return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUITracking.json').pipe(
@@ -415,12 +421,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         await this.loadSegmentation(content.srsc.getModel(), content.urls);
         await this.loadTracking(content.trsc.getModel());
       }),
-      //finalize(() => loading.then(l => l.dismiss()))
-    ).subscribe((content) => {
-      // refresh the canvas
-      this.draw();
-      },
-      (err) => console.error(err)
+      tap(() => {
+        console.log('Draw');
+        this.draw();
+      })
     );
 
   }
@@ -656,89 +660,110 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   /**
    * Get and apply proposal segmentations
    */
-  async doSegment(type: string) {
+  async doSegment(type: string, imageIndices = null) {
     // create progress loader
     const loading = this.loadingCtrl.create({
       message: 'Please wait while AI is doing the job...',
       backdropDismiss: true,
     });
 
-    // start http request --> get image urls
-    const sub = of(this.curSegUI.imageUrl).pipe(
-      tap(() => {
-        console.log('show loading');
-        loading.then(l => l.present());
-      }),
-      // read the image in binary format
-      switchMap((url: string) => {console.log(url); return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'}); }),
-      switchMap(data => {
-        console.log('have the binary data!');
-        console.log(data);
+    if (imageIndices === null) {
+      imageIndices = [this.activeView];
+    }
 
-        // send the image to a segmentation REST backend
-        if (type === 'cs') {
-          return this.segmentationService.requestCSSegmentationProposal(data);
-        } else {
-          return this.segmentationService.requestJSSegmentationProposal(data);
-        }
-      }),
-      tap(
-        (data) => {
-          console.log(`Number of proposal detections ${data.length}`);
-  
-          // drop all segmentations with score lower 0.5
-          const threshold = 0.5;
-          data = data.filter(det => det.score >= threshold);
-          console.log(`Number of filtered detections ${data.length}`);
+    console.log('show loading');
+    loading.then(l => l.present());
+
+    for (const imageIdx of imageIndices) {
+
+      const segUI = this.segmentationUIs[imageIdx];
+      const segModel = this.segmentationModels[imageIdx];
+
+      // start http request --> get image urls
+      const sub = of(segUI.imageUrl).pipe(
+        tap(() => {
+        }),
+        // read the image in binary format
+        switchMap((url: string) => {console.log(url); return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'}); }),
+        switchMap(data => {
+          console.log('have the binary data!');
           console.log(data);
-  
-          const actions: AddPolygon[] = [];
-  
-          // loop over every detection
-          for (const det of data) {
-            const label = det.label; // Should be cell
-            const bbox = det.bbox;
-            const contours = det.contours;
-  
-            // loop over all contours
-            for (const cont of contours) {
-              const points: Point[] = [];
-  
-              // merge x and y point lists into [x, y] list
-              cont.x.map((xItem, i) => {
-                const yItem = cont.y[i];
-                points.push([xItem, yItem]);
-              });
-  
-              const simplifiedPoints = Utils.simplifyPointList(points, 0.1);
-  
-              // create a polygon from points and set random color
-              const poly = new Polygon(...simplifiedPoints);
-              poly.setColor(UIUtils.randomColor());
-  
-              // collection new polygon actions
-              actions.push(new AddPolygon(this.curSegModel.segmentationData, poly));
-            }
+
+          // send the image to a segmentation REST backend
+          if (type === 'cs') {
+            return this.segmentationService.requestCSSegmentationProposal(data);
+          } else {
+            return this.segmentationService.requestJSSegmentationProposal(data);
           }
-  
-          // join all the new polygon actions
-          const finalAction = new JointAction(...actions);
-  
-          // apply the actions to the current segmentation model
-          this.curSegModel.addAction(finalAction);
-        }
-      ),
-      finalize(() => loading.then(l => l.dismiss()))
-    ).subscribe(
-      () => {
-        // segmentation proposals have been applied successfully
-        this.toastController.create({
-          message: 'Successfully requested segmentation proposals',
-          duration: 2000
-        }).then(toast => toast.present());
-      },
-      (error) => console.error(error),
-    );
+        }),
+        tap(
+          (data) => {
+            console.log(`Number of proposal detections ${data.length}`);
+    
+            // drop all segmentations with score lower 0.5
+            const threshold = 0.5;
+            data = data.filter(det => det.score >= threshold);
+            console.log(`Number of filtered detections ${data.length}`);
+            console.log(data);
+    
+            const actions: AddPolygon[] = [];
+    
+            // loop over every detection
+            for (const det of data) {
+              const label = det.label; // Should be cell
+              const bbox = det.bbox;
+              const contours = det.contours;
+    
+              // loop over all contours
+              for (const cont of contours) {
+                const points: Point[] = [];
+    
+                // merge x and y point lists into [x, y] list
+                cont.x.map((xItem, i) => {
+                  const yItem = cont.y[i];
+                  points.push([xItem, yItem]);
+                });
+    
+                const simplifiedPoints = Utils.simplifyPointList(points, 0.1);
+    
+                // create a polygon from points and set random color
+                const poly = new Polygon(...simplifiedPoints);
+                poly.setColor(UIUtils.randomColor());
+    
+                // collection new polygon actions
+                actions.push(new AddPolygon(segModel.segmentationData, poly));
+              }
+            }
+    
+            // join all the new polygon actions
+            const finalAction = new JointAction(...actions);
+    
+            // apply the actions to the current segmentation model
+            segModel.addAction(finalAction);
+          }
+        ),
+        finalize(() => loading.then(l => l.dismiss()))
+      ).subscribe(
+        () => {
+          // segmentation proposals have been applied successfully
+          this.toastController.create({
+            message: 'Successfully requested segmentation proposals',
+            duration: 2000
+          }).then(toast => toast.present());
+        },
+        (error) => console.error(error),
+      );
+    }
+  }
+
+  segmentAll() {
+    const type = 'js';
+    const indices = [];
+    for (const [index, segUI] of this.segmentationUIs.entries()) {
+      indices.push(index);
+    }
+
+    this.doSegment(type, indices);
   }
 
   brushTool() {
