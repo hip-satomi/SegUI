@@ -20,6 +20,9 @@
         <ion-button (click)="doSegment('js')">
           SP-JS
         </ion-button>
+        <ion-button (click)="segmentAll()">
+          ALL
+        </ion-button>
         <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px">
           <ion-icon name="arrow-undo-outline"></ion-icon>
         </ion-button>
