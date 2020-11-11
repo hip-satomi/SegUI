@@ -59,18 +59,29 @@ export class SegmentationUI implements UIInteraction, Drawer {
         e.preventDefault();
 
         const poly = this.segmentationModel.activePolygon;
-        let insertAt = poly.numPoints;
-
         const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         const x = mousePos.x;
         const y = mousePos.y;
-
-        // compute closest distance to line (in case of inserting a point in between)
         let lineInsert = false;
-        const di = poly.distanceToOuterShape([x, y]);
-        if (di.index !== -1 && di.distance < this.distanceThreshold) {
-            insertAt = di.index;
-            lineInsert = true;
+
+        if (poly) {
+            let insertAt = poly.numPoints;
+
+            // compute closest distance to line (in case of inserting a point in between)
+            const di = poly.distanceToOuterShape([x, y]);
+            if (di.index !== -1 && di.distance < this.distanceThreshold) {
+                insertAt = di.index;
+                lineInsert = true;
+            }
+
+            if (lineInsert) {
+                // place at correct place (maybe close to line --> directly on the line)
+                const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonId, this.segmentationModel.segmentationData);
+                this.segmentationModel.actionManager.addAction(act);
+
+                this.segmentationModel.activePointIndex = insertAt;
+                return true;
+            }
         }
 
         if (!lineInsert) {
@@ -82,18 +93,13 @@ export class SegmentationUI implements UIInteraction, Drawer {
                 if (polygon.isInside([x, y])) {
                     // clicke inside a non active polygon
                     this.segmentationModel.activePolygonId = index;
-                    return false;
+                    return true;
                 }
             }
 
         }
 
-        // place at correct place (maybe close to line --> directly on the line)
-        const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonId, this.segmentationModel.segmentationData);
-        this.segmentationModel.actionManager.addAction(act);
-
-        this.segmentationModel.activePointIndex = insertAt;
-        return true;
+        return false;
     }
 
     onPress(event): boolean {
@@ -219,7 +225,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     get canSave(): boolean {
-        return this.segmentationModel.activePolygon.numPoints > 0;
+        return this.segmentationModel.activePolygon?.numPoints > 0;
     }
 
     save() {
