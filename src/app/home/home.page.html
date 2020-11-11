@@ -51,7 +51,7 @@
 <ion-footer *ngIf="urls.length > 1">
   <ion-toolbar>
     <ion-range min="0" max="{{segmentationModels.length - 1}}" color="secondary" step="1" snaps="true" [(ngModel)]="activeView">
-      <ion-label slot="start">0</ion-label>
+      <ion-label slot="start">{{activeView}}</ion-label>
       <ion-label slot="end">{{segmentationModels.length - 1}}</ion-label>
     </ion-range>
     <ion-buttons slot="end">
