@@ -16,8 +16,12 @@ export class SegmentationData {
         this.activePointIndex = 0;
     }
 
-    getPolygon(polygonId: string) {
-        return this.polygons.get(polygonId);
+    getPolygon(polygonId: string): Polygon {
+        if (this.polygons.has(polygonId)) {
+            return this.polygons.get(polygonId);
+        } else {
+            return null;
+        }
     }
 
     addPolygon(uuid: string, polygon: Polygon) {
