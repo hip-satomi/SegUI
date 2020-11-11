@@ -275,6 +275,7 @@ export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> i
 interface SimpleDetection {
     label: string;
     contour: Array<Point>;
+    id: string;
 }
 
 interface SimpleSegmentation {
@@ -302,11 +303,16 @@ export class DerivedSegmentationHolder
 
     update() {
         this.content = [];
+        // iterate over models and collect simple segmentation
         for (const [frameId, segModel] of this.baseHolder.segmentations.entries()) {
             const detections: SimpleDetection[] = [];
 
             for (const [uuid, poly] of segModel.segmentationData.getPolygonEntries()) {
-                detections.push({label: 'cell', contour: poly.points});
+                if (poly.points.length === 0) {
+                    // we don't need empty segmentations
+                    continue;
+                }
+                detections.push({label: 'cell', contour: poly.points, id: uuid});
             }
 
             const ss = {frame: frameId, detections};
