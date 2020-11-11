@@ -467,10 +467,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         this.toastController,
         this.activeView);
       this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: ModelChanged<TrackingModel>) => {
-        if (trackingChangedEvent.changeType === ChangeType.SOFT) {
-          // if there are only soft changes we will just redraw
+          // redraw
           this.draw(this.ctx);
-        }
       });
     }
   }
