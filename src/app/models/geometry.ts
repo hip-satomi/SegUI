@@ -117,6 +117,9 @@ export class Polygon {
     }
 
     get center(): Point {
+        if (this.numPoints === 0) {
+            return [0, 0];
+        }
         return mean(this.points, 0);
     }
 
