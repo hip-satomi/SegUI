@@ -17,3 +17,7 @@ export interface UIInteraction {
 
     onMove(event): boolean;
 }
+
+export interface Deletable {
+    delete(): boolean;
+}

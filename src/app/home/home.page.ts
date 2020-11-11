@@ -26,6 +26,7 @@ import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
+import { RectangleTool } from '../toolboxes/rectangle-tool';
 
 const { Storage } = Plugins;
 
@@ -237,6 +238,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   @HostListener('document:keydown.delete')
   delete() {
+    if (this.tool && 'delete' in this.tool) {
+      if (this.tool.delete()) {
+        return;
+      }
+    }
     if (this.isSegmentation) {
       this.segmentationUIs[this.activeView].delete();
     }
@@ -773,6 +779,21 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
     else if (this.editMode === EditMode.Segmentation) {
       this.tool = new BrushTool(this.curSegModel, this.curSegUI, this.imageDisplay.canvasElement);
+      this.tool.changedEvent.subscribe(() =>  {
+        this.draw();
+      });
+    }
+
+    this.draw();
+  }
+
+  rectTool() {
+    if (this.tool) {
+      this.tool.stop();
+      this.tool = null;
+    }
+    else if (this.editMode === EditMode.Segmentation) {
+      this.tool = new RectangleTool(this.curSegModel, this.curSegUI, this.imageDisplay.canvasElement);
       this.tool.changedEvent.subscribe(() =>  {
         this.draw();
       });
