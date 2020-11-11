@@ -74,7 +74,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   _editMode: EditMode = EditMode.Segmentation;
 
-  tool: BrushTool = null;
+  tool = null;
 
   get editMode(): EditMode {
     return this._editMode;
