@@ -707,7 +707,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             console.log(`Number of proposal detections ${data.length}`);
     
             // drop all segmentations with score lower 0.5
-            const threshold = 0.5;
+            const threshold = 0.4;
             data = data.filter(det => det.score >= threshold);
             console.log(`Number of filtered detections ${data.length}`);
             console.log(data);
