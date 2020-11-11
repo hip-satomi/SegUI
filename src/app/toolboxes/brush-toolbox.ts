@@ -65,8 +65,13 @@ export class BrushTool implements UIInteraction, Drawer {
     draw(ctx: any): void {
         ctx.font = '30px Arial';
 
-        ctx.strokeStyle = this.currentPolygon.color;
+        if (this.currentPolygon) {
+            ctx.strokeStyle = this.currentPolygon.color;
+        } else {
+            ctx.strokeStyle = 'rgb(255, 0, 0)';
+        }
         ctx.fillText('Brush Tool', 10, 50);
+
 
         if (this.pointerPos) {
             ctx.beginPath();
@@ -122,9 +127,14 @@ export class BrushTool implements UIInteraction, Drawer {
     onPanStart(event: any): boolean {
         event.preventDefault();
         this.brushActivated = true;
+
+        if (this.currentPolygon === null) {
+            // add a new polygon if there is none selected
+            this.segModel.addNewPolygon();
+        }
+
         this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         this.oldPoints = Utils.tree.clone(this.currentPolygon.points);
-
 
         if (this.currentPolygon.numPoints === 0) {
             this.increase = true;
@@ -189,16 +199,18 @@ export class BrushTool implements UIInteraction, Drawer {
     }
 
     commitChanges() {
-        if (this.dirty) {
-            // only add actions if we have changed something
-            this.segModel.addAction(new ChangePolygonPoints(this.segModel.segmentationData,
-                                    this.currentPolygon.points,
-                                    this.segModel.activePolygonId,
-                                    this.oldPoints));
-        }
-        this.dirty = false;
+        if (this.currentPolygon) {
+            if (this.dirty) {
+                // only add actions if we have changed something
+                this.segModel.addAction(new ChangePolygonPoints(this.segModel.segmentationData,
+                                        this.currentPolygon.points,
+                                        this.segModel.activePolygonId,
+                                        this.oldPoints));
+            }
+            this.dirty = false;
 
-        this.changedEvent.emit();
+            this.changedEvent.emit();
+        }
     }
 
     stop() {
