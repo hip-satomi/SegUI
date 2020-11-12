@@ -810,4 +810,17 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }).then(toast => toast.present());
   }
 
+  /**
+   * Show an error to the user
+   * @param message the message
+   * @param duration the duration the message is presented
+   */
+  showError(message: string, duration = 2000) {
+    // segmentation proposals have been applied successfully
+    this.toastController.create({
+      message,
+      duration
+    }).then(toast => toast.present());
+  }
+
 }
