@@ -1,15 +1,17 @@
+import { SelectedSegment } from './../models/tracking-data';
+import { TrackingService, Link } from './../services/tracking.service';
 import { OmeroAPIService } from './../services/omero-api.service';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { BrushTool } from './../toolboxes/brush-toolbox';
 import { UIUtils, Utils } from './../models/utils';
 import { Polygon, Point } from './../models/geometry';
-import { AddPolygon, JointAction } from './../models/action';
+import { AddPolygon, JointAction, AddLinkAction } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
 import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector, DerivedSegmentationRESTStorageConnector, SegmentationOMEROStorageConnector, DerivedSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
-import { GUISegmentation, GUITracking } from './../services/seg-rest.service';
+import { GUISegmentation } from './../services/seg-rest.service';
 import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap, switchMap, tap, finalize } from 'rxjs/operators';
 import { forkJoin, Observable, of } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
@@ -18,7 +20,7 @@ import { UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SegmentationModel,  SegmentationHolder, DerivedSegmentationHolder } from './../models/segmentation-model';
+import { SegmentationModel, SegmentationHolder, DerivedSegmentationHolder, SimpleSegmentation } from './../models/segmentation-model';
 import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angular/core';
 
@@ -52,6 +54,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   segmentationUIs: SegmentationUI[] = [];
 
   trackingUI: TrackingUI;
+
+  derivedSegHolder: DerivedSegmentationHolder;
 
   /** Key where the segmentation data is stored */
   segKey = 'segmentations';
@@ -99,7 +103,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private omeroAPI: OmeroAPIService,
               private loadingCtrl: LoadingController,
               private authService: AuthService,
-              private httpClient: HttpClient) {
+              private httpClient: HttpClient,
+              private trackingService: TrackingService) {
   }
 
   onPointerDown(event: any): boolean {
@@ -345,7 +350,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           const derived = new DerivedSegmentationHolder(srsc.getModel());
           const derivedConnector = new DerivedSegmentationRESTStorageConnector(this.segService, derived, srsc);
 
-          return {srsc, tracking: content.tracking, urls: content.urls};
+          return {srsc, derived, tracking: content.tracking, urls: content.urls};
         }),
         // create the tracking connector
         map((content) => {
@@ -357,11 +362,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
           }
 
-          return {srsc: content.srsc, trsc, urls: content.urls};
+          return {srsc: content.srsc, derived: content.derived, trsc, urls: content.urls};
         }),
         tap(async (content) => {
           this.stateService.imageSetId = id;
-          await this.loadSegmentation(content.srsc.getModel(), content.urls);
+          await this.loadSegmentation(content.srsc.getModel(), content.derived, content.urls);
           await this.loadTracking(content.trsc.getModel());
         }),
         finalize(() => loading.then(l => l.dismiss()))
@@ -408,7 +413,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         const derived = new DerivedSegmentationHolder(srsc.getModel());
         const derivedConnector = new DerivedSegmentationOMEROStorageConnector(this.omeroAPI, derived, srsc);
 
-        return {srsc, tracking: content.tracking, urls: content.urls};
+        return {srsc, tracking: content.tracking, derived, urls: content.urls};
       }),
       // create the tracking connector
       map((content) => {
@@ -420,11 +425,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           trsc = TrackingOMEROStorageConnector.createFromExisting(this.omeroAPI, content.srsc, content.tracking);
         }
 
-        return {srsc: content.srsc, trsc, urls: content.urls};
+        return {srsc: content.srsc, trsc, derived: content.derived, urls: content.urls};
       }),
       tap(async (content) => {
         this.stateService.imageSetId = imageSetId;
-        await this.loadSegmentation(content.srsc.getModel(), content.urls);
+        await this.loadSegmentation(content.srsc.getModel(), content.derived, content.urls);
         await this.loadTracking(content.trsc.getModel());
       }),
       tap(() => {
@@ -435,12 +440,14 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   }
 
-  async loadSegmentation(segHolder: SegmentationHolder, imageUrls: string[]) {
+  async loadSegmentation(segHolder: SegmentationHolder, derivedSegHolder: DerivedSegmentationHolder, imageUrls: string[]) {
     // now that we have a holder we can start using it
     this.segHolder = segHolder;
     this.segHolder.modelChanged.subscribe((event: ModelChanged<SegmentationModel>) => {
       this.segModelChanged(event);
     });
+
+    this.derivedSegHolder = derivedSegHolder;
 
     this.segmentationUIs = [];
 
@@ -821,6 +828,59 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       message,
       duration
     }).then(toast => toast.present());
+  }
+
+  /**
+   * Request tracking proposals and add them to the tracking model
+   */
+  track() {
+    // we need to access derived segmentation holder
+    this.derivedSegHolder.update();
+    const segContent = this.derivedSegHolder.content;
+
+    const currentFrame = this.activeView;
+    const nextFrame = this.activeView + 1;
+
+    if (nextFrame >= segContent.length) {
+      this.showError('There is now future frame for tracking!');
+      return;
+    }
+
+    const loading = this.loadingCtrl.create({
+      message: 'Please wait while tracking is computed...',
+      backdropDismiss: true,
+    });
+    loading.then(l => l.present());
+
+    const restrictedSimpleSeg: SimpleSegmentation[] = [segContent[currentFrame], segContent[nextFrame]];
+
+    this.trackingService.computeTracking(restrictedSimpleSeg).pipe(
+      finalize(() => loading.then(l => l.dismiss()))
+    ).subscribe(
+      ((links: Array<Link>) => {
+        console.log(links);
+
+        // filter links --> only meaningful links
+        const filteredLinks = links.filter((link) => !(link.sources.length === 0 || link.targets.length === 0));
+
+        if (filteredLinks.length === 0) {
+          // no link survived filtering
+          this.showError('No tracking link survived filtering! No tracking info added!');
+        }
+
+        const actions = [];
+        for (const link of filteredLinks) {
+          const targets = [];
+          for (const target of link.targets) {
+            targets.push(new SelectedSegment(target));
+          }
+          actions.push(new AddLinkAction(this.trackingModel.trackingData, new SelectedSegment(link.sources[0]), targets));
+        }
+
+        this.trackingModel.actionManager.addAction(new JointAction(...actions));
+      }),
+      () => this.showError('Error while tracking!')
+    );
   }
 
 }

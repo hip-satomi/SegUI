@@ -3,7 +3,7 @@ import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-j
 import { EventEmitter } from '@angular/core';
 import { ModelChanged, ChangeType } from './change';
 import { concatMap, debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/operators';
-import { GUISegmentation, GUITracking, SimpleSegmentation } from './../services/seg-rest.service';
+import { GUISegmentation, GUITracking, SimpleSegmentationREST } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
 import { SegmentationModel, SegmentationHolder, DerivedSegmentationHolder } from './segmentation-model';
 import { TrackingModel } from './tracking';
@@ -156,7 +156,7 @@ export class SegmentationRESTStorageConnector extends StorageConnector<Segmentat
 export class DerivedSegmentationRESTStorageConnector extends StorageConnector<DerivedSegmentationHolder> {
 
     restService: SegRestService;
-    restRecord: SimpleSegmentation;
+    restRecord: SimpleSegmentationREST;
     parentREST: SegmentationRESTStorageConnector;
 
     updateEvent: EventEmitter<DerivedSegmentationRESTStorageConnector> = new EventEmitter();
@@ -199,8 +199,8 @@ export class DerivedSegmentationRESTStorageConnector extends StorageConnector<De
     /**
      * Posts a new object into the rest api
      */
-    private post(parentGUISegId: number): Observable<SimpleSegmentation> {
-        const simpleSeg: SimpleSegmentation = {
+    private post(parentGUISegId: number): Observable<SimpleSegmentationREST> {
+        const simpleSeg: SimpleSegmentationREST = {
             id: -1,
             json: JSON.stringify(this.model.content),
             segmentation: this.restService.getSegmentationUrl(parentGUISegId)
@@ -214,7 +214,7 @@ export class DerivedSegmentationRESTStorageConnector extends StorageConnector<De
     /**
      * Updates an existing object via the rest api
      */
-    private put(): Observable<SimpleSegmentation> {
+    private put(): Observable<SimpleSegmentationREST> {
         this.restRecord.json = JSON.stringify(this.model.content);
 
         return this.restService.putSimpleSegmentation(this.restRecord).pipe(
@@ -225,25 +225,25 @@ export class DerivedSegmentationRESTStorageConnector extends StorageConnector<De
     /**
      * Update the object representation in the rest api
      */
-    public update(): Observable<SimpleSegmentation> {
-        let startingPipe: Observable<SimpleSegmentation>;
+    public update(): Observable<SimpleSegmentationREST> {
+        let startingPipe: Observable<SimpleSegmentationREST>;
         if (this.restRecord) {
             startingPipe = of(this.restRecord);
         } else {
             startingPipe = this.restService.getSimpleSegFromGUISegmentationId(this.parentREST.restRecord.id).pipe(
-                tap((ss: SimpleSegmentation) => this.restRecord = ss)
+                tap((ss: SimpleSegmentationREST) => this.restRecord = ss)
             );
         }
 
         return startingPipe.pipe(
-            switchMap((simpleSeg: SimpleSegmentation) => {
+            switchMap((simpleSeg: SimpleSegmentationREST) => {
                 if (simpleSeg) {
                     return this.put();
                 } else {
                     return this.post(this.parentREST.restRecord.id);
                 }
             }),
-            tap((s: SimpleSegmentation) => {
+            tap((s: SimpleSegmentationREST) => {
                 this.restRecord = s;
                 this.updateEvent.emit(this);
             })
@@ -434,7 +434,7 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
 export class DerivedSegmentationOMEROStorageConnector extends StorageConnector<DerivedSegmentationHolder> {
 
     omeroAPI: OmeroAPIService;
-    restRecord: SimpleSegmentation;
+    restRecord: SimpleSegmentationREST;
     parentOMERO: SegmentationOMEROStorageConnector;
 
     updateEvent: EventEmitter<DerivedSegmentationOMEROStorageConnector> = new EventEmitter();

@@ -30,7 +30,7 @@ export class TokenInterceptorService implements HttpInterceptor {
           return next.handle(newRequest);
         })
       );*/
-    } else if (req.url.match('^/pt') || req.url.match('^/tf')) {
+    } else if (req.url.match('^/pt') || req.url.match('^/tf') || req.url.match('^/tracking')) {
       return next.handle(req);
     } else {
       // use custom backend

@@ -272,13 +272,13 @@ export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> i
     }
 }
 
-interface SimpleDetection {
+export interface SimpleDetection {
     label: string;
     contour: Array<Point>;
     id: string;
 }
 
-interface SimpleSegmentation {
+export interface SimpleSegmentation {
     frame: number;
     detections: Array<SimpleDetection>;
 }

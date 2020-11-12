@@ -37,7 +37,7 @@ export interface SimpleSegmentationCandidate {
   /** url to related GUI Segmentation */
   segmentation: string;
 }
-export interface SimpleSegmentation extends SimpleSegmentationCandidate {
+export interface SimpleSegmentationREST extends SimpleSegmentationCandidate {
   id: number;
 }
 
@@ -256,12 +256,12 @@ export class SegRestService {
    * TODO do not only return a single one. Think about selection
    * @param guiSegId 
    */
-  public getSimpleSegFromGUISegmentationId(guiSegId: number): Observable<SimpleSegmentation> {
+  public getSimpleSegFromGUISegmentationId(guiSegId: number): Observable<SimpleSegmentationREST> {
     return this.httpClient.get(`${this.baseUrl}simple-segmentations/?segmentation=${guiSegId}`).pipe(
       this.rc,
       map((result: Result) => {
         if (result.results.length > 0) {
-          return result.results[0] as SimpleSegmentation;
+          return result.results[0] as SimpleSegmentationREST;
         } else {
           return null;
         }
@@ -269,15 +269,15 @@ export class SegRestService {
     );
   }
 
-  public postSimpleSegmentation(simpleSeg: SimpleSegmentation) {
+  public postSimpleSegmentation(simpleSeg: SimpleSegmentationREST) {
     return this.httpClient.post(`${this.baseUrl}simple-segmentations/`, simpleSeg).pipe(
-      map(r => r as SimpleSegmentation)
+      map(r => r as SimpleSegmentationREST)
     );
   }
 
-  public putSimpleSegmentation(simpleSeg: SimpleSegmentation) {
+  public putSimpleSegmentation(simpleSeg: SimpleSegmentationREST) {
     return this.httpClient.put(`${this.baseUrl}simple-segmentations/${simpleSeg.id}/`, simpleSeg).pipe(
-      map(r => r as SimpleSegmentation)
+      map(r => r as SimpleSegmentationREST)
     );
   }
 
