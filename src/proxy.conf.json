@@ -6,7 +6,13 @@
         "changeOrigin": true
     },
     "/pt/predictions/*": {
-        "target": "http://localhost/",
+        "target": "http://192.168.0.13/",
+        "secure": false,
+        "logLevel": "debug",
+        "changeOrigin": true
+    },
+    "/tracking/": {
+        "target": "http://192.168.0.13:8000/",
         "secure": false,
         "logLevel": "debug",
         "changeOrigin": true
