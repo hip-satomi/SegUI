@@ -22,14 +22,18 @@ export class TokenInterceptorService implements HttpInterceptor {
       return next.handle(req);
     }
 
-    if (req.url.match('^/omero')) {
+    if (req.url.match('^/omero/api/token')) {
       return next.handle(req);
-      /*return this.csrfService.getToken().pipe(
+    }
+
+    if (req.url.match('^/omero')) {
+      //return next.handle(req);
+      return this.csrfService.getToken().pipe(
         switchMap((token: string) => {
-          const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: {...req.body, csrfmiddlewaretoken: token}});
-          return next.handle(newRequest);
+          //const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: {...req.body, csrfmiddlewaretoken: token}});
+          return next.handle(req);
         })
-      );*/
+      );
     } else if (req.url.match('^/pt') || req.url.match('^/tf') || req.url.match('^/tracking')) {
       return next.handle(req);
     } else {
