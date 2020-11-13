@@ -255,6 +255,13 @@ export class SegmentationUI implements UIInteraction, Drawer {
             this.loadImage();
         }
         if (this.imageLoaded) {
+            // do not allow interpolation on the image
+            ctx.webkitImageSmoothingEnabled = false;
+            ctx.mozImageSmoothingEnabled = false;
+            ctx.msImageSmoothingEnabled = false;
+            ctx.imageSmoothingEnabled = false;
+
+            // draw image
             ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
         }
     }
