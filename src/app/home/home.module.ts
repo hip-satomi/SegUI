@@ -7,6 +7,11 @@ import { HomePage } from './home.page';
 
 import { HomePageRoutingModule } from './home-routing.module';
 
+import {OverlayModule} from '@angular/cdk/overlay';
+import { MovableDirective } from '../directives/moveable';
+import { DraggableDirective } from '../directives/draggable';
+import { DraggableHelperDirective } from '../directives/draggable-helper';
+import { MovableAreaDirective } from '../directives/moveable-area';
 
 
 @NgModule({
@@ -16,7 +21,13 @@ import { HomePageRoutingModule } from './home-routing.module';
     IonicModule,
     HomePageRoutingModule,
     SharedComponentsModule,
+    OverlayModule,
   ],
-  declarations: [HomePage],
+  declarations: [HomePage,
+    DraggableDirective,
+    DraggableHelperDirective,
+    MovableDirective,
+    MovableAreaDirective
+],
 })
 export class HomePageModule {}

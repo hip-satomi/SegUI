@@ -6,14 +6,14 @@ import { Utils, Position, UIUtils } from './../models/utils';
 import { ModelChanged } from './../models/change';
 import { EventEmitter } from '@angular/core';
 import { SegmentationModel } from './../models/segmentation-model';
-import { Drawer } from 'src/app/models/drawing';
+import { Drawer, Pencil } from 'src/app/models/drawing';
 import { UIInteraction } from './../models/drawing';
 import { polygon } from 'polygon-tools';
 
 
 const tree = require( 'tree-kit' ) ;
 
-export class BrushTool implements UIInteraction, Drawer {
+export class BrushTool extends UIInteraction implements Drawer {
 
     segModel: SegmentationModel;
     segUI: SegmentationUI;
@@ -39,6 +39,7 @@ export class BrushTool implements UIInteraction, Drawer {
      * @param canvasElement canvas element for mouse position
      */
     constructor(segModel: SegmentationModel, segUI: SegmentationUI, canvasElement) {
+        super();
         this.segModel = segModel;
         this.segUI = segUI;
         this.canvasElement = canvasElement;
@@ -62,7 +63,10 @@ export class BrushTool implements UIInteraction, Drawer {
      * Draw the segmentation using the brushed view
      * @param ctx the canvas context to draw
      */
-    draw(ctx: any): void {
+    draw(pencil: Pencil): void {
+        pencil.clear();
+
+        const ctx = pencil.canvasCtx;
         ctx.font = '30px Arial';
 
         if (this.currentPolygon) {

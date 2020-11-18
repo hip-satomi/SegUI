@@ -1,21 +1,56 @@
-export interface Drawer {
-    draw(canvasContext): void;
+import { UIUtils } from './utils';
+
+export class Pencil {
+    canvasCtx;
+    canvasElement;
+
+    constructor(canvasCtx, canvasElement) {
+        this.canvasCtx = canvasCtx;
+        this.canvasElement = canvasElement;
+    }
+
+    clear() {
+        UIUtils.clearCanvas(this.canvasElement, this.canvasCtx);
+    }
 }
 
-export interface UIInteraction {
 
-    onTap(event): boolean;
-    onPress(event): boolean;
+export interface Drawer {
+    draw(pencil: Pencil): void;
+}
 
-    onPointerDown(event): boolean;
-    onPointerMove(event): boolean;
-    onPointerUp(event): boolean;
+export class UIInteraction {
 
-    onPanStart(event): boolean;
-    onPan(event): boolean;
-    onPanEnd(event): boolean;
+    onTap(event): boolean {
+        return false;
+    }
+    onPress(event): boolean {
+        return false;
+    }
 
-    onMove(event): boolean;
+    onPointerDown(event): boolean {
+        return false;
+    }
+    onPointerMove(event): boolean {
+        return false;
+    }
+    onPointerUp(event): boolean {
+        return false;
+    }
+
+    onPanStart(event): boolean {
+        return false;
+    }
+    onPan(event): boolean {
+        return false;
+    }
+    onPanEnd(event): boolean  {
+        return false;
+    }
+
+    onMove(event): boolean {
+        return false;
+    }
 }
 
 export interface Deletable {

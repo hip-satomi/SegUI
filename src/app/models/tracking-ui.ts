@@ -4,7 +4,7 @@ import { AddLinkAction } from './action';
 import { ToastController } from '@ionic/angular';
 import { SegmentationModel } from './segmentation-model';
 
-import { UIInteraction, Drawer } from './drawing';
+import { UIInteraction, Drawer, Pencil } from './drawing';
 import { Utils, Position, UIUtils } from './utils';
 import { Polygon } from './geometry';
 import { TrackingModel} from './tracking';
@@ -215,7 +215,11 @@ export class TrackingUI implements UIInteraction, Drawer {
         return this.trackingModel.trackingData.selectedSegments.concat((this.temporarySelection) ? [this.temporarySelection] : []);
     }
 
-    draw(canvasContext: any): void {
+    draw(pencil: Pencil): void {
+
+        pencil.clear();
+
+        const canvasContext = pencil.canvasCtx;
 
         const allSelections = this.combinedSelections;
 

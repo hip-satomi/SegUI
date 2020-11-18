@@ -1,6 +1,6 @@
 import { ActionSheetController } from '@ionic/angular';
 import { Polygon } from 'src/app/models/geometry';
-import { UIInteraction, Drawer } from './drawing';
+import { UIInteraction, Drawer, Pencil } from './drawing';
 import { AddPointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
 import { UIUtils, Utils } from './utils';
 import { SegmentationModel } from './segmentation-model';
@@ -239,7 +239,10 @@ export class SegmentationUI implements UIInteraction, Drawer {
      * 
      * @param ctx canvas context
      */
-    draw(ctx) {
+    draw(pencil: Pencil) {
+        pencil.clear();
+
+        const ctx = pencil.canvasCtx;
         this.segmentationModel.draw(ctx);
         this.drawImage(ctx);
     }

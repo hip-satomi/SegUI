@@ -16,19 +16,22 @@ import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll,
 import { forkJoin, Observable, of } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
-import { UIInteraction } from './../models/drawing';
+import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SegmentationModel, SegmentationHolder, DerivedSegmentationHolder, SimpleSegmentation } from './../models/segmentation-model';
-import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
-import { Component, ViewChild, OnInit, AfterViewInit, HostListener } from '@angular/core';
+import { ActionSheetController, LoadingController, PopoverController, ToastController } from '@ionic/angular';
+import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContainerRef, ComponentFactoryResolver } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
 import { RectangleTool } from '../toolboxes/rectangle-tool';
+import { PopoverCompComponent } from '../components/popover-comp/popover-comp.component';
+import { SegmentationComponent } from '../components/segmentation/segmentation.component';
+
 
 const { Storage } = Plugins;
 
@@ -51,6 +54,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
 
+  @ViewChild('toolContainer', { read: ViewContainerRef }) container;
+  @ViewChild('segTool') segTool: SegmentationComponent;
+
   segmentationUIs: SegmentationUI[] = [];
 
   trackingUI: TrackingUI;
@@ -67,6 +73,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   backendMode = BackendMode.OMERO;
 
   _activeView = 0;
+
+  isOpen = false;
 
   urls = ['../assets/sequence/image0.png',
           '../assets/sequence/image1.png',
@@ -87,10 +95,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   set editMode(value: EditMode) {
     this._editMode = value;
 
-    this.draw(this.ctx);
+    this.draw();
   }
 
   id = new Observable<number>();
+
+  pencil: Pencil;
 
 
   constructor(private toastController: ToastController,
@@ -104,7 +114,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private loadingCtrl: LoadingController,
               private authService: AuthService,
               private httpClient: HttpClient,
-              private trackingService: TrackingService) {
+              private trackingService: TrackingService,
+              private popoverController: PopoverController,
+              private resolver: ComponentFactoryResolver) {
   }
 
   onPointerDown(event: any): boolean {
@@ -428,6 +440,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         return {srsc: content.srsc, trsc, derived: content.derived, urls: content.urls};
       }),
       tap(async (content) => {
+        this.pencil = new Pencil(this.imageDisplay.ctx, this.imageDisplay.canvasElement);
+
         this.stateService.imageSetId = imageSetId;
         await this.loadSegmentation(content.srsc.getModel(), content.derived, content.urls);
         await this.loadTracking(content.trsc.getModel());
@@ -475,7 +489,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         this.activeView);
       this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: ModelChanged<TrackingModel>) => {
           // redraw
-          this.draw(this.ctx);
+          this.draw();
       });
     }
   }
@@ -514,7 +528,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   segModelChanged(segModelChangedEvent: ModelChanged<SegmentationModel>) {
     if (this.curSegModel === segModelChangedEvent.model) {
-      this.draw(this.ctx);
+      this.draw();
     }
   }
 
@@ -632,7 +646,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.tool.setModel(this.curSegModel, this.curSegUI);
     }
 
-    this.draw(this.ctx);
+    this.draw();
   }
 
   get activeView() {
@@ -645,22 +659,15 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.setImageIndex(event.detail.value);
   }
 
-  draw(ctx = null) {
-
-    if (ctx === null) {
-      ctx = this.ctx;
-    }
-
-    this.imageDisplay.clear();
-
+  draw() {
     if (this.tool) {
-      this.tool.draw(ctx);
+      this.tool.draw(this.pencil);
     }
     else if (this.editMode === EditMode.Segmentation) {
       // draw the segmentation stuff
-      this.segmentationUIs[this.activeView]?.draw(ctx);
+      this.segmentationUIs[this.activeView]?.draw(this.pencil);
     } else {
-      this.trackingUI?.draw(ctx);
+      this.trackingUI?.draw(this.pencil);
     }
   }
 
@@ -881,6 +888,23 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       }),
       () => this.showError('Error while tracking!')
     );
+  }
+
+  async showPop(ev) {
+    this.isOpen = true;
+    this.tool = this.segTool;
+    this.draw();
+    //const factory = this.resolver.resolveComponentFactory(SegmentationComponent);
+    //let componentRef = this.container.createComponent(factory);
+    /*const popover = await this.popoverController.create({
+      component: PopoverCompComponent,
+      //cssClass: 'my-custom-class',
+      event: ev,
+      translucent: false,
+      backdropDismiss: false,
+      showBackdrop: false,
+    });
+    return await popover.present();*/
   }
 
 }
