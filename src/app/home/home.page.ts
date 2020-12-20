@@ -29,7 +29,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
 import { RectangleTool } from '../toolboxes/rectangle-tool';
-import { PopoverCompComponent } from '../components/popover-comp/popover-comp.component';
 import { SegmentationComponent } from '../components/segmentation/segmentation.component';
 
 
