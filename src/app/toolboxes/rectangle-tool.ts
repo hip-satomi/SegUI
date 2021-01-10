@@ -9,6 +9,8 @@ import { SegmentationModel } from './../models/segmentation-model';
 import { Drawer, Pencil } from 'src/app/models/drawing';
 import { UIInteraction, Deletable } from './../models/drawing';
 import { polygon } from 'polygon-tools';
+import { switchMap } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 
 const tree = require( 'tree-kit' ) ;
@@ -78,6 +80,12 @@ export class RectangleTool extends UIInteraction implements Drawer, Deletable {
     setModel(segModel: SegmentationModel, segUI: SegmentationUI) {
         this.segModel = segModel;
         this.segUI = segUI;
+    }
+
+    prepareDraw()  {
+        return this.segUI.prepareDraw().pipe(
+            switchMap(() => of(this))
+        );
     }
 
     /**

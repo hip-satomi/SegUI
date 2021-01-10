@@ -46,6 +46,12 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
     super();
   }
 
+  prepareDraw() {
+    return this.segUI.prepareDraw().pipe(
+      switchMap(() => of(this))
+    );
+  }
+
   draw(pencil: Pencil): void {
     pencil.clear();
 

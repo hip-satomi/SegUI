@@ -13,7 +13,7 @@ import { StateService } from './../services/state.service';
 import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector, DerivedSegmentationRESTStorageConnector, SegmentationOMEROStorageConnector, DerivedSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation } from './../services/seg-rest.service';
 import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap, switchMap, tap, finalize } from 'rxjs/operators';
-import { forkJoin, Observable, of } from 'rxjs';
+import { Observable, of, Subscription } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
 import { Pencil, UIInteraction } from './../models/drawing';
@@ -100,6 +100,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   id = new Observable<number>();
 
   pencil: Pencil;
+  drawingSubscription: Subscription;
 
 
   constructor(private toastController: ToastController,
@@ -658,16 +659,28 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.setImageIndex(event.detail.value);
   }
 
-  draw() {
+  prepareDraw(): Observable<Drawer> {
     if (this.tool) {
-      this.tool.draw(this.pencil);
+      return this.tool.prepareDraw();
     }
     else if (this.editMode === EditMode.Segmentation) {
       // draw the segmentation stuff
-      this.segmentationUIs[this.activeView]?.draw(this.pencil);
+      return this.segmentationUIs[this.activeView]?.prepareDraw();
     } else {
-      this.trackingUI?.draw(this.pencil);
+      return this.trackingUI?.prepareDraw();
     }
+  }
+
+  draw() {
+    if (this.drawingSubscription) {
+      this.drawingSubscription.unsubscribe();
+    }
+
+    this.drawingSubscription = this.prepareDraw().subscribe(
+      (drawer: Drawer) => {drawer.draw(this.pencil);},
+      () => console.log('Error during drawing process!'),
+      () => this.drawingSubscription = null      
+    );
   }
 
   get ctx() {

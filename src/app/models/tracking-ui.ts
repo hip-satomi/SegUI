@@ -9,6 +9,8 @@ import { Utils, Position, UIUtils } from './utils';
 import { Polygon } from './geometry';
 import { TrackingModel} from './tracking';
 import { SelectedSegment, TrackingLink } from './tracking-data';
+import { Observable, of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 
 export class TrackingUI implements UIInteraction, Drawer {
 
@@ -213,6 +215,21 @@ export class TrackingUI implements UIInteraction, Drawer {
 
     get combinedSelections() {
         return this.trackingModel.trackingData.selectedSegments.concat((this.temporarySelection) ? [this.temporarySelection] : []);
+    }
+
+    prepareDraw() {
+        let obs: Observable<void>
+        if (this.selectSource) {
+            // we simply draw the source image + segmentations
+            obs = this.segUIs[this.currentFrame].loadImage();
+        } else {
+            // draw target image + target segmentations
+            obs = this.segUIs[this.currentFrame + 1].loadImage();
+        }
+
+        return obs.pipe(
+            switchMap(() => of(this))
+        );
     }
 
     draw(pencil: Pencil): void {

@@ -2,9 +2,10 @@ import { ActionSheetController } from '@ionic/angular';
 import { Polygon } from 'src/app/models/geometry';
 import { UIInteraction, Drawer, Pencil } from './drawing';
 import { AddPointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
-import { UIUtils, Utils } from './utils';
+import { Utils } from './utils';
 import { SegmentationModel } from './segmentation-model';
-import { ModelChanged, ChangeType } from './change';
+import { from, Observable, of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 export class SegmentationUI implements UIInteraction, Drawer {
 
     segmentationModel: SegmentationModel;
@@ -14,6 +15,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
     draggingPointIndex = -1;
     imageUrl: string;
     imageLoaded: boolean;
+    imageIsLoading = false;
     image = null;
 
     /**
@@ -30,16 +32,46 @@ export class SegmentationUI implements UIInteraction, Drawer {
         this.imageUrl = imageUrl;
     }
 
-    loadImage() {
-        this.image = new Image();
+    /**
+     * Loads the image. Promise resolves when the image is fully loaded.
+     * Promise rejects when the timeout finishes first!
+     */
+    loadImage(timeout = 5000): Observable<any> {
+        if (this.image && this.image.complete && this.image.naturalWidth !== 0) {
+            // image is already loaded
+            return of(this.image);
+        }
 
-        this.image.onload = () => {
-            this.imageLoaded = true;
-            // TODO: this is a dirty hack to get redrawn
-            this.segmentationModel.onModelChange.emit(new ModelChanged(this.segmentationModel, ChangeType.SOFT));
-        };
+        if (!this.image || !this.imageIsLoading) {
+            // image loading not started or failed
+            this.image = new Image();
 
-        this.image.src = this.imageUrl;
+            // start loading the image by giving it a url
+            this.image.src = this.imageUrl;
+            this.imageIsLoading = true;
+        }
+
+        return from(new Promise((resolve, reject) => {
+            this.image.onload = () => {
+                this.imageIsLoading = false;
+                this.imageLoaded = true;
+
+                console.log('Image truly loaded!');
+                
+    
+                resolve(this.image);
+            };
+            this.image.onerror = () => {
+                this.imageIsLoading = false;
+                reject();
+            }
+
+            // reject the image request when running out of time
+            setTimeout(() => {
+                reject();
+            }, timeout);
+
+        }));
     }
 
     onPointerDown(event: any): boolean {
@@ -235,6 +267,15 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     /**
+     * Prepare resources for drawing, i.e. loading image
+     */
+    prepareDraw(): Observable<Drawer> {
+        return this.loadImage().pipe(
+            switchMap(() => of(this))
+        );
+    }
+
+    /**
      * Draws both image + segmentation to the canvas
      * 
      * @param ctx canvas context
@@ -254,18 +295,22 @@ export class SegmentationUI implements UIInteraction, Drawer {
      * @param ctx canvas context
      */
     drawImage(ctx) {
-        if (this.image === null) {
-            this.loadImage();
-        }
-        if (this.imageLoaded) {
-            // do not allow interpolation on the image
-            ctx.webkitImageSmoothingEnabled = false;
-            ctx.mozImageSmoothingEnabled = false;
-            ctx.msImageSmoothingEnabled = false;
-            ctx.imageSmoothingEnabled = false;
+        this.loadImage().subscribe(
+            () => {
+                // image has been loaded and can be drawn now
+                // do not allow interpolation on the image
+                ctx.webkitImageSmoothingEnabled = false;
+                ctx.mozImageSmoothingEnabled = false;
+                ctx.msImageSmoothingEnabled = false;
+                ctx.imageSmoothingEnabled = false;
 
-            // draw image
-            ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
-        }
+                console.log('Drawing image');
+                
+
+                // draw image
+                ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
+            },
+            () => {console.log('Error while loading image');}
+        )
     }
 }

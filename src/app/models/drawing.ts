@@ -1,3 +1,4 @@
+import { Observable } from 'rxjs';
 import { UIUtils } from './utils';
 
 export class Pencil {
@@ -16,6 +17,10 @@ export class Pencil {
 
 
 export interface Drawer {
+    /**
+     * Prepare all resources for drawing and return when finished
+     */
+    prepareDraw(): Observable<Drawer>;
     draw(pencil: Pencil): void;
 }
 
