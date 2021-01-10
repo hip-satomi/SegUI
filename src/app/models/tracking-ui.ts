@@ -34,6 +34,8 @@ export class TrackingUI implements UIInteraction, Drawer {
     existingLinkColor = 'rgba(255, 0, 0, 0.5)';
     currentLinkColor = 'rgba(255, 0, 0, 1)';
 
+    _frame_lookup = new Map<string, number>();
+
 
     constructor(segmentationModels: SegmentationModel[],
                 segUIs: SegmentationUI[],
@@ -67,14 +69,25 @@ export class TrackingUI implements UIInteraction, Drawer {
         return this.segmentationModels[this.currentFrame].segmentationData;
     }
 
+    /**
+     * Returns the frame id of the selected segment
+     * 
+     * @param selSegment 
+     */
     getSelectedSegmentFrame(selSegment: SelectedSegment) {
+        if (!this._frame_lookup.has(selSegment.polygonId)) {
+            let target_index = -1;
         for (const [index, segModel] of this.segmentationModels.entries()) {
             if (segModel.segmentationData.contains(selSegment.polygonId)) {
-                return index;
+                    target_index = index;
+                    break;
             }
         }
 
-        return -1;
+            this._frame_lookup.set(selSegment.polygonId, target_index);
+    }
+
+        return this._frame_lookup.get(selSegment.polygonId);
     }
 
     getPolygonById(polygonId: string): Polygon {
@@ -202,9 +215,16 @@ export class TrackingUI implements UIInteraction, Drawer {
             this.temporarySelection = null;
         }
 
+        let dirty = false;
+        if (this.hoverPoly !== poly) {
+            dirty = true;
+        }
+
         this.hoverPoly = poly;
 
+        if (dirty) {
         this.trackingModel.onModelChanged.emit(new ModelChanged<TrackingModel>(this.trackingModel, ChangeType.SOFT));
+        }
         
         return true;
     }
@@ -290,9 +310,12 @@ export class TrackingUI implements UIInteraction, Drawer {
 
         // draw the existing links
         const prefilteredLinks = this.trackingModel.trackingData.trackingLinks.filter((trackingLink: TrackingLink) => {
-            return this.getSelectedSegmentFrame(trackingLink.source) >= this.currentFrame - this.preHistory
-                    && this.getSelectedSegmentFrame(trackingLink.source) < this.currentFrame + this.postFuture;
+            const sourceFrame = this.getSelectedSegmentFrame(trackingLink.source);
+
+            return  sourceFrame >= this.currentFrame - this.preHistory
+                    && sourceFrame < this.currentFrame + this.postFuture;
         });
+        const endFor = performance.now();
         for (const link of prefilteredLinks) {
             const source = link.source;
             const targets = link.targets;
