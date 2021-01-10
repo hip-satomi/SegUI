@@ -6,6 +6,20 @@ import { polygon } from 'polygon-tools';
 
 export type Point = [number, number];
 
+class BoundingBox {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+
+    constructor(x: number, y: number, w: number, h: number) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+    }
+}
+
 @Serializable()
 export class Polygon {
     @JsonProperty()
@@ -14,12 +28,22 @@ export class Polygon {
     @JsonProperty()
     color: string;
 
+    _cached_bounding_box: BoundingBox;
+
     constructor(...points: Point[]) {
         this.points = points;
     }
 
     isInside(pos: Point): boolean {
+        // first check if it is inside bouding box
+        if (!this.isInsideBBox(pos)) {
+            return false;
+        }
         return inside(pos, this.points);
+    }
+
+    isInsideBBox(pos: Point): boolean {
+        return pos[0] >= this.boundingBox.x && pos[0] < (this.boundingBox.x + this.boundingBox.w) && pos[1] > this.boundingBox.y && pos[1] < (this.boundingBox.y + this.boundingBox.h);
     }
 
     setColor(color: string) {
@@ -33,18 +57,26 @@ export class Polygon {
     setPoint(index: number, point: Point) {
         this.points[index][0] = point[0];
         this.points[index][1] = point[1];
+
+        this._cached_bounding_box = null;
     }
 
     setPoints(points: Point[]) {
         this.points = points;
+
+        this._cached_bounding_box = null;
     }
 
     addPoint(index: number, point: Point) {
         this.points.splice(index, 0, point);
+
+        this._cached_bounding_box = null;
     }
 
     removePoint(index: number) {
         this.points.splice(index, 1);
+
+        this._cached_bounding_box = null;
     }
 
     getPoint(index: number): Point {
@@ -54,6 +86,41 @@ export class Polygon {
     closestPointDistanceInfo(point: Point) {
         return pairwiseDistanceMin(point, this.points);
 
+    }
+
+    get boundingBox() {
+        if(!this._cached_bounding_box) {
+            this.updateBoundingBox();
+        }
+
+        return this._cached_bounding_box
+    }
+
+    private updateBoundingBox() {
+        let minx = Number.MAX_VALUE;
+        let maxx = Number.MIN_VALUE;
+        let miny = Number.MAX_VALUE;
+        let maxy = Number.MIN_VALUE;
+
+        if (this.points.length == 0) {
+            minx = 0;
+            maxx = 0;
+            miny = 0;
+            maxy = 0;
+        } else {
+            for(let point of this.points) {
+                const x = point[0];
+                const y = point[1];
+
+                minx = Math.min(minx, x);
+                maxx = Math.max(maxx, x);
+                
+                miny = Math.min(miny, y);
+                maxy = Math.max(maxy, y);
+            }
+        }
+        
+        this._cached_bounding_box = new BoundingBox(minx, miny, (maxx - minx), (maxy - miny));
     }
 
     /**
