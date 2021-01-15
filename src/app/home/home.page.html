@@ -5,7 +5,7 @@
       <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
     </ion-select>
       <ion-buttons slot="end">
-        <ion-button (click)="isOpen = !isOpen" type="button">
+        <ion-button (click)="isOpen = !isOpen; this.draw()" type="button">
           {{isOpen ? "Close" : "Open"}}
         </ion-button>
         <ion-button (click)=showPop()>

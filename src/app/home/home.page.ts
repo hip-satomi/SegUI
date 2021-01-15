@@ -660,6 +660,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   prepareDraw(): Observable<Drawer> {
+    if (this.isOpen) {
+      // this is for the segmentation tool
+      return this.segTool.prepareDraw();
+    }
+
     if (this.tool) {
       return this.tool.prepareDraw();
     }
