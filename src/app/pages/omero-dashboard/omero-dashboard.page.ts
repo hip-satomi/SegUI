@@ -8,9 +8,9 @@ import { Component, OnInit } from '@angular/core';
 })
 export class OmeroDashboardPage implements OnInit {
 
-  private projects$;
+  public projects$;
 
-  constructor(private omeroAPI: OmeroAPIService) {
+  constructor(public omeroAPI: OmeroAPIService) {
     this.projects$ = omeroAPI.projects$;
   }
 

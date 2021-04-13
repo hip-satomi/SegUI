@@ -77,15 +77,15 @@ export class TrackingUI implements UIInteraction, Drawer {
     getSelectedSegmentFrame(selSegment: SelectedSegment) {
         if (!this._frame_lookup.has(selSegment.polygonId)) {
             let target_index = -1;
-        for (const [index, segModel] of this.segmentationModels.entries()) {
-            if (segModel.segmentationData.contains(selSegment.polygonId)) {
+            for (const [index, segModel] of this.segmentationModels.entries()) {
+                if (segModel.segmentationData.contains(selSegment.polygonId)) {
                     target_index = index;
                     break;
+                }
             }
-        }
 
             this._frame_lookup.set(selSegment.polygonId, target_index);
-    }
+        }
 
         return this._frame_lookup.get(selSegment.polygonId);
     }
@@ -223,7 +223,7 @@ export class TrackingUI implements UIInteraction, Drawer {
         this.hoverPoly = poly;
 
         if (dirty) {
-        this.trackingModel.onModelChanged.emit(new ModelChanged<TrackingModel>(this.trackingModel, ChangeType.SOFT));
+            this.trackingModel.onModelChanged.emit(new ModelChanged<TrackingModel>(this.trackingModel, ChangeType.SOFT));
         }
         
         return true;
@@ -253,6 +253,8 @@ export class TrackingUI implements UIInteraction, Drawer {
     }
 
     draw(pencil: Pencil): void {
+
+        const start = performance.now();
 
         pencil.clear();
 
@@ -309,6 +311,9 @@ export class TrackingUI implements UIInteraction, Drawer {
         }
 
         // draw the existing links
+        const startFor = performance.now();
+        console.log(`Number of tracking links: ${this.trackingModel.trackingData.trackingLinks.length}`);
+        
         const prefilteredLinks = this.trackingModel.trackingData.trackingLinks.filter((trackingLink: TrackingLink) => {
             const sourceFrame = this.getSelectedSegmentFrame(trackingLink.source);
 
@@ -316,6 +321,8 @@ export class TrackingUI implements UIInteraction, Drawer {
                     && sourceFrame < this.currentFrame + this.postFuture;
         });
         const endFor = performance.now();
+        console.log(`Filter duration: ${endFor - startFor}`);
+
         for (const link of prefilteredLinks) {
             const source = link.source;
             const targets = link.targets;
@@ -331,6 +338,8 @@ export class TrackingUI implements UIInteraction, Drawer {
             }
         }
 
+        
+
         this.hoverPoly?.drawCenter(canvasContext, 'rgb(255, 0, 0)', 4);
 
 
@@ -343,6 +352,11 @@ export class TrackingUI implements UIInteraction, Drawer {
             this.segmentationModels[this.currentFrame + 1].drawAdvanced(canvasContext, (polygon: Polygon) => this.standardTrackingColor);
             this.segUIs[this.currentFrame + 1].drawImage(canvasContext);
         }
+
+        const end = performance.now();
+
+        console.log(`Draw tracking: ${end - start}`);
+        
     }
 
     undo() {

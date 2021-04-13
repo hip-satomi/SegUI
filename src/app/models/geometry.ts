@@ -18,6 +18,17 @@ class BoundingBox {
         this.w = w;
         this.h = h;
     }
+
+    /**
+     * Returns true iff the point is inside the bounding box
+     * @param point 
+     */
+    isInside(point: Point) {
+        const x = point[0];
+        const y = point[1];
+
+        return x >= this.x && x <= this.x + this.w && y > this.y && y < this.y + this.h;
+    }
 }
 
 @Serializable()
@@ -36,14 +47,14 @@ export class Polygon {
 
     isInside(pos: Point): boolean {
         // first check if it is inside bouding box
-        if (!this.isInsideBBox(pos)) {
+        if (!this.boundingBox.isInside(pos)) {
             return false;
         }
         return inside(pos, this.points);
     }
 
     isInsideBBox(pos: Point): boolean {
-        return pos[0] >= this.boundingBox.x && pos[0] < (this.boundingBox.x + this.boundingBox.w) && pos[1] > this.boundingBox.y && pos[1] < (this.boundingBox.y + this.boundingBox.h);
+        return pos[0] >= this.boundingBox.x && pos[0] <= (this.boundingBox.x + this.boundingBox.w) && pos[1] >= this.boundingBox.y && pos[1] <= (this.boundingBox.y + this.boundingBox.h);
     }
 
     setColor(color: string) {

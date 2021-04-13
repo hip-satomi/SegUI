@@ -34,7 +34,7 @@ import { SegmentationComponent } from '../components/segmentation/segmentation.c
 
 const { Storage } = Plugins;
 
-enum EditMode {
+export enum EditMode {
   Segmentation = '0',
   Tracking = '1'
 }
@@ -516,6 +516,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   get isSegmentation() {
     return this.editMode === EditMode.Segmentation;
+  }
+
+  get isTracking() {
+    return this.editMode === EditMode.Tracking;
   }
 
   get curSegUI(): SegmentationUI {

@@ -12,7 +12,7 @@ import { Component, OnInit } from '@angular/core';
 export class OmeroDatasetPage implements OnInit {
 
   constructor(private route: ActivatedRoute,
-              private omeroApi: OmeroAPIService) { }
+              public omeroApi: OmeroAPIService) { }
 
   images$: Observable<Image[]>;
 
