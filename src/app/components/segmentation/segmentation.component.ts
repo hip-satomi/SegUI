@@ -79,8 +79,10 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
     if (this.filterOverlaps) {
       // check whether polygon center is within other polygon
       const overlapFiltered = thresholdFiltered.filter(([rootUuid, rootPoly]) => {
+        // get candidates that have their center inside the polygon's bbox
+        const bboxCandidates = thresholdFiltered.filter(([uuid, poly]) => uuid !== rootUuid && poly.boundingBox.isInside(rootPoly.center));
         // get candidates that have their center inside the polygon
-        const candidates = thresholdFiltered.filter(([uuid, poly]) => uuid !== rootUuid && poly.isInside(rootPoly.center));
+        const candidates = bboxCandidates.filter(([uuid, poly]) => uuid !== rootUuid && poly.isInside(rootPoly.center));
         // compute the max score of candidates
         const maxScore = Math.max(...candidates.map(([uuid, poly]) => this.polyMeta[uuid]['score']))
         // compare poly score to max candidate score
