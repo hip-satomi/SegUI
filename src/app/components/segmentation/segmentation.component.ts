@@ -33,7 +33,7 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
 
   showOverlay = true;
   showNewOverlay = true;
-  threshold = 0.4;
+  scoreThreshold = 0.4;
   simplifyError = 0.1;
   filterOverlaps = true;
 
@@ -46,36 +46,53 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
     super();
   }
 
+  /**
+   * Prepare for Drawing (Drawer)
+   */
   prepareDraw() {
     return this.segUI.prepareDraw().pipe(
       switchMap(() => of(this))
     );
   }
 
+  /**
+   * Update the canvas
+   * @param pencil the canvas pencil
+   */
   draw(pencil: Pencil): void {
+    // clear the canvas
     pencil.clear();
 
     this.oldPencil = pencil;
+
+    // display the new overlay
     if (this.showNewOverlay && this.localSegModel) {
-      //this.localSegModel.drawPolygons(pencil.canvasCtx, false, ([uuid, poly]) => this.polyMeta[uuid]['score'] >= this.threshold);
       this.filteredDets.map(([uuid, poly]) => {
         poly.draw(pencil.canvasCtx, false);
       })
     }
 
+    // display the old overlay
     if (this.showOverlay) {
       this.segModel.draw(pencil.canvasCtx, false);
     }
+
+    // draw the image in the background
     this.segUI.drawImage(pencil.canvasCtx);
   }
 
+  /**
+   * Filter new detections based on filter parameters
+   */
   get filteredDets(): Array<[string, Polygon]> {
     if (this._cachedFilterDets) {
       return this._cachedFilterDets;
     }
 
-    const thresholdFiltered = Array.from(this.localSegModel.segmentationData.getPolygonEntries()).filter(([uuid, poly]) => this.polyMeta[uuid]['score'] >= this.threshold);
+    // filter by score threshold
+    const thresholdFiltered = Array.from(this.localSegModel.segmentationData.getPolygonEntries()).filter(([uuid, poly]) => this.polyMeta[uuid]['score'] >= this.scoreThreshold);
 
+    // filter by overlaps (if bbox center is in other bbox only keep max-scored)
     if (this.filterOverlaps) {
       // check whether polygon center is within other polygon
       const overlapFiltered = thresholdFiltered.filter(([rootUuid, rootPoly]) => {
@@ -93,7 +110,7 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
       this._cachedFilterDets = thresholdFiltered;
     }
 
-
+    // return the filter cache
     return this._cachedFilterDets;
   }
 
@@ -112,6 +129,11 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
 
   ngOnInit() {}
 
+  /**
+   * set the segmentation model and UI (e.g. when slider changes the image timepoint)
+   * @param curSegModel 
+   * @param curSegUI 
+   */
   setModel(curSegModel: SegmentationModel, curSegUI: SegmentationUI) {
     this.segModel = curSegModel;
     this.segUI = curSegUI;
@@ -120,6 +142,9 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
     this.data = []
   }
 
+  /**
+   * Request segmentation proposals from backend
+   */
   requestProposals() {
     // create progress loader
     const loading = this.loadingCtrl.create({
@@ -170,10 +195,21 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
 
         this.draw(this.oldPencil);
       },
-      (error) => console.error(error),
+      (error) => {
+        this.toastController.create({
+          message: 'Requesting segmentation proposals failed!',
+          duration: 2000,
+          color: 'warning'
+        }).then(toast => {toast.present();});
+        console.error(error);
+      },
     );
   }
 
+  /**
+   * create a local (temporal) segmentation model that contains the automated segmentations
+   * @returns 
+   */
   createLocalSegModel() {
     if (!this.data) {
       return;
@@ -263,9 +299,11 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
       }
     }
 
+    // join actions
     const jointAction = new JointAction(...deleteActions, ...addActions);
     this.segModel.addAction(jointAction);
 
+    // close the window
     this.close.emit();
   }
 }
