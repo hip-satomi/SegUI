@@ -32,8 +32,8 @@ cache:
 
 stages:
   - setup
-  - test
   - build
+  - test
 
 install:
   stage: setup
