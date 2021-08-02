@@ -60,6 +60,7 @@ build-job:       # This job runs in the build stage, which runs first.
   script:
     - echo "Compiling the code..."
     - npm install -g @angular/cli @ionic/cli
+    - npm install
     - ionic build
     - echo "Compile complete."
 
