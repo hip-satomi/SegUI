@@ -1,4 +1,6 @@
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { ImageSetListPage } from './image-set-list.page';
@@ -10,7 +12,7 @@ describe('ImageSetListPage', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [ ImageSetListPage ],
-      imports: [IonicModule.forRoot()]
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(ImageSetListPage);

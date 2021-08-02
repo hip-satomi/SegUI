@@ -20,6 +20,11 @@ module.exports = function (config) {
       reports: ['html', 'lcovonly', 'text-summary'],
       fixWebpackSourcePaths: true
     },
+    coverageReporter: {
+      type: 'cobertura',
+      dir: 'coverage',
+      file: 'cobertura-coverage.xml'
+    },
     reporters: ['progress', 'kjhtml'],
     port: 9876,
     colors: true,
