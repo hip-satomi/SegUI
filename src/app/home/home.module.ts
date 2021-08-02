@@ -12,7 +12,7 @@ import { MovableDirective } from '../directives/moveable';
 import { DraggableDirective } from '../directives/draggable';
 import { DraggableHelperDirective } from '../directives/draggable-helper';
 import { MovableAreaDirective } from '../directives/moveable-area';
-
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 @NgModule({
   imports: [
@@ -22,6 +22,7 @@ import { MovableAreaDirective } from '../directives/moveable-area';
     HomePageRoutingModule,
     SharedComponentsModule,
     OverlayModule,
+    MatTooltipModule,
   ],
   declarations: [HomePage,
     DraggableDirective,

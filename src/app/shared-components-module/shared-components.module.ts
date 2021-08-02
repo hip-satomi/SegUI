@@ -4,12 +4,13 @@ import { CommonModule } from '@angular/common';
 import { SegmentationComponent } from '../components/segmentation/segmentation.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { BrushComponent } from '../components/brush/brush.component';
 
 
 
 @NgModule({
-  declarations: [ImageDisplayComponent, SegmentationComponent],
-  exports: [ImageDisplayComponent, SegmentationComponent],
+  declarations: [ImageDisplayComponent, SegmentationComponent, BrushComponent],
+  exports: [ImageDisplayComponent, SegmentationComponent, BrushComponent],
   imports: [
     CommonModule,
     FormsModule,

@@ -12,7 +12,7 @@ import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
 import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector, DerivedSegmentationRESTStorageConnector, SegmentationOMEROStorageConnector, DerivedSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation } from './../services/seg-rest.service';
-import { map, concatAll, take, concatMap, combineAll, flatMap, zipAll, mergeAll, mergeMap, switchMap, tap, finalize } from 'rxjs/operators';
+import { map, take, mergeMap, switchMap, tap, finalize } from 'rxjs/operators';
 import { Observable, of, Subscription } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
@@ -30,15 +30,22 @@ import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
 import { RectangleTool } from '../toolboxes/rectangle-tool';
 import { SegmentationComponent } from '../components/segmentation/segmentation.component';
+import { BrushComponent } from '../components/brush/brush.component';
 
 
 const { Storage } = Plugins;
 
+/**
+ * Different edit modes
+ */
 export enum EditMode {
   Segmentation = '0',
   Tracking = '1'
 }
 
+/**
+ * Different data backend modes
+ */
 enum BackendMode {
   SegTrack,
   OMERO
@@ -51,10 +58,12 @@ enum BackendMode {
 })
 export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
+  // the canvas to display the image
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
 
   @ViewChild('toolContainer', { read: ViewContainerRef }) container;
   @ViewChild('segTool') segTool: SegmentationComponent;
+  @ViewChild('brushTool') brushToolComponent: BrushComponent;
 
   segmentationUIs: SegmentationUI[] = [];
 
@@ -74,6 +83,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   _activeView = 0;
 
   isOpen = false;
+  isBrushOpen = false;
 
   urls = ['../assets/sequence/image0.png',
           '../assets/sequence/image1.png',
@@ -102,6 +112,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   pencil: Pencil;
   drawingSubscription: Subscription;
 
+  drawTimer = null;
+  drawLoader = null;
+
 
   constructor(private toastController: ToastController,
               private actionSheetController: ActionSheetController,
@@ -117,7 +130,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private trackingService: TrackingService,
               private popoverController: PopoverController,
               private resolver: ComponentFactoryResolver) {
-  }
+ }
 
   onPointerDown(event: any): boolean {
     if (this.tool) {
@@ -647,7 +660,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
 
     if (this.isSegmentation && this.tool) {
-      this.tool.setModel(this.curSegModel, this.curSegUI);
+      if (this.tool.setModel == 'function') {
+        this.tool.setModel(this.curSegModel, this.curSegUI);
+      }
     }
 
     this.draw();
@@ -673,6 +688,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       return this.tool.prepareDraw();
     }
     else if (this.editMode === EditMode.Segmentation) {
+      if (this.segmentationUIs.length == 0) {
+        return null;
+      }
       // draw the segmentation stuff
       return this.segmentationUIs[this.activeView]?.prepareDraw();
     } else {
@@ -685,7 +703,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.drawingSubscription.unsubscribe();
     }
 
-    this.drawingSubscription = this.prepareDraw().subscribe(
+    this.drawTimer = setTimeout(() => console.log('slow draw'), 500);
+
+    // TODO: show timer if loading takes long!
+
+    this.drawingSubscription = this.prepareDraw()?.pipe(
+      tap(() => clearTimeout(this.drawTimer))
+    ).subscribe(
       (drawer: Drawer) => {drawer.draw(this.pencil);},
       () => console.log('Error during drawing process!'),
       () => this.drawingSubscription = null      
@@ -815,6 +839,21 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.tool.changedEvent.subscribe(() =>  {
         this.draw();
       });
+    }
+
+    this.draw();
+  }
+
+  newBrushTool() {
+    if (this.tool) {
+      this.tool.stop();
+      this.tool = null;
+    }
+    else if (this.editMode === EditMode.Segmentation) {
+      this.tool = this.brushToolComponent;
+      /*this.tool.changedEvent.subscribe(() =>  {
+        this.draw();
+      });*/
     }
 
     this.draw();

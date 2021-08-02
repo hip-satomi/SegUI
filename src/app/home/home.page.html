@@ -9,21 +9,24 @@
         <ion-button *ngIf="isSegmentation" (click)="isOpen = !isOpen; this.draw()" type="button">
           {{isOpen ? "Close" : "ADV-SEG"}}
         </ion-button>
+        <ion-button *ngIf="isSegmentation" (click)="isBrushOpen = !isBrushOpen; newBrushTool(); this.draw();" type="button">
+          {{isOpen ? "Close" : "BRUSH"}}
+        </ion-button>
         <!--<ion-button (click)=showPop()>
           ADV-SEG
         </ion-button>-->
-        <ion-button (click)="openToolkit()">
+        <!--<ion-button (click)="openToolkit()">
           <ion-icon name="medkit-outline"></ion-icon>
-        </ion-button>
+        </ion-button>-->
         <ion-button *ngIf="isTracking" (click)="track()">
           TRACK
         </ion-button>
         <ion-button *ngIf="isSegmentation" (click)="rectTool()" [ngClass]="{active: this.tool !== null}">
           RECT
         </ion-button>
-        <ion-button *ngIf="isSegmentation" (click)="brushTool()" [ngClass]="{active: this.tool !== null}">
+        <!--<ion-button *ngIf="isSegmentation" (click)="brushTool()" [ngClass]="{active: this.tool !== null}">
           Brush
-        </ion-button>
+        </ion-button>-->
         <!--<ion-button (click)="doSegment('cs')">
           SP-CS
         </ion-button>-->
@@ -33,10 +36,12 @@
         <!--<ion-button (click)="segmentAll()">
           ALL
         </ion-button>-->
-        <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px">
+        <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px" #tooltip="matTooltip"
+        matTooltip="Undo (Ctrl+Z)">
           <ion-icon name="arrow-undo-outline"></ion-icon>
         </ion-button>
-        <ion-button [disabled]="!canRedo" (click)="redo()" style="padding-right:10xpx">
+        <ion-button [disabled]="!canRedo" (click)="redo()" style="padding-right:10xpx" #tooltip="matTooltip"
+        matTooltip="Redo (Ctrl+Y)">
           <ion-icon name="arrow-redo-outline"></ion-icon>
         </ion-button>
         <ion-button [disabled]="!canSave" (click)="done()">
@@ -51,6 +56,9 @@
   </div>
   <app-segmentation #segTool class="popover" style="position: absolute;" [class.ion-hide]="!isOpen" [appMovable]="true" (close)="isOpen=false; this.tool=null" [segModel]="curSegModel" [segUI]="curSegUI">
   </app-segmentation>
+
+  <app-brush #brushTool class="popover" style="position: absolute;" [class.ion-hide]="!isBrushOpen" [appMovable]="true" (close)="isBrushOpen=false; this.tool=null" (changedEvent)="this.draw()" [segModel]="curSegModel" [segUI]="curSegUI">
+  </app-brush>
 
   <ion-header collapse="condense">
     <ion-toolbar>
