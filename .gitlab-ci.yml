@@ -40,6 +40,7 @@ install:
   script:
     - npm ci
     - npm install -g @angular/cli @ionic/cli
+    - ionic --version
 
 test:
   stage: test
