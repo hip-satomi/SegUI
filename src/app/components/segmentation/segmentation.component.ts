@@ -21,23 +21,28 @@ import { threadId } from 'worker_threads';
 export class SegmentationComponent extends UIInteraction implements Drawer {
 
   @Output() close = new EventEmitter<void>();
+  // input the current segmentation model and ui
   @Input() segModel: SegmentationModel;
   @Input() segUI: SegmentationUI;
 
+  // the local segmentation model that is temporal and independent of the real one
   localSegModel: SegmentationModel;
 
+  // the pencil for drawing
   oldPencil: Pencil;
 
   data: Detection[];
   polyMeta: {};
 
+  // dialog properties
   showOverlay = true;
   showNewOverlay = true;
   scoreThreshold = 0.4;
   simplifyError = 0.1;
   filterOverlaps = true;
 
-  _cachedFilterDets;
+  // cache for filtering detections
+  _cachedFilterDets: Array<[string, Polygon]> = null;
 
   constructor(private loadingCtrl: LoadingController,
               private httpClient: HttpClient,
@@ -278,7 +283,7 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
 
 
   /**
-   * Commit detections to the main model
+   * Commit detections to the main segmentation model
    */
   commit() {
     // collect actions
@@ -287,14 +292,14 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
 
     if (!this.showOverlay) {
       // we need to delete all existing polyongs
-      for (const [uuid, poly] of this.filteredDets) {
+      for (const [uuid, poly] of this.segModel.segmentationData.getPolygonEntries()) {
         deleteActions.push(new RemovePolygon(this.segModel.segmentationData, uuid));
       }
     }
 
     if (this.showNewOverlay) {
       // add all the polygons here
-      for (const [uuid, poly] of this.localSegModel.segmentationData.getPolygonEntries()) {
+      for (const [uuid, poly] of this.filteredDets) {
         addActions.push(new AddPolygon(this.segModel.segmentationData, poly));
       }
     }
