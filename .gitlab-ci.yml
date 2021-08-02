@@ -39,8 +39,6 @@ install:
   stage: setup
   script:
     - npm ci
-    - npm install -g @angular/cli @ionic/cli
-    - ionic --version
 
 test:
   stage: test
@@ -50,6 +48,7 @@ test:
     - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     - apt install -y ./google-chrome*.deb;
     - export CHROME_BIN=/usr/bin/google-chrome
+    - npm install -g @angular/cli @ionic/cli
   script:
     - npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage
   artifacts:
@@ -60,6 +59,7 @@ build-job:       # This job runs in the build stage, which runs first.
   stage: build
   script:
     - echo "Compiling the code..."
+    - npm install -g @angular/cli @ionic/cli
     - ionic build
     - echo "Compile complete."
 
