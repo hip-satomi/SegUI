@@ -63,7 +63,7 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
 
       if (changed) {
         // redraw when the container has changed
-        this.drawer.draw(this.ctx);
+        this.draw()
       }
     }
   }
@@ -267,7 +267,9 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
   }
 
   draw() {
-    this.drawer.draw(this.ctx);
+    if (this.drawer) {
+      this.drawer.draw(this.ctx);
+    }
   }
 
 }
