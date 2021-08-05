@@ -48,3 +48,7 @@
 .cdk-overlay-pane.animated {
   transition: margin 200ms ease-in-out;
 }
+
+.over-loading {
+  z-index: 50123 !important;
+}

@@ -21,7 +21,7 @@ import { ImageDisplayComponent } from './../components/image-display/image-displ
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder as SimpleSegmentationHolder, SimpleSegmentation } from './../models/segmentation-model';
-import { ActionSheetController, LoadingController, PopoverController, ToastController } from '@ionic/angular';
+import { ActionSheetController, AlertController, LoadingController, PopoverController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContainerRef, ComponentFactoryResolver } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
@@ -129,7 +129,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private httpClient: HttpClient,
               private trackingService: TrackingService,
               private popoverController: PopoverController,
-              private resolver: ComponentFactoryResolver) {
+              private resolver: ComponentFactoryResolver,
+              private alertController: AlertController) {
  }
 
   // Redirect Mouse & Touch interactions
@@ -339,11 +340,48 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         );
       }),
       // create the segmentation connector
-      map((content) => {
+      switchMap(async (content) => {
         let srsc: SegmentationOMEROStorageConnector;
         if (content.segm === null) {
           // there is no existing segmentation file
-          srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls);
+          // TODO First try to import from omero
+          
+          // 1. Check whether OMERO has ROI data available
+          if (this.omeroAPI.hasRoIData(imageSetId))
+          {
+
+            // 2. Let the user decide whether he  wants to import it
+            const alert = await this.alertController.create({
+              cssClass: 'over-loading',
+              header: 'Import Segmentation?',
+              message: 'Do you want to import existing segmentation data from OMERO?',
+              buttons: [
+                {
+                  text: 'No',
+                  role: 'cancel',
+                  cssClass: 'secondary',
+                }, {
+                  text: 'Yes',
+                  role: 'confirm',
+                }
+              ]
+            });
+        
+            await alert.present();
+            const { role } = await alert.onDidDismiss();
+            console.log('onDidDismiss resolved with role', role);
+
+            // 3. Import the data
+            srsc = null;
+            if (role == 'confirm') {
+              // try to load the data
+            }
+          }
+
+          if (srsc == null) {
+            // loading from OMERO failed or has been rejected
+            srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls);
+          }
         } else {
           // load the existing model file
           srsc = SegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId);
