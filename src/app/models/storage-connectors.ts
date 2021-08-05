@@ -29,10 +29,6 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
     public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number): SegmentationOMEROStorageConnector {
         const model = deserialize<SegmentationHolder>(segmentation, SegmentationHolder);
 
-        for (const segModel of model.segmentations) {
-            segModel.onDeserialized();
-        }
-
         // TODO: this should be implemented into the serializer
         model.onDeserialized();
 

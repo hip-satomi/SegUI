@@ -254,6 +254,12 @@ export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> i
         const tmpSegs = this.segmentations;
         this.clearSegmentations();
 
+        // notify all submodels
+        for (const segModel of tmpSegs) {
+            segModel.onDeserialized();
+        }
+
+        // register all the submodels
         for (const segModel of tmpSegs) {
             this.addSegmentation(segModel);
         }
