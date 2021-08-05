@@ -493,7 +493,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       toast.present();
     } else {
       // loading the tracking
-      this.stateService.tracking = trackingModel;
+      this.trackingModel = trackingModel;
       this.trackingUI = new TrackingUI(this.segmentationModels,
         this.segmentationUIs,
         this.trackingModel,
@@ -525,6 +525,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   get trackingModel() {
     return this.stateService.tracking;
+  }
+
+  set trackingModel(trackingModel: TrackingModel) {
+    this.stateService.tracking = trackingModel;
   }
 
   get isSegmentation() {
