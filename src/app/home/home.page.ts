@@ -10,7 +10,7 @@ import { AddPolygon, JointAction, AddLinkAction } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
-import { SegmentationRESTStorageConnector, TrackingRESTStorageConnector, DerivedSegmentationRESTStorageConnector, SegmentationOMEROStorageConnector, DerivedSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
+import { SegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation } from './../services/seg-rest.service';
 import { map, take, mergeMap, switchMap, tap, finalize } from 'rxjs/operators';
 import { Observable, of, Subscription } from 'rxjs';
