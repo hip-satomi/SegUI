@@ -1,13 +1,17 @@
+/**
+ * This file holds implementations of storing and loading data (e.g. segmentation or tracking) in remote locations (e.g. OMERO).
+ */
+
 import { OmeroAPIService } from './../services/omero-api.service';
-import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
+import { deserialize, serialize } from 'typescript-json-serializer';
 import { EventEmitter } from '@angular/core';
 import { ModelChanged, ChangeType } from './change';
-import { concatMap, debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/operators';
+import { debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/operators';
 import { GUISegmentation, GUITracking, SimpleSegmentationREST } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
-import { SegmentationModel, SegmentationHolder, DerivedSegmentationHolder } from './segmentation-model';
+import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder } from './segmentation-model';
 import { TrackingModel } from './tracking';
-import { Observable, of, combineLatest, zip, empty } from 'rxjs';
+import { Observable, of, zip, empty } from 'rxjs';
 import { StorageConnector } from './storage';
 
 
@@ -17,14 +21,17 @@ import { StorageConnector } from './storage';
  */
 export class SegmentationOMEROStorageConnector extends StorageConnector<SegmentationHolder> {
 
+    /** Image Sequence id */
     imageSetId: number;
+    /** omero api */
     omeroAPI: OmeroAPIService;
     updateEvent: EventEmitter<SegmentationOMEROStorageConnector> = new EventEmitter();
 
     /**
      * Creates the segmentation holder from an existing json entry in db
+     * @param imageSetId the omero image sequence id
      * @param segService segmentation service
-     * @param segmentation the segmentation REST entry
+     * @param segmentation the segmentation file as a json string
      */
     public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number): SegmentationOMEROStorageConnector {
         const model = deserialize<SegmentationHolder>(segmentation, SegmentationHolder);
@@ -32,6 +39,7 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
         // TODO: this should be implemented into the serializer
         model.onDeserialized();
 
+        // create the omero storage connector and bind it to the model
         const srsc = new SegmentationOMEROStorageConnector(omeroAPI, model, imageSetId);
 
         return srsc;
@@ -44,12 +52,15 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
      * @param imageUrls the image urls
      */
     public static createNew(omeroAPI: OmeroAPIService, imageSetId: number, imageUrls: string[]) {
+        // new holder
         const holder = new SegmentationHolder();
 
+        // add a segmentation model for every frame
         for (const url of imageUrls) {
             holder.addSegmentation(new SegmentationModel());
         }
 
+        // create the omero storage connector and bind it to the model
         const srsc = new SegmentationOMEROStorageConnector(omeroAPI, holder, imageSetId);
 
         return srsc;
@@ -57,7 +68,7 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
 
 
     /**
-     * Attaches the storage connector to a model instance
+     * Binds the storage connector to a model instance
      * @param model segmentation model
      * @param imageId optional image id (the image id can only be missing if we are using an existing REST record)
      */
@@ -105,13 +116,18 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
     }
 }
 
-export class DerivedSegmentationOMEROStorageConnector extends StorageConnector<DerivedSegmentationHolder> {
+/**
+ * Connects the simple segmentation holder to an OMERO attachment and stores any HARD change of the segmentation models.
+ * 
+ * Synchronizes with the GUI {@link SegmentationOMEROStorageConnector} such that simple segmentation is always in sync with GUI Segmentation.
+ */
+export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<SimpleSegmentationHolder> {
 
     omeroAPI: OmeroAPIService;
     restRecord: SimpleSegmentationREST;
     parentOMERO: SegmentationOMEROStorageConnector;
 
-    updateEvent: EventEmitter<DerivedSegmentationOMEROStorageConnector> = new EventEmitter();
+    updateEvent: EventEmitter<SimpleSegmentationOMEROStorageConnector> = new EventEmitter();
 
     /**
      * Attaches the storage connector to a model instance
@@ -119,7 +135,7 @@ export class DerivedSegmentationOMEROStorageConnector extends StorageConnector<D
      * @param imageId optional image id (the image id can only be missing if we are using an existing REST record)
      */
     constructor(omeroAPI: OmeroAPIService,
-                model: DerivedSegmentationHolder,
+                model: SimpleSegmentationHolder,
                 parentOMERO: SegmentationOMEROStorageConnector) {
         super(model);
 
@@ -146,7 +162,7 @@ export class DerivedSegmentationOMEROStorageConnector extends StorageConnector<D
     }
 
     /**
-     * Update the object representation in the rest api
+     * Update the object representation in omero via the REST API
      */
     public update() {
         const data: string = JSON.stringify(this.model.content);

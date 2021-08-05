@@ -236,6 +236,9 @@ export class SegmentationModel {
     }
 }
 
+/**
+ * Holds a set of segmentation models and adds json serialization functionality
+ */
 @Serializable()
 export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> implements ChangableModel<SegmentationModel> {
 
@@ -289,10 +292,13 @@ export interface SimpleSegmentation {
     detections: Array<SimpleDetection>;
 }
 
-export class DerivedSegmentationHolder
-    implements ChangableModel<DerivedSegmentationHolder> {
+/**
+ * Attaches to a normal {@link SegmentationHolder} instance and converts its state to the simple segmentation format.
+ */
+export class SimpleSegmentationHolder
+    implements ChangableModel<SimpleSegmentationHolder> {
 
-    modelChanged = new EventEmitter<ModelChanged<DerivedSegmentationHolder>>();
+    modelChanged = new EventEmitter<ModelChanged<SimpleSegmentationHolder>>();
     baseHolder: SegmentationHolder;
 
     content: Array<SimpleSegmentation>;
@@ -307,6 +313,9 @@ export class DerivedSegmentationHolder
         });
     }
 
+    /**
+     * Updates the simple segmentation representation
+     */
     update() {
         this.content = [];
         // iterate over models and collect simple segmentation

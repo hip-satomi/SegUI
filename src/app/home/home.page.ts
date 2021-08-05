@@ -20,7 +20,7 @@ import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SegmentationModel, SegmentationHolder, DerivedSegmentationHolder, SimpleSegmentation } from './../models/segmentation-model';
+import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder as SimpleSegmentationHolder, SimpleSegmentation } from './../models/segmentation-model';
 import { ActionSheetController, LoadingController, PopoverController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContainerRef, ComponentFactoryResolver } from '@angular/core';
 
@@ -69,7 +69,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   trackingUI: TrackingUI;
 
-  derivedSegHolder: DerivedSegmentationHolder;
+  simpleSegHolder: SimpleSegmentationHolder;
 
   /** Key where the segmentation data is stored */
   segKey = 'segmentations';
@@ -132,6 +132,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private resolver: ComponentFactoryResolver) {
  }
 
+  // Redirect Mouse & Touch interactions
   onPointerDown(event: any): boolean {
     if (this.tool) {
       if (this.tool.onPointerDown(event)) {
@@ -279,22 +280,18 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   ngOnInit() {
-    // if there is no resource defined --> go back to list view
-    /*if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
-      this.router.navigateByUrl('/list');
-    }*/
   }
 
   async ngAfterViewInit() {
   }
 
+  /**
+   * Important functionality to load the dataset
+   */
   async ionViewWillEnter() {
     console.log('Init test');
     console.log(this.stateService.navImageSetId);
     console.log(this.stateService.imageSetId);
-    /*if (!this.stateService.navImageSetId && ! this.stateService.imageSetId) {
-      return false;
-    }*/
 
     // create progress loader
     const loading = this.loadingCtrl.create({
@@ -302,22 +299,16 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       backdropDismiss: true
     });
 
-    // get the query param and fire the id
+    // get the query param and fire the image id
     this.route.paramMap.pipe(
       map(params => {
-        /*if (!this.router.getCurrentNavigation().extras.state) {
-          throw new Error('No state information available');
-        } else {
-          return this.router.getCurrentNavigation().extras.state?.imageSetId;
-        }*/
         return Number(params.get('imageSetId'));
       }),
       tap(() => {
         loading.then(l => l.present());
       }),
       switchMap(imageSetId => this.loadImageSetById(imageSetId)),
-      // take only once --> pipe is closed immediately and finalize stuff is called
-      take(1),
+      take(1), // take only once --> pipe is closed immediately and finalize stuff is called
       finalize(() => {
         console.log('done loading');
         loading.then(l => l.dismiss());
@@ -325,83 +316,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     ).subscribe(
       () => console.log('Successfully loaded!')
     );
-
-
-    if (this.backendMode === BackendMode.SegTrack) {
-      const id = this.stateService.navImageSetId;
-
-      // now we have the id of the image set
-      const toast = await this.toastController.create({
-        message: `The loaded imageSet id is ${id}`,
-        duration: 2000,
-      });
-      toast.present();
-
-      loading.then(l => l.present());
-      // get image urls
-      this.segService.getImageUrls(id).pipe(
-        // get the latest tracking
-        mergeMap((urls: string[]) => {
-          return this.segService.getLatestTracking(id).pipe(
-            map(tr => ({urls, tracking: tr}))
-          );
-        }),
-        // depending on the tracking load the segmentation
-        mergeMap((joint) => {
-          let seg: Observable<GUISegmentation>;
-          if (joint.tracking) {
-            // we have a tracking --> load segmentation
-            seg = this.segService.getSegmentationByUrl(joint.tracking.segmentation);
-          } else {
-            // we have no tracking --> load segmentation
-            seg = this.segService.getLatestSegmentation(id);
-          }
-
-          return seg.pipe(
-            map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
-          );
-        }),
-        // create the segmentation connector
-        map((content) => {
-          let srsc: SegmentationRESTStorageConnector;
-          if (content.segm === null) {
-            srsc = SegmentationRESTStorageConnector.createNew(this.segService, id, content.urls);
-          } else {
-            srsc = SegmentationRESTStorageConnector.createFromExisting(this.segService, content.segm);
-          }
-
-          // add the simple model
-          // TODO the construction here is a little bit weird
-          const derived = new DerivedSegmentationHolder(srsc.getModel());
-          const derivedConnector = new DerivedSegmentationRESTStorageConnector(this.segService, derived, srsc);
-
-          return {srsc, derived, tracking: content.tracking, urls: content.urls};
-        }),
-        // create the tracking connector
-        map((content) => {
-          let trsc: TrackingRESTStorageConnector;
-          if (content.tracking === null) {
-            // create a tracking
-            trsc = TrackingRESTStorageConnector.createNew(this.segService, content.srsc);
-          } else {
-            trsc = TrackingRESTStorageConnector.createFromExisting(this.segService, content.srsc, content.tracking);
-          }
-
-          return {srsc: content.srsc, derived: content.derived, trsc, urls: content.urls};
-        }),
-        tap(async (content) => {
-          this.stateService.imageSetId = id;
-          await this.loadSegmentation(content.srsc.getModel(), content.derived, content.urls);
-          await this.loadTracking(content.trsc.getModel());
-        }),
-        finalize(() => loading.then(l => l.dismiss()))
-      ).subscribe((content) => {
-        // refresh the canvas
-        this.draw();
-        },
-        (err) => console.error(err)
-      );
-    }
   }
 
   /**
@@ -417,26 +331,28 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           map(tr => ({urls, tracking: tr}))
         );
       }),
-      // depending on the tracking load the segmentation
+      // TODO: depending on the tracking load the segmentation
+      // Currently: Load the latest GUISegmentation
       mergeMap((joint) => {
         return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUISegmentation.json').pipe(
           map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
         );
       }),
-      //map((imageUrls: string[]) => ({urls: imageUrls, tracking: null, segm: null})),
       // create the segmentation connector
       map((content) => {
         let srsc: SegmentationOMEROStorageConnector;
         if (content.segm === null) {
+          // there is no existing segmentation file
           srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls);
         } else {
+          // load the existing model file
           srsc = SegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId);
         }
 
         // add the simple model
         // TODO the construction here is a little bit weird
-        const derived = new DerivedSegmentationHolder(srsc.getModel());
-        const derivedConnector = new DerivedSegmentationOMEROStorageConnector(this.omeroAPI, derived, srsc);
+        const derived = new SimpleSegmentationHolder(srsc.getModel());
+        const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, srsc);
 
         return {srsc, tracking: content.tracking, derived, urls: content.urls};
       }),
@@ -447,6 +363,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           // create a tracking
           trsc = TrackingOMEROStorageConnector.createNew(this.omeroAPI, content.srsc);
         } else {
+          // load from existing
           trsc = TrackingOMEROStorageConnector.createFromExisting(this.omeroAPI, content.srsc, content.tracking);
         }
 
@@ -456,8 +373,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         this.pencil = new Pencil(this.imageDisplay.ctx, this.imageDisplay.canvasElement);
 
         this.stateService.imageSetId = imageSetId;
-        await this.loadSegmentation(content.srsc.getModel(), content.derived, content.urls);
-        await this.loadTracking(content.trsc.getModel());
+        await this.importSegmentation(content.srsc.getModel(), content.derived, content.urls);
+        await this.importTracking(content.trsc.getModel());
       }),
       tap(() => {
         console.log('Draw');
@@ -467,23 +384,33 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   }
 
-  async loadSegmentation(segHolder: SegmentationHolder, derivedSegHolder: DerivedSegmentationHolder, imageUrls: string[]) {
+  /**
+   * Import Segmentation Data into the current UI
+   * @param segHolder holder of all segmentation data
+   * @param simpleSegHolder holder of simple segmentation 
+   * @param imageUrls omero urls of the images
+   */
+  async importSegmentation(segHolder: SegmentationHolder, simpleSegHolder: SimpleSegmentationHolder, imageUrls: string[]) {
     // now that we have a holder we can start using it
     this.segHolder = segHolder;
     this.segHolder.modelChanged.subscribe((event: ModelChanged<SegmentationModel>) => {
       this.segModelChanged(event);
     });
 
-    this.derivedSegHolder = derivedSegHolder;
+    this.simpleSegHolder = simpleSegHolder;
 
+    // generate segmentation uis
     this.segmentationUIs = [];
-
     for (const [index, model] of this.segHolder.segmentations.entries()) {
       this.segmentationUIs.push(new SegmentationUI(model, imageUrls[index], this.imageDisplay.canvasElement, this.actionSheetController));
     }
   }
 
-  async loadTracking(trackingModel: TrackingModel) {
+  /**
+   * Import {@link TrackingModel} into the current UI
+   * @param trackingModel the tracking model to import
+   */
+  async importTracking(trackingModel: TrackingModel) {
     if (trackingModel === null) {
       // There was an error while loading the tracking
       const toast = await this.toastController.create({
@@ -492,8 +419,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       });
       toast.present();
     } else {
-      // loading the tracking
+      // set the tracking model
       this.trackingModel = trackingModel;
+      // create the associated tracking UI
       this.trackingUI = new TrackingUI(this.segmentationModels,
         this.segmentationUIs,
         this.trackingModel,
@@ -906,8 +834,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    */
   track() {
     // we need to access derived segmentation holder
-    this.derivedSegHolder.update();
-    const segContent = this.derivedSegHolder.content;
+    this.simpleSegHolder.update();
+    const segContent = this.simpleSegHolder.content;
 
     const currentFrame = this.activeView;
     const nextFrame = this.activeView + 1;
@@ -958,17 +886,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.isOpen = true;
     this.tool = this.segTool;
     this.draw();
-    //const factory = this.resolver.resolveComponentFactory(SegmentationComponent);
-    //let componentRef = this.container.createComponent(factory);
-    /*const popover = await this.popoverController.create({
-      component: PopoverCompComponent,
-      //cssClass: 'my-custom-class',
-      event: ev,
-      translucent: false,
-      backdropDismiss: false,
-      showBackdrop: false,
-    });
-    return await popover.present();*/
   }
 
 }
