@@ -57,7 +57,7 @@ test:
     - npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage
   artifacts:
       reports:
-        cobertura: ../coverage/cobertura-coverage.xml
+        cobertura: ./coverage/cobertura-coverage.xml
 
 #build-job:       # This job runs in the build stage, which runs first.
 #  stage: build
