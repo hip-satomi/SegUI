@@ -696,7 +696,7 @@ export class ActionManager {
         if (!this.canUndo) {
             return;
         }
-        const lastAction = this.actions[this.currentActionPointer - 1];
+        const lastAction = this.lastAction;
 
         console.log('Undo:');
         console.log(lastAction.constructor.name);
