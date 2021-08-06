@@ -314,6 +314,9 @@ export class SimpleSegmentationHolder
                 this.update();
             }
         });
+
+        // initially updated the json representation
+        this.update();
     }
 
     /**
