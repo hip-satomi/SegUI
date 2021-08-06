@@ -52,6 +52,7 @@ test:
     - apt install -y ./google-chrome*.deb;
     - export CHROME_BIN=/usr/bin/google-chrome
     - npm install -g @angular/cli @ionic/cli
+    - npm install
   script:
     - npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage
   artifacts:
