@@ -38,6 +38,9 @@ export class SegmentationModel {
         this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
             this.notfiyModelChanged();
         });
+
+        // TODO this is somehow strange not to able to have an empty model. If the model is empty on interaction a new polygon is added and this can destroy the redo stack.
+        this.addNewPolygon();
     }
 
     /**
