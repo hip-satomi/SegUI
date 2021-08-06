@@ -348,8 +348,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           // there is no existing segmentation file
           // TODO First try to import from omero
           
+          srsc = null;
+
           // 1. Check whether OMERO has ROI data available
-          if (this.omeroAPI.hasRoIData(imageSetId))
+          const roiData = await this.omeroAPI.getRoIData(imageSetId).pipe(
+            take(1)
+          ).toPromise();
+          if (roiData.length > 0)
           {
 
             // 2. Let the user decide whether he  wants to import it
@@ -374,9 +379,21 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             console.log('onDidDismiss resolved with role', role);
 
             // 3. Import the data
-            srsc = null;
             if (role == 'confirm') {
               // try to load the data
+              srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls);
+              created = true;
+
+              // add every polygon that already exists in omero
+              for (const poly of roiData) {
+                const currentModel = srsc.getModel().segmentations[poly.t]
+
+                // create polygon add action
+                const action = new AddPolygon(currentModel.segmentationData, new Polygon(...poly.points));
+
+                // execute the action
+                currentModel.addAction(action);
+              }
             }
           }
 

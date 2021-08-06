@@ -1,5 +1,6 @@
+import { Point } from './../models/geometry';
 import { Serializable, JsonProperty, deserialize } from 'typescript-json-serializer';
-import { map, tap, mergeMap, switchMap, combineAll } from 'rxjs/operators';
+import { map, tap, mergeMap, switchMap, combineAll, catchError } from 'rxjs/operators';
 import { DataListResponse, DataResponse } from './omero-auth.service';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, empty, forkJoin, of, combineLatest, from } from 'rxjs';
@@ -168,6 +169,57 @@ export class RenderInfos {
   channels: Array<ChannelInfo>;
 }
 
+const pointsToString = (points: Array<Point>): string => {
+  return points.map(point => point.join(',')).join(' ');
+}
+
+const stringToPoints = (pointList: string): Array<Point> => {
+  return pointList.split(' ').map((pointString: string): Point => pointString.split(',').map(parseFloat) as Point);
+}
+
+@Serializable()
+export class RoIShape {
+  @JsonProperty({name: '@type'})
+  type: string;
+
+  @JsonProperty({name: 'TheT'})
+  t: number;
+
+  @JsonProperty({name: 'TheZ'})
+  z: number;
+
+  @JsonProperty({name: 'Points', onDeserialize: stringToPoints, onSerialize: pointsToString})
+  points: Array<Point>;
+}
+@Serializable()
+export class RoIData {
+  @JsonProperty({type: RoIShape})
+  shapes: Array<RoIShape>;
+}
+@Serializable()
+export class RoIResult {
+  @JsonProperty({type: RoIData})
+  data: Array<RoIData>;
+
+  @JsonProperty()
+  meta: any;
+}
+
+export class ShapePolygon {
+
+  constructor(points: Array<Point>, t: number, z: number) {
+    this.t = t;
+    this.z = z;
+
+    this.points = points;
+  }
+
+  t: number
+  z: number
+
+  points: Array<Point>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -296,6 +348,37 @@ export class OmeroAPIService {
     return this.httpClient.get(`/omero/webclient/api/annotations/?type=file&image=${imageId}`).pipe(
       map(r => {
         return deserialize(r, AnnotationResult);
+      })
+    );
+  }
+
+  /**
+   * 
+   * @param imageId 
+   * @returns 
+   */
+  getRoIData(imageId: number): Observable<Array<ShapePolygon>> {
+    return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`).pipe(
+      map(r => {
+        return deserialize(r, RoIResult);
+      }),
+      map((r: RoIResult) => {
+        let data = r.data;
+
+        if (data.length == 0) {
+          return [];
+        }
+
+        // TODO: How to select correct roi
+        const firstRoi = data[0];
+
+        return firstRoi.shapes
+          .filter(s => s.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
+          .map(s => new ShapePolygon(s.points, s.t, s.z));
+      }),
+      catchError(err => {
+        console.error(err);
+        return of([]);
       })
     );
   }
