@@ -586,6 +586,22 @@ export class JointAction extends Action{
             act.setData(info);
         }
     }
+
+    /**
+     * 
+     * @returns true if all actions allow undo, otherwise false
+     */
+    allowUndo(): boolean {
+        return this.actions.map(a => a.allowUndo()).reduce((a, b) => a && b);
+    }
+
+    /**
+     * 
+     * @returns true if all actions allow redo, otherwise false
+     */
+    allowRedo(): boolean {
+        return this.actions.map(a => a.allowRedo()).reduce((a, b) => a && b);
+    }
 }
 
 @Serializable()
