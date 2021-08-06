@@ -342,6 +342,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       // create the segmentation connector
       switchMap(async (content) => {
         let srsc: SegmentationOMEROStorageConnector;
+        let created = false;
+
         if (content.segm === null) {
           // there is no existing segmentation file
           // TODO First try to import from omero
@@ -381,6 +383,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           if (srsc == null) {
             // loading from OMERO failed or has been rejected
             srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls);
+            created = true;
           }
         } else {
           // load the existing model file
@@ -391,6 +394,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         // TODO the construction here is a little bit weird
         const derived = new SimpleSegmentationHolder(srsc.getModel());
         const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, srsc);
+        // if we create a new segmentation -> update also the simple storage
+        if (created) {
+          derivedConnector.update().subscribe(() => console.log('Enforced creation update!'));
+        }
 
         return {srsc, tracking: content.tracking, derived, urls: content.urls};
       }),
