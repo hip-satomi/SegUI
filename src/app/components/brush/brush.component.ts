@@ -48,9 +48,12 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
 
   ctx;
   canvasElement;
+  pencil: Pencil;
 
 
   simplificationTolerance = 0.2;
+
+  showOverlay = true;
 
   @Output()
   changedEvent = new EventEmitter<void>();
@@ -83,9 +86,15 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
    * Draw the segmentation using the brushed view
    * @param ctx the canvas context to draw
    */
-  draw(pencil: Pencil): void {
-      this.ctx = pencil.canvasCtx;
-      this.canvasElement = pencil.canvasElement;
+  draw(pencil: Pencil = null): void {
+      if (pencil) {
+        this.pencil = pencil;
+        this.ctx = pencil.canvasCtx;
+        this.canvasElement = pencil.canvasElement;
+      } else {
+          // if no new pencil is used we fallback to last one
+          pencil = this.pencil;
+      }
 
       pencil.clear();
 
@@ -105,7 +114,9 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
       }
 
       // 1. Draw all other detections
-      this.segModel.drawPolygons(ctx, false);
+      if (this.showOverlay) {
+        this.segModel.drawPolygons(ctx, false);
+      }
       // 2. draw the backgound image
       this.segUI.drawImage(ctx);
   }

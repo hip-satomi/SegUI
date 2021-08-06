@@ -5,6 +5,14 @@
 </ion-toolbar>
   <ion-grid>
     <ion-row>
+      <ion-col>
+      <ion-item>
+        <ion-label>Show Overlay</ion-label>
+        <ion-toggle [(ngModel)]="showOverlay" (ionChange)="draw()"></ion-toggle>
+      </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
       <ion-col class="vertical-align-content">
         <ion-label style="text-align: center;">Brush Size: {{brushSize | number:'1.0-0'}}</ion-label>
       </ion-col>
