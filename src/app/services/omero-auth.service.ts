@@ -7,6 +7,7 @@ import { Injectable } from '@angular/core';
 import { Plugins } from '@capacitor/core';
 import { JwtHelperService } from '@auth0/angular-jwt';
 import { switchMap, map, tap } from 'rxjs/operators';
+import * as dayjs from 'dayjs';
 
 const { Storage } = Plugins;
 
@@ -75,6 +76,8 @@ export class OmeroAuthService {
 
   private server$: Observable<number>;
 
+  private refreshTokenTimeout;
+
   constructor(private httpClient: HttpClient,
               private plt: Platform,
               private router: Router,
@@ -113,6 +116,7 @@ export class OmeroAuthService {
           }),
           tap((r: LoginResponse) => {
             this.updateUser(r.eventContext);
+            this.startRefreshTokenTimer();
           }),
           map((r: LoginResponse) => r.eventContext)
         );
@@ -126,8 +130,29 @@ export class OmeroAuthService {
 
   logout() {
     Storage.remove({key: TOKEN_KEY}).then(() => {
+      this.stopRefreshTokenTimer();
       this.router.navigateByUrl('/');
       this.updateUser(null);
     });
+  }
+
+  refreshToken() {
+    return this.httpClient.get('/omero/api/servers/')
+        .pipe(tap(() => {
+            this.startRefreshTokenTimer();
+            console.log('CSRF Refresh Timer!')
+        }));
+  }
+
+
+  private startRefreshTokenTimer() {
+    // set a timeout to refresh the token a minute before it expires
+    const expires = dayjs().add(5, 'minute').toDate();
+    const timeout = expires.getTime() - Date.now() - (60 * 1000);
+    this.refreshTokenTimeout = setTimeout(() => this.refreshToken().subscribe(), timeout);
+  }
+
+  private stopRefreshTokenTimer() {
+      clearTimeout(this.refreshTokenTimeout);
   }
 }
