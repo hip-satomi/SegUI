@@ -12,6 +12,6 @@ RUN cd app && ionic build --prod
 FROM nginx
 
 RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d
+COPY nginx.conf /etc/nginx/
 
 COPY --from=0 ./app/www /www
