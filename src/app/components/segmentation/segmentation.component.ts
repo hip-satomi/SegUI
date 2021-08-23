@@ -173,7 +173,7 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
         console.log('have the binary data!');
         console.log(data);
 
-        return this.segmentationService.requestJSSegmentationProposal(data);
+        return this.segmentationService.requestJSSegmentationProposal(data, 0.05);
       }),
       tap(
         (data) => {

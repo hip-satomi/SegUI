@@ -38,10 +38,11 @@ export class SegmentationService {
     );
   }
 
-  public requestJSSegmentationProposal(imageBlob) {
+  public requestJSSegmentationProposal(imageBlob, score_thr = 0.4) {
     // put the binary image data into form data
     const fd = new FormData();
     fd.append('data', imageBlob);
+    fd.append('test_cfg.rcnn.score_thr', `${score_thr}`)
 
     // post this to a segmentation service
     return this.httpClient.post('/pt/predictions/cellcmaskrcnn/', fd).pipe(
