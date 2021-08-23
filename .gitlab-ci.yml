@@ -34,7 +34,6 @@ cache:
 stages:
   - setup
   - test
-#  - build
 
 install:
   stage: setup
@@ -42,6 +41,15 @@ install:
     - npm install
     - npm install -g @angular/cli @ionic/cli
     - ionic build
+
+build-docker:
+  script:
+    - echo $CI_REGISTRY
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY/j.seiffarth/segtrackui/server:latest -f dokcer/Dockerfile .
+    - docker push $CI_REGISTRY/j.seiffarth/segtrackui/server:latest
+    
+
 
 test:
   stage: test
