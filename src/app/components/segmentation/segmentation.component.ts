@@ -94,8 +94,8 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
       return this._cachedFilterDets;
     }
 
-    // filter by score threshold
-    const thresholdFiltered = Array.from(this.localSegModel.segmentationData.getPolygonEntries()).filter(([uuid, poly]) => this.polyMeta[uuid]['score'] >= this.scoreThreshold);
+    // filter by score threshold (there might also be empty items in the localSegModel)
+    const thresholdFiltered = Array.from(this.localSegModel.segmentationData.getPolygonEntries()).filter(([uuid, poly]) => uuid in this.polyMeta && this.polyMeta[uuid]['score'] >= this.scoreThreshold);
 
     // filter by overlaps (if bbox center is in other bbox only keep max-scored)
     if (this.filterOverlaps) {
