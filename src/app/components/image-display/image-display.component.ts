@@ -189,7 +189,7 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     const mousex = mousepos.x;
     const mousey = mousepos.y;
 
-    const zoom = event.deltaY * -1e-2 + 1.;
+    const zoom = event.deltaY * -1e-3 + 1.;
 
     this.zoom(zoom, mousepos);
 
