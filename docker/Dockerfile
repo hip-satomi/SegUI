@@ -12,6 +12,7 @@ RUN cd app && ionic build --prod
 FROM nginx
 
 RUN rm /etc/nginx/conf.d/default.conf
-COPY docker/nginx.conf /etc/nginx/
+COPY docker/upstream.conf /etc/nginx/templates/upstream.conf.template
+COPY docker/nginx.conf /etc/nginx/nginx.conf 
 
 COPY --from=0 ./app/www /www
