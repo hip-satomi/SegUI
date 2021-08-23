@@ -27,13 +27,23 @@ export class TokenInterceptorService implements HttpInterceptor {
     }
 
     if (req.url.match('^/omero')) {
-      //return next.handle(req);
-      return this.csrfService.getToken().pipe(
+      /*return this.csrfService.getToken().pipe(
         switchMap((token: string) => {
           //const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: {...req.body, csrfmiddlewaretoken: token}});
           return next.handle(req);
         })
-      );
+      );*/
+      return next.handle(req).pipe(
+        catchError(err => {
+          if ([401, 403].includes(err.status) && this.authService.user) {
+              // auto logout if 401 or 403 response returned from api
+              this.authService.logout();
+          }
+
+          const error = (err && err.error && err.error.message) || err.statusText;
+          console.error(err);
+          return throwError(error);
+        }));
     } else if (req.url.match('^/pt') || req.url.match('^/tf') || req.url.match('^/tracking')) {
       return next.handle(req);
     } else {
