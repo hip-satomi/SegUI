@@ -16,6 +16,10 @@
 image: node:14.15-stretch
 variables:
   FF_USE_FASTZIP: "true"
+  # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+
 
 cache:
   untracked: true
@@ -44,6 +48,9 @@ install:
 
 build-docker:
   stage: setup
+  image: docker:20.10.8
+  services:
+    - docker:20.10.8-dind
   script:
     - echo $CI_REGISTRY
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
