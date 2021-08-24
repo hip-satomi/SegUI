@@ -11,7 +11,7 @@ import { GUISegmentation, GUITracking, SimpleSegmentationREST } from './../servi
 import { SegRestService } from 'src/app/services/seg-rest.service';
 import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder } from './segmentation-model';
 import { TrackingModel } from './tracking';
-import { Observable, of, zip, empty } from 'rxjs';
+import { Observable, of, zip, empty, Subject } from 'rxjs';
 import { StorageConnector } from './storage';
 
 
@@ -33,11 +33,11 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
      * @param segService segmentation service
      * @param segmentation the segmentation file as a json string
      */
-    public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number): SegmentationOMEROStorageConnector {
+    public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number, destroySignal: Subject<void>): SegmentationOMEROStorageConnector {
         const model = deserialize<SegmentationHolder>(segmentation, SegmentationHolder);
 
         // TODO: this should be implemented into the serializer
-        model.onDeserialized();
+        model.onDeserialized(destroySignal);
 
         // create the omero storage connector and bind it to the model
         const srsc = new SegmentationOMEROStorageConnector(omeroAPI, model, imageSetId);
@@ -51,9 +51,9 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
      * @param imageSetId the image set id
      * @param imageUrls the image urls
      */
-    public static createNew(omeroAPI: OmeroAPIService, imageSetId: number, imageUrls: string[]) {
+    public static createNew(omeroAPI: OmeroAPIService, imageSetId: number, imageUrls: string[], destroySingal: Subject<void>) {
         // new holder
-        const holder = new SegmentationHolder();
+        const holder = new SegmentationHolder(destroySingal);
 
         // add a segmentation model for every frame
         for (const url of imageUrls) {

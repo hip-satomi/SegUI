@@ -6,7 +6,8 @@ import { UIUtils } from './utils';
 import { Polygon, Point } from './geometry';
 import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper, Action, JointAction } from './action';
 import { SynchronizedObject } from './storage';
-import { Subscription, Observable, combineLatest } from 'rxjs';
+import { Subscription, Observable, combineLatest, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 /**
  * Segmentation model contains all the information of the segmentation
@@ -250,15 +251,26 @@ export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> i
 
     private subscriptions: Subscription[] = [];
 
-    modelChanged = new EventEmitter<ModelChanged<SegmentationModel>>();
+    _modelChanged = new EventEmitter<ModelChanged<SegmentationModel>>();
 
-    constructor() {
-        super();
+    protected destroySignal: Subject<void>;
+
+    get modelChanged() {
+        return this._modelChanged.pipe(
+            takeUntil(this.destroySignal)
+        );
     }
 
-    onDeserialized() {
+    constructor(destroySignal) {
+        super();
+        this.destroySignal = destroySignal;
+    }
+
+    onDeserialized(destroySignal: Subject<void>) {
         const tmpSegs = this.segmentations;
         this.clearSegmentations();
+
+        this.destroySignal = destroySignal;
 
         // notify all submodels
         for (const segModel of tmpSegs) {
@@ -273,8 +285,8 @@ export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> i
 
     addSegmentation(model: SegmentationModel) {
         this.segmentations.push(model);
-        this.subscriptions.push(model.onModelChange.subscribe((event: ModelChanged<SegmentationModel>) => {
-        this.modelChanged.emit(new ModelChanged(event.model, event.changeType));
+        this.subscriptions.push(model.onModelChange.pipe(takeUntil(this.destroySignal)).subscribe((event: ModelChanged<SegmentationModel>) => {
+        this._modelChanged.emit(new ModelChanged(event.model, event.changeType));
         }));
     }
 

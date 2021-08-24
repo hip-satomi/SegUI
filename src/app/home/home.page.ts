@@ -12,8 +12,8 @@ import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
 import { SegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation } from './../services/seg-rest.service';
-import { map, take, mergeMap, switchMap, tap, finalize } from 'rxjs/operators';
-import { Observable, of, Subscription } from 'rxjs';
+import { map, take, mergeMap, switchMap, tap, finalize, takeUntil } from 'rxjs/operators';
+import { Observable, of, Subject, Subscription } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
 import { Pencil, UIInteraction } from './../models/drawing';
@@ -84,6 +84,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   isOpen = false;
   isBrushOpen = false;
+
+  // this can be used to end other pipelines using takeUntil(ngUnsubscribe)
+  protected ngUnsubscribe: Subject<void> = new Subject<void>();
 
   urls = ['../assets/sequence/image0.png',
           '../assets/sequence/image1.png',
@@ -319,6 +322,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     );
   }
 
+  ionViewDidLeave() {
+    // This aborts all HTTP requests.
+    this.ngUnsubscribe.next();
+    // This completes the subject properlly.
+    this.ngUnsubscribe.complete();
+  }
+
   /**
    * Load imageset from OMERO
    * @param imageSetId image set id
@@ -339,6 +349,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
         );
       }),
+      takeUntil(this.ngUnsubscribe),
       // create the segmentation connector
       switchMap(async (content) => {
         let srsc: SegmentationOMEROStorageConnector;
@@ -381,7 +392,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             // 3. Import the data
             if (role == 'confirm') {
               // try to load the data
-              srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls);
+              srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
               created = true;
 
               // add every polygon that already exists in omero
@@ -399,12 +410,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
           if (srsc == null) {
             // loading from OMERO failed or has been rejected
-            srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls);
+            srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
             created = true;
           }
         } else {
           // load the existing model file
-          srsc = SegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId);
+          srsc = SegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId, this.ngUnsubscribe);
         }
 
         // add the simple model
