@@ -592,6 +592,9 @@ export class JointAction extends Action{
      * @returns true if all actions allow undo, otherwise false
      */
     allowUndo(): boolean {
+        if (this.actions.length == 0) {
+            return true;
+        }
         return this.actions.map(a => a.allowUndo()).reduce((a, b) => a && b);
     }
 
@@ -600,6 +603,9 @@ export class JointAction extends Action{
      * @returns true if all actions allow redo, otherwise false
      */
     allowRedo(): boolean {
+        if (this.actions.length == 0) {
+            return true;
+        }
         return this.actions.map(a => a.allowRedo()).reduce((a, b) => a && b);
     }
 }
