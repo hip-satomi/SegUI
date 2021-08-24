@@ -65,6 +65,11 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
    * @param pencil the canvas pencil
    */
   draw(pencil: Pencil): void {
+    // TODO: Why can the pencil be null?
+    if(!pencil) {
+      return;
+    }
+
     // clear the canvas
     pencil.clear();
 
@@ -129,7 +134,10 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
 
   update(e) {
     console.log(this.showOverlay)
-    this.draw(this.oldPencil);
+    if (this.oldPencil) {
+      // if we have a cached pencil, we can redraw
+      this.draw(this.oldPencil);
+    }
   }
 
   ngOnInit() {}

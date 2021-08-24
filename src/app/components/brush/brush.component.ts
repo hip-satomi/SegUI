@@ -96,6 +96,11 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
           pencil = this.pencil;
       }
 
+      // TODO: why can the pencil be null?
+      if(!pencil) {
+          return;
+      }
+
       pencil.clear();
 
       const ctx = pencil.canvasCtx;
