@@ -27,7 +27,7 @@ ionic serve
 
 ## How to Test the UI - Use a docker container
 
-We automatically build a docker container that serves the `segTrackUI`. Perform the following steps to test the setup
+We automatically build a docker container that serves the `segTrackUI`. Make sure you have [docker](https://docs.docker.com/get-docker/) installed and perform the following steps to get it running
 
 1. Please login at the container registry
 
