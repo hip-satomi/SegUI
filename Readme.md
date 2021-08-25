@@ -41,7 +41,7 @@ We automatically build a docker container that serves the `segTrackUI`. Make sur
     The UI server needs the location of the omero server specified in the `OMERO_URL` environment variable. Thus the code snippet below launches an UI server that connects to the omero server at `localhost:4080` (4080 is the default omero web port)
 
     ```
-    docker run --rm -it --network host -e OMERO_URL=localhost:4080 --pull newer jugit-registry.fz-juelich.de/satomi/segtrackui/server:latest
+    docker run --rm -it --network host -e OMERO_URL=localhost:4080 --pull always jugit-registry.fz-juelich.de/satomi/segtrackui/server:latest
     ```
 
     *Note:* This command will always fetch the latest docker container from the registry.
