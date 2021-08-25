@@ -1,10 +1,10 @@
 import { SelectedSegment } from './../models/tracking-data';
 import { TrackingService, Link } from './../services/tracking.service';
-import { OmeroAPIService } from './../services/omero-api.service';
+import { OmeroAPIService, RoIData, RoIModData } from './../services/omero-api.service';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { BrushTool } from './../toolboxes/brush-toolbox';
-import { UIUtils, Utils } from './../models/utils';
+import { OmeroUtils, UIUtils, Utils } from './../models/utils';
 import { Polygon, Point } from './../models/geometry';
 import { AddPolygon, JointAction, AddLinkAction } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
@@ -12,8 +12,8 @@ import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
 import { SegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation } from './../services/seg-rest.service';
-import { map, take, mergeMap, switchMap, tap, finalize, takeUntil } from 'rxjs/operators';
-import { Observable, of, Subject, Subscription } from 'rxjs';
+import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, concatMap, concatAll, mergeAll, combineAll } from 'rxjs/operators';
+import { BehaviorSubject, from, Observable, of, ReplaySubject, Subject, Subscription, throwError, zip } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
 import { Pencil, UIInteraction } from './../models/drawing';
@@ -960,6 +960,60 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.isOpen = true;
     this.tool = this.segTool;
     this.draw();
+  }
+
+  async omeroExport() {
+    // 1. Warn the user that this can overwrite data
+    from(this.alertController.create({
+          header: 'Confirm OMERO Export',
+          message: 'Do you really want to export to OMERO? This will erase all exisiting RoI data!',
+          buttons: [
+            {
+              text: 'Cancel',
+              role: 'cancel',
+            },
+            {
+              text: 'Confirm',
+              role: 'confirm'
+            }
+          ]
+        }))
+    .pipe(
+      tap((alert) => alert.present()),
+      switchMap(alert => alert.onDidDismiss()),
+      tap(role => this.showError(`Role result: ${role.role}`)),
+      map(role => {
+        if (role.role == 'confirm')
+          return role;
+        else
+          throw new Error('User did abort the action');
+      }),
+      tap(() => this.showError('You clicked confirm!')),
+      // get the image id
+      switchMap(() => this.imageSetId),
+      // 2. Fetch all the rois from omero
+      tap(() => console.log("Get RoI Data...")),
+      switchMap((imageSetId: number) => this.omeroAPI.getRawRoIData(imageSetId).pipe(
+        map(rawData => {
+          return {"roiData": rawData, "imageSetId": imageSetId}
+        })
+      )),
+      tap(() => this.showError('Finished loading rois')),
+      tap((data) => {
+        const allItemCount = data.roiData.map((roi) => roi.shapes.length).reduce((a,b) => a+b, 0);
+        this.showError(`Will have to delete ${allItemCount} rois`);
+      }),
+      // 3. compose request (delete all existing, add all new) & send
+      tap(() => console.log("Start deleting/adding ...")),
+      switchMap((data) => {
+        return of(this.omeroAPI.deleteRois(data.imageSetId, OmeroUtils.createRoIDeletionList(data)), this.omeroAPI.createRois(data.imageSetId, OmeroUtils.createNewRoIList(this.segHolder))).pipe(combineAll());
+      }),
+      tap(() => console.log('Finished deleting/adding!')),
+      tap(x => console.log(x)),
+      tap(() => this.showError("Successfully finished pipeline"))
+    ).subscribe();
+
+
   }
 
 }
