@@ -110,7 +110,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.draw();
   }
 
-  id = new Observable<number>();
+  imageSetId = new ReplaySubject<number>(1);
 
   pencil: Pencil;
   drawingSubscription: Subscription;
@@ -311,6 +311,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       tap(() => {
         loading.then(l => l.present());
       }),
+      tap((imageSetId) => this.imageSetId.next(imageSetId)),
       switchMap(imageSetId => this.loadImageSetById(imageSetId)),
       take(1), // take only once --> pipe is closed immediately and finalize stuff is called
       finalize(() => {
