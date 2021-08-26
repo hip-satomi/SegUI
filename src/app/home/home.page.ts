@@ -124,7 +124,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private route: ActivatedRoute,
               private router: Router,
               private segService: SegRestService,
-              private stateService: StateService,
+              public stateService: StateService,
               private segmentationService: SegmentationService,
               private omeroAPI: OmeroAPIService,
               private loadingCtrl: LoadingController,
