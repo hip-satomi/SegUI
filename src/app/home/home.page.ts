@@ -134,7 +134,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private popoverController: PopoverController,
               private resolver: ComponentFactoryResolver,
               private alertController: AlertController) {
- }
+  }
 
   // Redirect Mouse & Touch interactions
   onPointerDown(event: any): boolean {
