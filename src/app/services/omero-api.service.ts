@@ -392,6 +392,7 @@ export class OmeroAPIService {
    * @returns 
    */
   getRoIData(imageId: number): Observable<Array<ShapePolygon>> {
+    // TODO: Load all rois not only one page
     return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`).pipe(
       map(r => {
         return deserialize(r, RoIResult);
@@ -403,12 +404,9 @@ export class OmeroAPIService {
           return [];
         }
 
-        // TODO: How to select correct roi
-        const firstRoi = data[0];
-
-        return firstRoi.shapes
+        return data.map(roi => roi.shapes
           .filter(s => s.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
-          .map(s => new ShapePolygon(s.points, s.t, s.z));
+          .map(s => new ShapePolygon(s.points, s.t, s.z))).reduce((a,b) => a.concat(b), []);
       }),
       catchError(err => {
         console.error(err);
