@@ -377,7 +377,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           ).toPromise();
           if (roiData.length > 0)
           {
-
             // 2. Let the user decide whether he  wants to import it
             const alert = await this.alertController.create({
               cssClass: 'over-loading',
@@ -434,7 +433,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, srsc);
         // if we create a new segmentation -> update also the simple storage
         if (created) {
-          derivedConnector.update().subscribe(() => console.log('Enforced creation update!'));
+          derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'));
         }
 
         return {srsc, tracking: content.tracking, derived, urls: content.urls};
@@ -1041,6 +1040,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     );
   }
 
+  /**
+   * Kicks off pipeline for omero Export including alert question
+   */
+  omeroExport() {
     // 1. Warn the user that this can overwrite data
     from(this.alertController.create({
           header: 'Confirm OMERO Export',
@@ -1064,6 +1067,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         if (role.role == 'confirm')
           return role;
         else
+          // exit the pipeline
           throw new Error('User did abort the action');
       }),
       tap(() => this.showError('You clicked confirm!')),
@@ -1090,8 +1094,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       tap(x => console.log(x)),
       tap(() => this.showError("Successfully finished pipeline"))
     ).subscribe();
-
-
   }
 
 }
