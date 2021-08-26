@@ -1,16 +1,21 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-select [(ngModel)]="editMode" interface="action-sheet" slot="start">
+    <ion-select [(ngModel)]="editMode" interface="action-sheet" slot="start" #tooltip="matTooltip"
+    matTooltip="Change your working mode here">
       <ion-select-option value="0">Segment</ion-select-option>
       <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
     </ion-select>
       <ion-buttons slot="end">
-        <ion-button (click)="omeroExport()">Export</ion-button>
-        <a ion-button href="https://jugit.fz-juelich.de/satomi/segtrackui/-/issues" target="_blank">ISSUES</a>
-        <ion-button *ngIf="isSegmentation" (click)="isOpen = !isOpen; this.draw()" type="button">
+        <ion-button (click)="omeroExport()" #tooltip="matTooltip"
+        matTooltip="Export segmentation to OMERO">Export</ion-button>
+        <a ion-button href="https://jugit.fz-juelich.de/satomi/segtrackui/-/issues" target="_blank" #tooltip="matTooltip"
+        matTooltip="Please report problems/feature requests for the software here">ISSUES</a>
+        <ion-button *ngIf="isSegmentation" (click)="isOpen = !isOpen; this.draw()" type="button" #tooltip="matTooltip"
+        matTooltip="Advanced ML based segmentation proposals">
           {{isOpen ? "Close" : "ADV-SEG"}}
         </ion-button>
-        <ion-button *ngIf="isSegmentation" (click)="isBrushOpen = !isBrushOpen; newBrushTool(); this.draw();" type="button">
+        <ion-button *ngIf="isSegmentation" (click)="isBrushOpen = !isBrushOpen; newBrushTool(); this.draw();" type="button"
+        #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
           {{isOpen ? "Close" : "BRUSH"}}
         </ion-button>
         <!--<ion-button (click)=showPop()>
