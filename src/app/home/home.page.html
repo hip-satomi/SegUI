@@ -6,6 +6,8 @@
       <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
     </ion-select>
       <ion-buttons slot="end">
+        <ion-button (click)="omeroImport(this.stateService.imageSetId).subscribe()" #tooltip="matTooltip"
+        matTooltip="Import segmentation from OMERO">Import</ion-button>
         <ion-button (click)="omeroExport()" #tooltip="matTooltip"
         matTooltip="Export segmentation to OMERO">Export</ion-button>
         <a ion-button href="https://jugit.fz-juelich.de/satomi/segtrackui/-/issues" target="_blank" #tooltip="matTooltip"
