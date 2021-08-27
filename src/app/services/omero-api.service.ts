@@ -78,6 +78,18 @@ export class Pixel extends Id {
 }
 
 @Serializable()
+export class PageMeta {
+  @JsonProperty()
+  offset: number;
+  @JsonProperty()
+  limit: number;
+  @JsonProperty()
+  maxLimit: number;
+  @JsonProperty()
+  totalCount: number;
+}
+
+@Serializable()
 export class Image {
   @JsonProperty({name: '@id'})
   id: number;
@@ -204,24 +216,12 @@ export class RoIData {
 }
 
 @Serializable()
-export class RoIMeta {
-
-  @JsonProperty()
-  limit: number;
-  @JsonProperty()
-  maxLimit: number;
-  @JsonProperty()
-  offset: number;
-  @JsonProperty()
-  totalCount: number;
-}
-@Serializable()
 export class RoIResult {
   @JsonProperty({type: RoIData})
   data: Array<RoIData>;
 
   @JsonProperty()
-  meta: RoIMeta;
+  meta: PageMeta;
 }
 
 export class ShapePolygon {
