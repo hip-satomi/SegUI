@@ -722,10 +722,15 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // TODO: show timer if loading takes long!
 
     this.drawingSubscription = this.prepareDraw()?.pipe(
-      tap(() => clearTimeout(this.drawTimer))
+      tap(() => clearTimeout(this.drawTimer)),
+      map((drawer) => {
+        if (drawer) {
+          drawer.draw(this.pencil);
+        }
+      })
     ).subscribe(
-      (drawer: Drawer) => {drawer.draw(this.pencil);},
-      () => console.log('Error during drawing process!'),
+      () => {console.log('Home: Successful draw'); },
+      (e) => {console.log('Error during drawing process!'); console.error(e)},
       () => this.drawingSubscription = null      
     );
   }
