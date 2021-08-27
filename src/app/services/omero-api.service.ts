@@ -386,57 +386,51 @@ export class OmeroAPIService {
     );
   }
 
-  /**
-   * 
-   * @param imageId 
-   * @returns 
-   */
-  getRoIData(imageId: number): Observable<Array<ShapePolygon>> {
-    // TODO: Load all rois not only one page
-    return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`).pipe(
-      map(r => {
-        return deserialize(r, RoIResult);
-      }),
-      map((r: RoIResult) => {
-        let data = r.data;
-
-        if (data.length == 0) {
-          return [];
-        }
-
-        return data.map(roi => roi.shapes
-          .filter(s => s.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
-          .map(s => new ShapePolygon(s.points, s.t, s.z))).reduce((a,b) => a.concat(b), []);
-      }),
-      catchError(err => {
-        console.error(err);
-        return of([]);
-      })
+  genRoIRequest(imageId: number, limit: number, offset: number): Observable<RoIResult> {
+    // Begin assigning parameters
+    const params = {
+      limit: `${limit}`,
+      offset: `${offset}`
+    };
+    
+    return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`, {params}).pipe(
+      map(r => deserialize(r, RoIResult))
     );
   }
 
-  getRoIPage(imageId: number, offset=0, limit=500, existing_data=[]) {
-    return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`, { params: {offset: offset+'', limit: limit+''}}).pipe(
-      switchMap( (r) => {
-        const result = deserialize(r, RoIResult);
+  getPagedRoIData(imageId: number): Observable<Array<RoIData>> {
+    return this.genRoIRequest(imageId, 500, 0).pipe(
+      switchMap(result => {
 
-        if(result.meta.totalCount > result.meta.offset + result.meta.limit) {
-          return this.getRoIPage(imageId, result.meta.offset + result.meta.limit, result.meta.maxLimit, result.data.concat(existing_data));
-        } else {
-          return of(result.data.concat(existing_data));
+        // extract paging meta data from request
+        const limit = result.meta.limit;
+        const maxLimit = result.meta.maxLimit;
+        const totalCount = result.meta.totalCount;
+
+        const requestList: Array<Observable<RoIResult>> = [];
+
+        if (totalCount > limit) {
+          for(let i = 0; i < Math.ceil((totalCount - limit) / maxLimit); i++) {
+            requestList.push(this.genRoIRequest(imageId, maxLimit, limit + i * maxLimit));
+          }
         }
-      }
-    ));
-  }
 
-  /**
-   * 
-   * @param imageId 
-   * @returns 
-   */
-   getRawRoIData(imageId: number): Observable<Array<RoIData>> {
-
-    return this.getRoIPage(imageId);
+        return of(of(result), ...requestList).pipe(
+          combineAll(),
+          map((res: Array<RoIResult>) => {
+            // combine all RoIDatas
+            return res.map(r => r.data).reduce((a,b) => a.concat(b), [])
+          })
+        )
+        //return result.data;
+      }),
+      /*map((data: RoIData[]) => {
+        // join all rois and shapes into an array of shape polygons
+        return data.map(roi => roi.shapes
+          .filter(s => s.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
+          .map(s => new ShapePolygon(s.points, s.t, s.z))).reduce((a,b) => a.concat(b), []);
+      }),*/
+    );
   }
 
   /**

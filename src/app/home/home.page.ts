@@ -372,8 +372,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           srsc = null;
 
           // 1. Check whether OMERO has ROI data available
-          const roiData = await this.omeroAPI.getRoIData(imageSetId).pipe(
-            take(1)
+          const roiData = await this.omeroAPI.getPagedRoIData(imageSetId).pipe(
+            take(1),
+            map(rois => rois.map(roi => roi.shapes).reduce((a,b) => a.concat(b)))
           ).toPromise();
           if (roiData.length > 0)
           {
@@ -973,7 +974,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   omeroImport(imageSetId) {
     // 1. Check whether OMERO has ROI data available
     return this.imageSetId.pipe(
-      switchMap(id => this.omeroAPI.getRoIData(id)),
+      switchMap(id => this.omeroAPI.getPagedRoIData(id)),
       take(1),
       map(roiData => {
         if (roiData.length == 0) {
@@ -986,7 +987,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         return from(this.alertController.create({
           cssClass: 'over-loading',
           header: 'Import Segmentation?',
-          message: 'Do you want to import existing segmentation data from OMERO?',
+          message: `Do you want to import existing segmentation data (${roiData.length} cells) from OMERO?`,
           buttons: [
             {
               text: 'No',
@@ -1005,7 +1006,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               throw new Error("User canceled import!");
             }
 
-            return roiData;
+            return roiData.map(r => r.shapes).reduce((a,b) => a.concat(b), []);
           })
         )
       }),
@@ -1075,7 +1076,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       switchMap(() => this.imageSetId),
       // 2. Fetch all the rois from omero
       tap(() => console.log("Get RoI Data...")),
-      switchMap((imageSetId: number) => this.omeroAPI.getRawRoIData(imageSetId).pipe(
+      switchMap((imageSetId: number) => this.omeroAPI.getPagedRoIData(imageSetId).pipe(
         map(rawData => {
           return {"roiData": rawData, "imageSetId": imageSetId}
         })
