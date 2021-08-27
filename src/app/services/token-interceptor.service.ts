@@ -29,13 +29,13 @@ export class TokenInterceptorService implements HttpInterceptor {
     }
 
     if (req.url.match('^/omero')) {
-      /*return this.csrfService.getToken().pipe(
+      return this.csrfService.getToken().pipe(
         switchMap((token: string) => {
+          // token is automatically consumed by HttpClientXsrfModule
           //const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: {...req.body, csrfmiddlewaretoken: token}});
           return next.handle(req);
         })
-      );*/
-      return next.handle(req).pipe(
+      ).pipe(
         catchError(err => {
           if ([401, 403].includes(err.status) && this.authService.user) {
               // auto logout if 401 or 403 response returned from api
