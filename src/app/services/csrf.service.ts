@@ -16,8 +16,8 @@ export class CsrfService {
 
   token: string;
 
-  getToken(): Observable<string> {
-    if (this.token) {
+  getToken(forceNew = false): Observable<string> {
+    if (this.token && !forceNew) {
       return of(this.token);
     } else {
       return this.httpClient.get('/omero/api/token/').pipe(

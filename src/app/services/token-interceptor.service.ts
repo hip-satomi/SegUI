@@ -28,6 +28,17 @@ export class TokenInterceptorService implements HttpInterceptor {
       return next.handle(req);
     }
 
+    if (req.url.match('^/omero/api/login')) {
+      // special handling of login api: force new token
+      return this.csrfService.getToken(true).pipe(
+        switchMap((token: string) => {
+          console.log(`token: ${token}`);
+          const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: req.body});
+          return next.handle(newRequest);
+        })
+      );
+    }
+
     if (req.url.match('^/omero')) {
       return this.csrfService.getToken().pipe(
         switchMap((token: string) => {
