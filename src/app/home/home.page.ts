@@ -374,7 +374,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           // 1. Check whether OMERO has ROI data available
           const roiData = await this.omeroAPI.getPagedRoIData(imageSetId).pipe(
             take(1),
-            map(rois => rois.map(roi => roi.shapes).reduce((a,b) => a.concat(b)))
+            map(rois => rois.map(roi => roi.shapes).reduce((a,b) => a.concat(b), []))
           ).toPromise();
           if (roiData.length > 0)
           {
