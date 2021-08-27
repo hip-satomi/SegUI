@@ -36,7 +36,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
      * Loads the image. Promise resolves when the image is fully loaded.
      * Promise rejects when the timeout finishes first!
      */
-    loadImage(timeout = 5000): Observable<any> {
+    loadImage(timeout = 10000): Observable<any> {
         if (this.image && this.image.complete && this.image.naturalWidth !== 0) {
             // image is already loaded
             return of(this.image);
@@ -69,6 +69,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             // reject the image request when running out of time
             setTimeout(() => {
                 reject();
+                console.error("Timeout loading image!");
             }, timeout);
 
         }));

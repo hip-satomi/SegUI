@@ -28,14 +28,25 @@ export class TokenInterceptorService implements HttpInterceptor {
       return next.handle(req);
     }
 
-    if (req.url.match('^/omero')) {
-      /*return this.csrfService.getToken().pipe(
+    if (req.url.match('^/omero/api/login')) {
+      // special handling of login api: force new token
+      return this.csrfService.getToken(true).pipe(
         switchMap((token: string) => {
-          //const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: {...req.body, csrfmiddlewaretoken: token}});
-          return next.handle(req);
+          console.log(`token: ${token}`);
+          const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: req.body});
+          return next.handle(newRequest);
         })
-      );*/
-      return next.handle(req).pipe(
+      );
+    }
+
+    if (req.url.match('^/omero')) {
+      return this.csrfService.getToken().pipe(
+        switchMap((token: string) => {
+          console.log(`token: ${token}`);
+          const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: req.body});
+          return next.handle(newRequest);
+        })
+      ).pipe(
         catchError(err => {
           if ([401, 403].includes(err.status) && this.authService.user) {
               // auto logout if 401 or 403 response returned from api

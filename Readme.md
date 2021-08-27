@@ -2,29 +2,6 @@
 
 Web Application for high-quality and interactive microbial cell segmentation and tracking. The application is based on the [Ionic](https://ionicframework.com/) and [Anglar](https://angular.io/) frameworks.
 
-## Installation Procedure
-
-1. Install Node.js and npm (https://nodejs.org/en/)
-
-2. Clone this repository
-
-```
-git clone https://jugit.fz-juelich.de/j.seiffarth/segtrackui
-cd segtrackui
-```
-
-3. Install all dependencies
-
-```
-npm install
-```
-
-4. Launch the development server
-
-```
-ionic serve
-```
-
 ## How to Test the UI - Use a docker container
 
 We automatically build a docker container that serves the `segTrackUI`. Make sure you have [docker](https://docs.docker.com/get-docker/) installed and perform the following steps to get it running
@@ -60,6 +37,30 @@ http://localhost/login?u=<username>&p=<password>&r=/seg-track;imageSetId=201
 where you replace `username` and `password` by your specific credentials.
 
 *Note:* username and password will occur in your browser history!
+
+## Installation Procedure
+
+1. Install Node.js and npm (https://nodejs.org/en/)
+
+2. Clone this repository
+
+```
+git clone https://jugit.fz-juelich.de/j.seiffarth/segtrackui
+cd segtrackui
+```
+
+3. Install all dependencies
+
+```
+npm install
+```
+
+4. Launch the development server
+
+```
+ionic serve
+```
+
 ## Important notes
 
 The segTrackUI is only functionable with an [OMERO](https://www.openmicroscopy.org/omero/) server as data backend. Furthermore, the ionic server is not recommended for deployment. Please use a secure web server, for example, [nginx](https://www.nginx.com/).

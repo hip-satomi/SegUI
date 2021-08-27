@@ -359,7 +359,7 @@ export class OmeroAPIService {
           // iterate over t
           const ts = Array.from(Array(data.image.pixels.sizeT).keys());
           return {...data, it: ts.map(idx => ({imageId: data.image.id, z: 0, t: idx}))};
-        } else if (data.image.pixels.sizeZ > 1) {
+        } else {
           // iterate over z
           const zs = Array.from(Array(data.image.pixels.sizeZ).keys());
           return {...data, it: zs.map(idx => ({imageId: data.image.id, z: idx, t: 0}))};
