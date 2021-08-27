@@ -42,9 +42,9 @@ export class TokenInterceptorService implements HttpInterceptor {
     if (req.url.match('^/omero')) {
       return this.csrfService.getToken().pipe(
         switchMap((token: string) => {
-          // token is automatically consumed by HttpClientXsrfModule
-          //const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: {...req.body, csrfmiddlewaretoken: token}});
-          return next.handle(req);
+          console.log(`token: ${token}`);
+          const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: req.body});
+          return next.handle(newRequest);
         })
       ).pipe(
         catchError(err => {
