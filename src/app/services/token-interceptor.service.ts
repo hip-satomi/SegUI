@@ -4,6 +4,7 @@ import { AuthService, NoValidTokenException } from './auth.service';
 import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, merge, timer, from, throwError } from 'rxjs';
+import { ToastController } from '@ionic/angular';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,8 @@ import { Observable, merge, timer, from, throwError } from 'rxjs';
 export class TokenInterceptorService implements HttpInterceptor {
 
   constructor(private authService: AuthService,
-              private csrfService: CsrfService) { }
+              private csrfService: CsrfService,
+              private toastController: ToastController) { }
 
   loginAttempts = 2;
 
@@ -27,13 +29,30 @@ export class TokenInterceptorService implements HttpInterceptor {
     }
 
     if (req.url.match('^/omero')) {
-      //return next.handle(req);
-      return this.csrfService.getToken().pipe(
+      /*return this.csrfService.getToken().pipe(
         switchMap((token: string) => {
           //const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: {...req.body, csrfmiddlewaretoken: token}});
           return next.handle(req);
         })
-      );
+      );*/
+      return next.handle(req).pipe(
+        catchError(err => {
+          if ([401, 403].includes(err.status) && this.authService.user) {
+              // auto logout if 401 or 403 response returned from api
+              this.authService.logout();
+              this.showAuthNotValid();
+          }
+
+          if(err.status == 404 && err.url.includes('webclient/login/')) {
+            // authentication service redirects because of expired token
+            this.authService.logout();
+            this.showAuthNotValid();
+          }
+
+          const error = (err && err.error && err.error.message) || err.statusText;
+          console.error(err);
+          return throwError(error);
+        }));
     } else if (req.url.match('^/pt') || req.url.match('^/tf') || req.url.match('^/tracking')) {
       return next.handle(req);
     } else {
@@ -62,5 +81,12 @@ export class TokenInterceptorService implements HttpInterceptor {
         )
         ));
     }
+  }
+
+  showAuthNotValid() {
+    this.toastController.create({
+      message: 'Your authentication has expired! Please login again!',
+      duration: 5000
+    }).then(toast => toast.present());
   }
 }

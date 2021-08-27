@@ -22,7 +22,9 @@ export class CsrfService {
     } else {
       return this.httpClient.get('/omero/api/token/').pipe(
         map((r: TokenResult) => r.data),
-        tap(data => console.log(data))
+        tap(data => console.log(data)),
+        // store the token
+        tap(data => this.token=data)
       );
     }
   }

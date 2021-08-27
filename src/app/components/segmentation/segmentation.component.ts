@@ -65,6 +65,11 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
    * @param pencil the canvas pencil
    */
   draw(pencil: Pencil): void {
+    // TODO: Why can the pencil be null?
+    if(!pencil) {
+      return;
+    }
+
     // clear the canvas
     pencil.clear();
 
@@ -94,8 +99,8 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
       return this._cachedFilterDets;
     }
 
-    // filter by score threshold
-    const thresholdFiltered = Array.from(this.localSegModel.segmentationData.getPolygonEntries()).filter(([uuid, poly]) => this.polyMeta[uuid]['score'] >= this.scoreThreshold);
+    // filter by score threshold (there might also be empty items in the localSegModel)
+    const thresholdFiltered = Array.from(this.localSegModel.segmentationData.getPolygonEntries()).filter(([uuid, poly]) => uuid in this.polyMeta && this.polyMeta[uuid]['score'] >= this.scoreThreshold);
 
     // filter by overlaps (if bbox center is in other bbox only keep max-scored)
     if (this.filterOverlaps) {
@@ -129,7 +134,10 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
 
   update(e) {
     console.log(this.showOverlay)
-    this.draw(this.oldPencil);
+    if (this.oldPencil) {
+      // if we have a cached pencil, we can redraw
+      this.draw(this.oldPencil);
+    }
   }
 
   ngOnInit() {}
@@ -173,7 +181,7 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
         console.log('have the binary data!');
         console.log(data);
 
-        return this.segmentationService.requestJSSegmentationProposal(data);
+        return this.segmentationService.requestJSSegmentationProposal(data, 0.05);
       }),
       tap(
         (data) => {

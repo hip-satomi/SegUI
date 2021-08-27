@@ -1,6 +1,8 @@
 import { Point } from './geometry';
 import { multiply, inv } from 'mathjs';
 import * as simplify from 'simplify-js';
+import { SegmentationHolder } from './segmentation-model';
+import { pointsToString } from '../services/omero-api.service';
 
 export interface Position {
     x: number;
@@ -256,4 +258,52 @@ export class UIUtils {
     ctx.restore();
   }
 
+}
+
+export class OmeroUtils {
+
+  static createRoIDeletionList(data) {
+
+    let empty_rois = [];
+
+    for (const roi of data.roiData) {
+      const remove_list = roi.shapes.map(shape => shape.id).map(shape_id => [roi.id, shape_id]);
+      empty_rois = empty_rois.concat(remove_list);
+    }
+
+    return empty_rois;
+  }
+
+  static createNewRoIList(segHolder: SegmentationHolder) {
+    const new_list = [];
+    for (const [index, element] of segHolder.segmentations.entries()) {
+      const z = 0;
+      const t = index;
+      for (const roi of element.segmentationData.getPolygons()) {
+        if(roi[1].numPoints == 0) {
+          continue;
+        }
+        const roi_data = {
+          "@type": "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon",
+          Area:	0.,
+          FillColor:	-256,
+          Length: -1,
+          oldId: "-6:-850",
+          Points: pointsToString(roi[1].points),
+          StrokeColor: -65281,
+          StrokeWidth: {
+            "@type":	"TBD#LengthI",
+            Symbol:	"px",
+            Unit:	"PIXEL",
+            Value:	1
+          },
+          TheT:	t,
+          TheZ:	z,
+        }
+        new_list.push(roi_data);
+      }
+    }
+
+    return new_list;
+  }
 }

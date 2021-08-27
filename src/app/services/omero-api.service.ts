@@ -1,9 +1,9 @@
 import { Point } from './../models/geometry';
 import { Serializable, JsonProperty, deserialize } from 'typescript-json-serializer';
-import { map, tap, mergeMap, switchMap, combineAll, catchError } from 'rxjs/operators';
+import { map, tap, mergeMap, switchMap, combineAll, catchError, concatAll, mergeAll } from 'rxjs/operators';
 import { DataListResponse, DataResponse } from './omero-auth.service';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, empty, forkJoin, of, combineLatest, from } from 'rxjs';
+import { Observable, empty, forkJoin, of, combineLatest, from, Subject, BehaviorSubject, ReplaySubject, EMPTY } from 'rxjs';
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
 import { assert } from 'console';
@@ -169,16 +169,19 @@ export class RenderInfos {
   channels: Array<ChannelInfo>;
 }
 
-const pointsToString = (points: Array<Point>): string => {
+export const pointsToString = (points: Array<Point>): string => {
   return points.map(point => point.join(',')).join(' ');
 }
 
-const stringToPoints = (pointList: string): Array<Point> => {
+export const stringToPoints = (pointList: string): Array<Point> => {
   return pointList.split(' ').map((pointString: string): Point => pointString.split(',').map(parseFloat) as Point);
 }
 
 @Serializable()
 export class RoIShape {
+  @JsonProperty({name: '@id'})
+  id: number;
+
   @JsonProperty({name: '@type'})
   type: string;
 
@@ -193,8 +196,24 @@ export class RoIShape {
 }
 @Serializable()
 export class RoIData {
+  @JsonProperty({name: '@id'})
+  id: number;
+
   @JsonProperty({type: RoIShape})
   shapes: Array<RoIShape>;
+}
+
+@Serializable()
+export class RoIMeta {
+
+  @JsonProperty()
+  limit: number;
+  @JsonProperty()
+  maxLimit: number;
+  @JsonProperty()
+  offset: number;
+  @JsonProperty()
+  totalCount: number;
 }
 @Serializable()
 export class RoIResult {
@@ -202,7 +221,7 @@ export class RoIResult {
   data: Array<RoIData>;
 
   @JsonProperty()
-  meta: any;
+  meta: RoIMeta;
 }
 
 export class ShapePolygon {
@@ -218,6 +237,21 @@ export class ShapePolygon {
   z: number
 
   points: Array<Point>;
+}
+
+/**
+ * Interface for /iviewer/persist_rois/ posts
+ */
+export interface RoIModData {
+  imageId: number;
+  rois: {
+    count: number,
+    deleted: {},
+    empty_rois: {},
+    modified: {},
+    new: {},
+    new_and_deleted: {}
+  }
 }
 
 @Injectable({
@@ -358,6 +392,7 @@ export class OmeroAPIService {
    * @returns 
    */
   getRoIData(imageId: number): Observable<Array<ShapePolygon>> {
+    // TODO: Load all rois not only one page
     return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`).pipe(
       map(r => {
         return deserialize(r, RoIResult);
@@ -369,18 +404,39 @@ export class OmeroAPIService {
           return [];
         }
 
-        // TODO: How to select correct roi
-        const firstRoi = data[0];
-
-        return firstRoi.shapes
+        return data.map(roi => roi.shapes
           .filter(s => s.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
-          .map(s => new ShapePolygon(s.points, s.t, s.z));
+          .map(s => new ShapePolygon(s.points, s.t, s.z))).reduce((a,b) => a.concat(b), []);
       }),
       catchError(err => {
         console.error(err);
         return of([]);
       })
     );
+  }
+
+  getRoIPage(imageId: number, offset=0, limit=500, existing_data=[]) {
+    return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`, { params: {offset: offset+'', limit: limit+''}}).pipe(
+      switchMap( (r) => {
+        const result = deserialize(r, RoIResult);
+
+        if(result.meta.totalCount > result.meta.offset + result.meta.limit) {
+          return this.getRoIPage(imageId, result.meta.offset + result.meta.limit, result.meta.maxLimit, result.data.concat(existing_data));
+        } else {
+          return of(result.data.concat(existing_data));
+        }
+      }
+    ));
+  }
+
+  /**
+   * 
+   * @param imageId 
+   * @returns 
+   */
+   getRawRoIData(imageId: number): Observable<Array<RoIData>> {
+
+    return this.getRoIPage(imageId);
   }
 
   /**
@@ -459,6 +515,86 @@ export class OmeroAPIService {
           }
         }
       ),
+    );
+  }
+
+  modifyRois(modificationData: RoIModData) {
+    return this.httpClient.post('/omero/iviewer/persist_rois/', modificationData);
+  }
+
+  arrayToDict(data: Array<any>) {
+    const result_data = {}
+    data.forEach(element => {
+      result_data[`${element[0]}`] = `${element[0]}:${element[1]}`;
+    });
+
+    return result_data;
+  }
+
+  deleteRois(imageSetId, roiList, max=1000) {
+
+
+    const list = []
+
+    for(let i = 0; i < Math.ceil(roiList.length / max); i++) {
+      // First we need to collect the ids
+      const post_data = {
+        imageId: imageSetId,
+        rois: {
+          count: 0,
+          deleted: {},
+          empty_rois: this.arrayToDict(roiList.slice(i * max, (i+1) * max)),
+          modified: {},
+          new: [],
+          new_and_deleted: [],
+        }
+      }
+      list.push(post_data);
+    }
+    if (list.length == 0)  {
+      return of(of(1),of(2),of(3)).pipe(
+        combineAll()
+      );
+    }
+
+    return of(...list).pipe(
+      map((post_data: RoIModData) => {
+        return this.modifyRois(post_data);
+      }),
+      combineAll()
+    );
+  }
+
+  createRois(imageSetId, roiList, max=1000) {
+    const list = [];
+
+    for(let i = 0; i < Math.ceil(roiList.length / max); i++) {
+      // First we need to collect the ids
+      const post_data = {
+        imageId: imageSetId,
+        rois: {
+          count: 0,
+          deleted: {},
+          empty_rois: {},
+          modified: {},
+          new: roiList.slice(i * max, (i+1) * max),
+          new_and_deleted: [],
+        }
+      }
+      list.push(post_data);
+    }
+
+    if (list.length == 0)  {
+      return of(of(1),of(2),of(3)).pipe(
+        combineAll()
+      );
+    }
+
+    return of(...list).pipe(
+      map((post_data: RoIModData) => {
+        return this.modifyRois(post_data);
+      }),
+      combineAll()
     );
   }
 }

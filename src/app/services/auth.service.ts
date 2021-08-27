@@ -272,7 +272,7 @@ export class AuthService {
     Storage.remove({key: TOKEN_KEY}).then(() => {
       this.router.navigateByUrl('/');
       this.userData.next(null);
-      this.handleTokenPair({access: '', refresh: ''}).subscribe();
+      //this.handleTokenPair({access: '', refresh: ''}).subscribe();
     });
   }
 }

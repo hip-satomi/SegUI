@@ -43,5 +43,12 @@
         "logLevel": "debug",
         "changeOrigin": true,
         "pathRewrite": {"^/omero/" : "/"}
+    },
+    "/omero/iviewer/*": {
+        "target": "http://localhost:4080/",
+        "secure": false,
+        "logLevel": "debug",
+        "changeOrigin": true,
+        "pathRewrite": {"^/omero/" : "/"}
     }
 }

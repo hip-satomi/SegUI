@@ -2,7 +2,7 @@ import { OmeroAuthService } from './../services/omero-auth.service';
 import { AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { AuthService } from './../services/auth.service';
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
@@ -16,6 +16,8 @@ export class LoginPage implements OnInit {
     password: ''
   };
 
+  redirectUrl = ''
+
   constructor(
     private auth: AuthService,
     private omeroAuth: OmeroAuthService,
@@ -23,9 +25,23 @@ export class LoginPage implements OnInit {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
+    private route: ActivatedRoute,
   ) { }
 
   ngOnInit() {
+    this.route.queryParams.subscribe(
+      params => {
+        console.log(params);
+
+        this.credentials.username = params['u'] || '';
+        this.credentials.password = params['p'] || '';
+        this.redirectUrl = params['r'] || null;
+
+        if(this.credentials.username !== '' && this.credentials.password !== '') {
+          this.login();
+        }
+      }
+    )
   }
 
   login() {
@@ -36,7 +52,12 @@ export class LoginPage implements OnInit {
     
     this.omeroAuth.login(this.credentials).subscribe(async res => {
       if (res) {
-        this.router.navigateByUrl('/omero-dashboard');
+        if (this.redirectUrl) {
+          // redirect if possible
+          this.router.navigateByUrl(this.redirectUrl);
+        } else {
+          this.router.navigateByUrl('/omero-dashboard');
+        }
       } else {
         const alert = await this.alertCtrl.create({
           header: 'Login Failed',

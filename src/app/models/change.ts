@@ -1,4 +1,5 @@
 import { EventEmitter } from '@angular/core';
+import { Observable } from 'rxjs';
 export enum ChangeType {
     SOFT,
     HARD
@@ -15,5 +16,5 @@ export class ModelChanged<T> {
 }
 
 export interface ChangableModel<T> {
-    modelChanged: EventEmitter<ModelChanged<T>>;
+    modelChanged: Observable<ModelChanged<T>>;
 }
