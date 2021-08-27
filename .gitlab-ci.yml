@@ -58,7 +58,7 @@ build-docker:
     - docker build --cache-from $CI_REGISTRY/satomi/segtrackui/server:latest -t $CI_REGISTRY/satomi/segtrackui/server:latest -t $CI_REGISTRY/satomi/segtrackui/server:$CI_COMMIT_SHORT_SHA -t $CI_REGISTRY/satomi/segtrackui/server:$CI_COMMIT_BRANCH -f docker/Dockerfile .
     - docker push $CI_REGISTRY/satomi/segtrackui/server:$CI_COMMIT_SHORT_SHA
     - docker push $CI_REGISTRY/satomi/segtrackui/server:$CI_COMMIT_BRANCH
-    - if [ "$CI_COMMIT_BRANCH" -eq "master" ]; then docker push $CI_REGISTRY/satomi/segtrackui/server:latest;
+    - if [ "$CI_COMMIT_BRANCH" -eq "master" ]; then docker push $CI_REGISTRY/satomi/segtrackui/server:latest; fi
     
 
 
