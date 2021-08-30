@@ -115,7 +115,7 @@ export class Image {
   //@JsonProperty({onDeserialize: (raw: string) => dayjs.unix(raw), onSerialize: (date: Date) => dayjs})
   //AxcquisitionDate: Date;
 
-  @JsonProperty({name: 'url:image'})
+  @JsonProperty({name: 'url:image', onDeserialize: rewriteOmeroUrl})
   url: string;
 
   @JsonProperty({name: 'Pixels'})
@@ -123,7 +123,15 @@ export class Image {
 
   @JsonProperty({name: 'omero:series'})
   series: number;
+
+  @JsonProperty({name: 'url:datasets', onDeserialize: rewriteOmeroUrl})
+  datasetUrl: string;
+
+  @JsonProperty({name: 'url:rois', onDeserialize: rewriteOmeroUrl})
+  roisUrl: string;
 }
+
+
 
 export interface Permissions {
   canDelete: boolean;
