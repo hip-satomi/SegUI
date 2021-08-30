@@ -105,6 +105,26 @@ export class PageMeta {
 }
 
 @Serializable()
+export class DatasetResult {
+  @JsonProperty({type: Dataset})
+  data: Array<Dataset>;
+
+  @JsonProperty()
+  meta: PageMeta;
+}
+
+@Serializable()
+export class PagedResponse<T> {
+
+  @JsonProperty()
+  data: Array<T>;
+
+  @JsonProperty()
+  meta: PageMeta;
+}
+
+
+@Serializable()
 export class Image {
   @JsonProperty({name: '@id'})
   id: number;
@@ -629,5 +649,88 @@ export class OmeroAPIService {
       }),
       combineAll()
     );
+  }
+
+  /**
+   * Loads all pages of the backend and combines the result in array
+   * @param url backend url
+   * @param c class type
+   * @param limit the limit you request with first api call (later automatically max limit)
+   * @returns an array of obtained data items
+   */
+  getPagedData<T>(url, c: new () => T, limit=500): Observable<Array<T>> {
+    const unpackPage = map(r => {
+      const response = deserialize(r, PagedResponse);
+      return <PagedResponse<T>>response;
+    });
+    return this.httpClient.get(url, {params: {limit: limit + ''}}).pipe(
+      unpackPage,
+      switchMap((result: PagedResponse<T>) => {
+
+        // extract paging meta data from request
+        const limit = result.meta.limit;
+        const maxLimit = result.meta.maxLimit;
+        const totalCount = result.meta.totalCount;
+
+        const requestList: Array<Observable<PagedResponse<T>>> = [];
+
+        requestList.push(of(result))
+
+        if (totalCount > limit) {
+          for(let i = 0; i < Math.ceil((totalCount - limit) / maxLimit); i++) {
+            requestList.push(this.httpClient.get(url, {params: {limit: maxLimit + '', offset: limit + i * maxLimit + ''}}).pipe(unpackPage));
+          }
+        }
+
+        return of(...requestList).pipe(
+          combineAll(),
+        )
+      }),
+      map((data: Array<PagedResponse<T>>) => data.map(d => d.data).reduce((a,b) => a.concat(b)).map(rawImage => deserialize(rawImage, c))),
+      map(resArray => <Array<T>>resArray)
+    );
+  }
+
+
+  /**
+   * 
+   * @param imageSetId current imageset id
+   * @returns next imageset id in the same dataset (according to omero sorting)
+   */
+  nextImageSequence(imageSetId): Observable<number> {
+    return this.getImageDataset(imageSetId).pipe(
+      switchMap((d): Observable<Array<Image>> => this.getPagedData(d.urlImages, Image)),
+      map(images => {
+        const myImageIndex = images.findIndex(image => image.id == imageSetId);
+        const nextImageIndex = myImageIndex + 1;
+
+        if(nextImageIndex >= images.length) {
+          throw new Error('There are no further images in the dataset!');
+        }
+
+        return images[nextImageIndex].id
+      })
+    )
+  }
+
+  /**
+   * 
+   * @param imageSetId current imageset id
+   * @returns previous imageset id in the same dataset (according to omero sorting)
+   */
+   previousImageSequence(imageSetId): Observable<number> {
+    return this.getImageDataset(imageSetId).pipe(
+      switchMap((d): Observable<Array<Image>> => this.getPagedData(d.urlImages, Image)),
+      map(images => {
+        const myImageIndex = images.findIndex(image => image.id == imageSetId);
+        const nextImageIndex = myImageIndex - 1;
+
+        if(nextImageIndex < 0) {
+          throw new Error('There are no previous images in the dataset!');
+        }
+
+        return images[nextImageIndex].id
+      })
+    )
   }
 }
