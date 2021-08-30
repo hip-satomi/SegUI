@@ -82,6 +82,11 @@
 
 <ion-footer *ngIf="urls.length > 1">
   <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button [disabled]="!canPrevImage" (click)="navigateToNextImageSequence().subscribe()" style="padding-right:10px">
+        <ion-icon name="skip-backward"></ion-icon>
+      </ion-button>
+    </ion-buttons>
     <ion-range min="0" max="{{segmentationModels.length - 1}}" color="secondary" step="1" snaps="true" [(ngModel)]="activeView">
       <ion-label slot="start">{{activeView}}</ion-label>
       <ion-label slot="end">{{segmentationModels.length - 1}}</ion-label>
@@ -92,6 +97,9 @@
       </ion-button>
       <ion-button [disabled]="!canNextImage" (click)="nextImage()" style="padding-right:10xpx">
         <ion-icon name="caret-forward-outline"></ion-icon>
+      </ion-button>
+      <ion-button [disabled]="!canPrevImage" (click)="navigateToNextImageSequence().subscribe()" style="padding-right:10px">
+        <ion-icon name="skip-forward"></ion-icon>
       </ion-button>
     </ion-buttons>
 
