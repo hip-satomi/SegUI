@@ -1,5 +1,5 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { of } from 'rxjs';
@@ -20,7 +20,7 @@ describe('OmeroDatasetPage', () => {
   let component: OmeroDatasetPage;
   let fixture: ComponentFixture<OmeroDatasetPage>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ OmeroDatasetPage ],
       imports: [IonicModule.forRoot(), HttpClientTestingModule],

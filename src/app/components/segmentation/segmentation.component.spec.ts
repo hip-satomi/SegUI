@@ -1,5 +1,5 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { SegmentationComponent } from './segmentation.component';
@@ -8,7 +8,7 @@ describe('SegmentationComponent', () => {
   let component: SegmentationComponent;
   let fixture: ComponentFixture<SegmentationComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ SegmentationComponent ],
       imports: [IonicModule.forRoot(), HttpClientTestingModule]

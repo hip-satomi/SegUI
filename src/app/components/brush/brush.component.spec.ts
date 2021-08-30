@@ -1,5 +1,5 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { BrushComponent } from './brush.component';
@@ -8,7 +8,7 @@ describe('BrushComponent', () => {
   let component: BrushComponent;
   let fixture: ComponentFixture<BrushComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ BrushComponent ],
       imports: [IonicModule.forRoot(), HttpClientTestingModule]
