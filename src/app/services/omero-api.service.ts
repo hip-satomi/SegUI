@@ -8,6 +8,21 @@ import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
 import { assert } from 'console';
 
+/**
+ * Rewrite omero api urls into our urls (they get redirected again)
+ * @param url 
+ * @returns new url
+ */
+const rewriteOmeroUrl = (url: string): string => {
+  const match = url.match('^.*/api/v0/')
+  if (match.length == 0) {
+    throw new Error("This is not a valid omero url!");
+  }
+  url = url.replace(match[0], '/omero/api/');
+  return url;
+};
+
+
 @Serializable()
 export class Id {
   @JsonProperty({name: '@id'})
@@ -25,19 +40,19 @@ export class Base extends Id {
 @Serializable()
 export class Project extends Base {
 
-  @JsonProperty({name: 'url:project'})
+  @JsonProperty({name: 'url:project', onDeserialize: rewriteOmeroUrl})
   url: string;
-  @JsonProperty({name: 'url:datasets'})
+  @JsonProperty({name: 'url:datasets', onDeserialize: rewriteOmeroUrl})
   urlDatasets: string;
 }
 
 @Serializable()
 export class Dataset extends Base {
-  @JsonProperty({name: 'url:dataset'})
+  @JsonProperty({name: 'url:dataset', onDeserialize: rewriteOmeroUrl})
   url: string;
-  @JsonProperty({name: 'url:images'})
+  @JsonProperty({name: 'url:images', onDeserialize: rewriteOmeroUrl})
   urlImages: string;
-  @JsonProperty({name: 'url:projects'})
+  @JsonProperty({name: 'url:projects', onDeserialize: rewriteOmeroUrl})
   urlProjects: string;
 }
 
