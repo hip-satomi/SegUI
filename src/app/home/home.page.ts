@@ -12,8 +12,8 @@ import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
 import { SegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation } from './../services/seg-rest.service';
-import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, concatMap, concatAll, mergeAll, combineAll } from 'rxjs/operators';
-import { BehaviorSubject, from, Observable, of, ReplaySubject, Subject, Subscription, throwError, zip } from 'rxjs';
+import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, concatMap, concatAll, mergeAll, combineAll, switchMapTo, mapTo, throttle, throttleTime, catchError } from 'rxjs/operators';
+import { BehaviorSubject, EMPTY, from, Observable, of, ReplaySubject, Subject, Subscription, throwError, zip } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
 import { Pencil, UIInteraction } from './../models/drawing';
@@ -84,6 +84,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   isOpen = false;
   isBrushOpen = false;
+
+  rightKeyMove$ = new Subject<void>();
+  leftKeyMove$ = new Subject<void>();
 
   // this can be used to end other pipelines using takeUntil(ngUnsubscribe)
   protected ngUnsubscribe: Subject<void> = new Subject<void>();
@@ -259,16 +262,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   @HostListener('document:keydown.arrowleft')
   moveLeft(event) {
-    if (this.canPrevImage) {
-      this.prevImage();
-    }
+    this.leftKeyMove$.next();
   }
 
   @HostListener('document:keydown.arrowright')
   moveRight() {
-    if (this.canNextImage) {
-      this.nextImage();
-    }
+    this.rightKeyMove$.next();
   }
 
   @HostListener('document:keydown.delete')
@@ -284,6 +283,58 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   ngOnInit() {
+    const handleError = catchError(err => {
+      console.log(err)
+      this.showError(err.message);
+      return of();
+    })
+
+    // pipeline for handling left arrow key
+    this.leftKeyMove$.pipe(
+      map(() => {
+        if (this.canPrevImage) {
+          this.prevImage();
+          return true;
+        } else {
+          return false;
+        }    
+      }),
+      throttleTime(5000),
+      switchMap((handeled) => {
+        if(!handeled) {
+          return this.askForPreviousImageSequence().pipe(
+            switchMap(() => this.navigateToPreviousImageSequence()),
+            handleError,
+          )
+        }
+
+        return of();
+      })
+    ).subscribe();
+
+    // pipeline for handling right arrow key
+    this.rightKeyMove$.pipe(
+      map(() => {
+        if (this.canNextImage) {
+          this.nextImage();
+          return true;
+        } else {
+          return false;
+        }    
+      }),
+      throttleTime(5000),
+      tap(() => console.log('event')),
+      switchMap((handeled) => {
+        if(!handeled) {
+          return this.askForNextImageSequence().pipe(
+            switchMap(() => this.navigateToNextImageSequence()),
+            handleError
+          )
+        }
+        return of();
+      })
+    ).subscribe();
+
   }
 
   async ngAfterViewInit() {
@@ -325,6 +376,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       map(params => {
         return Number(params.get('imageSetId'));
       }),
+      tap(imageSetId => this.stateService.imageSetId = imageSetId),
       tap((imageSetId) => this.imageSetId.next(imageSetId)),
       take(1), // take only once --> pipe is closed immediately and finalize stuff is called
     ).subscribe(
@@ -1100,6 +1152,91 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       tap(x => console.log(x)),
       tap(() => this.showError("Successfully finished pipeline"))
     ).subscribe();
+  }
+
+  /**
+   * Creates an alter dialog with specific layout
+   * @param header header 
+   * @param message message (usually a question)
+   * @param cancelText text of cancel button
+   * @param confirmText text of confirm button
+   * @returns "confirm" if confirm button is clicked, otherwise error
+   */
+  alertAsk(header, message, cancelText='cancel', confirmText='confirm') {
+    // 1. Warn the user that this can overwrite data
+    return from(this.alertController.create({
+      header,
+      message,
+      buttons: [
+        {
+          text: cancelText,
+          role: 'cancel',
+        },
+        {
+          text: confirmText,
+          role: 'confirm'
+        }
+      ]
+    })).pipe(
+      tap((alert) => alert.present()),
+      switchMap(alert => alert.onDidDismiss()),
+      map(data => {
+        if (data.role !== 'confirm') {
+          throw new Error("User canceled next image movement");
+        }
+
+        console.log(data.role);
+
+        return data;
+      }));
+  }
+
+  /**
+   * ask for next image sequence
+   */
+  askForNextImageSequence() {
+    return this.alertAsk(
+      'Next Image Sequence?',
+      'Do you want to jump to the next image sequence in the dataset?'
+    );
+  }
+
+  /**
+   * ask for previous image sequence
+   */
+  askForPreviousImageSequence() {
+    return this.alertAsk(
+      'Previous Image Sequence?',
+      'Do you want to jump to the previous image sequence in the dataset?'
+    )
+  }
+
+  /**
+   * Navigate to the next image sequence in the dataset if possible
+   */
+  navigateToNextImageSequence() {
+    return this.imageSetId.pipe(
+      switchMap(id => {
+        return this.omeroAPI.nextImageSequence(id)
+      }),
+      map(nextId => {
+        return this.router.navigate(['/seg-track', { imageSetId: nextId}])
+      })
+    );
+  }
+
+  /**
+   * Navigate to the previous image sequence in the dataset if possible
+   */
+  navigateToPreviousImageSequence() {
+    return this.imageSetId.pipe(
+      switchMap(id => {
+        return this.omeroAPI.previousImageSequence(id)
+      }),
+      map(nextId => {
+        return this.router.navigate(['/seg-track', { imageSetId: nextId}])
+      })
+    );
   }
 
 }
