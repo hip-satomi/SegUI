@@ -324,6 +324,22 @@ export class OmeroAPIService {
     );
   }
 
+  /**
+   * 
+   * @param imageId id of the image sequence
+   * @returns parent dataset
+   */
+  getImageDataset(imageId: number): Observable<Dataset> {
+    return this.httpClient.get(`/omero/api/m/images/${imageId}/`).pipe(
+      map((r: DataResponse<any>) => deserialize(r.data, Image).datasetUrl),
+      switchMap(dsUrl => this.httpClient.get(dsUrl)),
+      map((r: DataResponse<any>) => {
+        console.log(r);
+        return deserialize(r, DatasetResult).data[0];
+      })
+    );
+  };
+
   getThumbnailUrl(imageId: number) {
     return `/omero/webclient/render_thumbnail/${imageId}/?version=0`;
   }
