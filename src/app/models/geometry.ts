@@ -84,7 +84,7 @@ export class Polygon {
     }
 
     setPoints(points: Point[]) {
-        this.points = points;
+        this.points = Utils.tree.clone(points);
     }
 
     addPoint(index: number, point: Point) {

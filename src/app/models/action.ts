@@ -137,7 +137,7 @@ export class AddPolygon extends SegmentationAction {
     }
 
     perform() {
-        this.segmentationData.addPolygon(this.uuid, this.poly);
+        this.segmentationData.addPolygon(this.uuid, Utils.tree.copy(this.poly));
     }
 
     reverse() {
@@ -229,13 +229,19 @@ export class AddPointAction extends SegmentationAction {
 
     constructor(point: [number, number], index: number, polygonId: string, segmentationData: SegmentationData) {
         super(ActionTypes.AddPointAction, segmentationData);
-        this.point = point;
+
+        if(!point) {
+            return;
+        }
+
+        this.point = Utils.tree.clone(point);
         this.index = index;
         this.polygonId = polygonId;
     }
 
     perform() {
-        this.getPolygon(this.polygonId).addPoint(this.index, this.point);
+        this.getPolygon(this.polygonId).addPoint(this.index, Utils.tree.clone(this.point));
+
     }
 
     reverse() {
@@ -302,8 +308,8 @@ export class MovePointAction extends SegmentationAction {
         this.polygonId = polygonId;
         this.pointIndex = pointIndex;
 
-        this.newPoint = [...newPoint];
-        this.oldPoint = [...this.point];
+        this.newPoint = Utils.tree.clone([...newPoint]);
+        this.oldPoint = Utils.tree.clone([...this.point]);
     }
 
     perform() {
@@ -354,7 +360,7 @@ export class ChangePolygonPoints extends SegmentationAction {
         }
 
         this.polygonId = polygonId;
-        this.newPoints = [...newPoints];
+        this.newPoints = Utils.tree.clone(newPoints);
         /*if (oldPoints !== null) {
             this.oldPoints = oldPoints;
         } else {
@@ -367,11 +373,11 @@ export class ChangePolygonPoints extends SegmentationAction {
     }
 
     perform() {
-        this.getPolygon(this.polygonId).setPoints(this.newPoints);
+        this.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.newPoints));
     }
 
     reverse() {
-        this.getPolygon(this.polygonId).setPoints(this.oldPoints);
+        this.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.oldPoints));
     }
 
     private get points() {
