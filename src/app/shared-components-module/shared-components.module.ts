@@ -5,6 +5,7 @@ import { SegmentationComponent } from '../components/segmentation/segmentation.c
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { BrushComponent } from '../components/brush/brush.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 
 
@@ -15,6 +16,7 @@ import { BrushComponent } from '../components/brush/brush.component';
     CommonModule,
     FormsModule,
     IonicModule,
+    MatTooltipModule,
   ]
 })
 export class SharedComponentsModule { }
