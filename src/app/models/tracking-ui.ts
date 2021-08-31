@@ -361,7 +361,8 @@ export class TrackingUI implements UIInteraction, Drawer {
 
     undo() {
         if (this.canUndo) {
-            this.trackingModel.actionManager.undo();
+            throw new Error("Reimplement this!");
+            //this.trackingModel.actionManager.undo();
         }
     }
 

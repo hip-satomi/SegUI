@@ -1,7 +1,7 @@
 import { ActionSheetController } from '@ionic/angular';
 import { Polygon } from 'src/app/models/geometry';
 import { UIInteraction, Drawer, Pencil } from './drawing';
-import { AddPointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
+import { AddPointAction, JointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
 import { Utils } from './utils';
 import { SegmentationModel } from './segmentation-model';
 import { from, Observable, of } from 'rxjs';
@@ -118,7 +118,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             if (lineInsert) {
                 // place at correct place (maybe close to line --> directly on the line)
                 const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonId, this.segmentationModel.segmentationData);
-                this.segmentationModel.actionManager.addAction(act);
+                this.segmentationModel.addAction(act);
 
                 this.segmentationModel.activePointIndex = insertAt;
                 return true;
@@ -222,7 +222,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
 
             const polygon = this.segmentationModel.activePolygon;
-            this.segmentationModel.actionManager.addAction(new MovePointAction([mousePos.x, mousePos.y],
+            this.segmentationModel.addAction(new MovePointAction([mousePos.x, mousePos.y],
                                                 this.segmentationModel.activePointIndex,
                                                 this.segmentationModel.activePolygonId,
                                                 this.segmentationModel.segmentationData));
@@ -254,14 +254,16 @@ export class SegmentationUI implements UIInteraction, Drawer {
             const removalId = this.segmentationModel.activePolygonId;
 
             // TODO: this action recording can be dangerous
-            this.segmentationModel.actionManager.recordActions();
-
-            this.segmentationModel.addNewPolygon();
-            this.segmentationModel.actionManager.addAction(
+            //this.segmentationModel.recordActions();
+            const jointAction = 
+                new JointAction(
+                    ...this.segmentationModel.addNewPolygonActions(),
                     new RemovePolygon(this.segmentationModel.segmentationData,
-                                      removalId));
+                                    removalId));
 
-            this.segmentationModel.actionManager.mergeRecordedActions();
+            this.segmentationModel.addAction(jointAction);
+
+            //this.segmentationModel.actionManager.mergeRecordedActions();
         }
     }
 

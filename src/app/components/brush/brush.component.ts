@@ -278,18 +278,18 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
   }
 
   get canUndo() {
-      return this.segModel.actionManager.canUndo;
+      return this.segModel.canUndo;
   }
 
   get canRedo() {
-      return this.segModel.actionManager.canRedo;
+      return this.segModel.canRedo;
   }
 
   undo() {
-      return this.segModel.actionManager.undo();
+      return this.segModel.undo();
   }
 
   redo() {
-      return this.segModel.actionManager.redo();
+      return this.segModel.redo();
   }
 }

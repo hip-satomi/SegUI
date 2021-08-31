@@ -683,7 +683,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   get canRedo() {
     if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-      return this.curSegModel.actionManager.canRedo;
+      return this.curSegModel.canRedo;
     } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
       return this.trackingUI.canRedo;
     }
@@ -693,7 +693,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   get canUndo() {
     if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-      return this.curSegModel.actionManager.canUndo;
+      return this.curSegModel.canUndo;
     } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
       return this.trackingUI.canUndo;
     }
