@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
 import { ChangePolygonPoints } from 'src/app/models/action';
 import { Drawer, Pencil, UIInteraction } from 'src/app/models/drawing';
-import { ApproxCircle, Point, Polygon } from 'src/app/models/geometry';
+import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { Position, Utils } from 'src/app/models/utils';
@@ -209,11 +209,18 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
 
           // Increase/Decrease depending on selected mode
           if (this.increase) {
-              this.currentPolygon.join(circle);
+            this.currentPolygon.join(circle);
           } else {
               this.currentPolygon.subtract(circle);
           }
 
+        // prevent segmentation outside of the image area
+        const imagePolygon = new Rectangle(0, 0, this.segUI.imageWidth, this.segUI.imageHeight);
+        const outsideOfAllowed = polygon.subtract(this.currentPolygon.points, imagePolygon.points);
+        for (const pointList of outsideOfAllowed) {
+            this.currentPolygon.subtract(new Polygon(...pointList));   
+        }
+          
           // simplify polygon points
           this.currentPolygon.points = Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance);
           /*const points = this.currentPolygon.points.map(p => ({x: p[0], y: p[1]}) );
