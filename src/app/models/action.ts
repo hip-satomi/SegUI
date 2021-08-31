@@ -137,7 +137,7 @@ export class AddPolygon extends SegmentationAction {
     }
 
     perform() {
-        this.segmentationData.addPolygon(this.uuid, Utils.tree.copy(this.poly));
+        this.segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly));
     }
 
     reverse() {
@@ -282,7 +282,7 @@ export class RemovePointAction extends SegmentationAction {
 
     reverse() {
         // add point
-        this.getPolygon(this.polygonId).addPoint(this.pointIndex, Utils.tree.copy(this.point));
+        this.getPolygon(this.polygonId).addPoint(this.pointIndex, Utils.tree.clone(this.point));
     }
 }
 
