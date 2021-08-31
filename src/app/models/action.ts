@@ -708,11 +708,11 @@ export class ActionManager {
         console.log(lastAction.constructor.name);
         console.log(lastAction);
 
-        lastAction.reverse();
-        this.currentActionPointer--;
+        //lastAction.reverse();
+        this.currentActionPointer -= 1;
 
         // TODO: Maybe it is smarter to reapply action instead of reversing them one by one (reverse is difficult to implement)
-        //this.reapplyActions(info);
+        this.reapplyActions(info);
 
         this.notifyDataChanged();
 
