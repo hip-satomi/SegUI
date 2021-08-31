@@ -280,7 +280,7 @@ export class Rectangle extends Polygon {
  * Approximates a circle with a given number of contour points
  */
 export class ApproxCircle extends Polygon {
-    constructor(centerX: number, centerY: number, radius: number, numPoints = 10) {
+    constructor(centerX: number, centerY: number, radius: number, numPoints = 2 * Math.PI * radius) {
         const stepAngle = 2 * Math.PI / numPoints;
         const points: Point[] = [];
         for (let pointIdx = 0; pointIdx < numPoints; pointIdx++) {
