@@ -103,6 +103,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   tool = null;
 
+  showErrorPipe = catchError(e => {this.showError(e); throw e;});
+
   get editMode(): EditMode {
     return this._editMode;
   }
