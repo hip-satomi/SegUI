@@ -32,6 +32,14 @@ export class SegmentationUI implements UIInteraction, Drawer {
         this.imageUrl = imageUrl;
     }
 
+    get imageHeight() {
+        return this.image.height;
+    }
+
+    get imageWidth() {
+        return this.image.width;
+    }
+
     /**
      * Loads the image. Promise resolves when the image is fully loaded.
      * Promise rejects when the timeout finishes first!
