@@ -285,58 +285,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   ngOnInit() {
-    const handleError = catchError(err => {
-      console.log(err)
-      this.showError(err.message);
-      return of();
-    })
-
-    // pipeline for handling left arrow key
-    this.leftKeyMove$.pipe(
-      map(() => {
-        if (this.canPrevImage) {
-          this.prevImage();
-          return true;
-        } else {
-          return false;
-        }    
-      }),
-      throttleTime(5000),
-      switchMap((handeled) => {
-        if(!handeled) {
-          return this.askForPreviousImageSequence().pipe(
-            switchMap(() => this.navigateToPreviousImageSequence()),
-            handleError,
-          )
-        }
-
-        return of();
-      })
-    ).subscribe();
-
-    // pipeline for handling right arrow key
-    this.rightKeyMove$.pipe(
-      map(() => {
-        if (this.canNextImage) {
-          this.nextImage();
-          return true;
-        } else {
-          return false;
-        }    
-      }),
-      throttleTime(5000),
-      tap(() => console.log('event')),
-      switchMap((handeled) => {
-        if(!handeled) {
-          return this.askForNextImageSequence().pipe(
-            switchMap(() => this.navigateToNextImageSequence()),
-            handleError
-          )
-        }
-        return of();
-      })
-    ).subscribe();
-
   }
 
   async ngAfterViewInit() {
@@ -359,7 +307,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // setup loading pipeline when we get a new imageId (also used for refreshing!)
     this.imageSetId.pipe(
       // disable all previous subscribers
-      tap(() => this.ngUnsubscribe.next()),
+      //tap(() => this.ngUnsubscribe.next()),
       tap(() => {
         loading.then(l => l.present());
       }),
@@ -370,7 +318,65 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           console.log('done loading');
           loading.then(l => l.dismiss());
         })
-      ))
+      )),
+      tap(() => {
+
+        const handleError = catchError(err => {
+          console.log(err)
+          this.showError(err.message);
+          return of();
+        })
+
+        const thTime = 1500;
+
+        // pipeline for handling left arrow key
+        this.leftKeyMove$.pipe(
+          takeUntil(this.ngUnsubscribe),
+          map(() => {
+            if (this.canPrevImage) {
+              this.prevImage();
+              return true;
+            } else {
+              return false;
+            }    
+          }),
+          throttleTime(thTime),
+          switchMap((handeled) => {
+            if(!handeled) {
+              return this.askForPreviousImageSequence().pipe(
+                switchMap(() => this.navigateToPreviousImageSequence()),
+                handleError,
+              )
+            }
+
+            return of();
+          })
+        ).subscribe();
+
+        // pipeline for handling right arrow key
+        this.rightKeyMove$.pipe(
+          takeUntil(this.ngUnsubscribe),
+          map(() => {
+            if (this.canNextImage) {
+              this.nextImage();
+              return true;
+            } else {
+              return false;
+            }    
+          }),
+          throttleTime(thTime),
+          tap(() => console.log('event')),
+          switchMap((handeled) => {
+            if(!handeled) {
+              return this.askForNextImageSequence().pipe(
+                switchMap(() => this.navigateToNextImageSequence()),
+                handleError
+              )
+            }
+            return of();
+          })
+        ).subscribe();
+      })
     ).subscribe((id) => console.log(`Loaded image set ${id}`))
 
     // get the query param and fire the image id
@@ -1095,8 +1101,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           map(() => srsc)
         );
       }),
-      tap(() => this.imageSetId.next(imageSetId))
-      //tap(() => this.router.navigate(['/seg-track', { 'imageSetId': 3}], {}))
+      tap(() => this.imageSetId.next(imageSetId)),
+      this.showErrorPipe
     );
   }
 
