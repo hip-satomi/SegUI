@@ -698,7 +698,7 @@ export class ActionManager {
      * 
      * if there is no last action, does nothing
      */
-    undo() {
+    undo(info) {
         if (!this.canUndo) {
             return;
         }
@@ -710,6 +710,9 @@ export class ActionManager {
 
         lastAction.reverse();
         this.currentActionPointer--;
+
+        // TODO: Maybe it is smarter to reapply action instead of reversing them one by one (reverse is difficult to implement)
+        //this.reapplyActions(info);
 
         this.notifyDataChanged();
 
@@ -766,6 +769,8 @@ export class ActionManager {
             action.setData(info);
         }
 
+        info.segmentationData.clear();
+
         for (let i = 0; i < this.currentActionPointer; i++) {
             const action = this.actions[i];
 
@@ -791,5 +796,12 @@ export class ActionManager {
 
             this.recordedActionPointer = null;
         }
+    }
+
+    clear() {
+        this.actions = []
+        this.currentActionPointer = 0;
+
+        this.notifyDataChanged();
     }
 }

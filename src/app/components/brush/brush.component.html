@@ -13,6 +13,14 @@
       </ion-col>
     </ion-row>
     <ion-row>
+      <ion-col>
+      <ion-item>
+        <ion-label>Prevent overlap</ion-label>
+        <ion-toggle [(ngModel)]="preventOverlap"></ion-toggle>
+      </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
       <ion-col class="vertical-align-content">
         <ion-label style="text-align: center;" #tooltip="matTooltip"
         matTooltip="The polygons you draw get simplified! This is the tolerance you allow. 0 means you do not perform simplification.">

@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
-import { ChangePolygonPoints } from 'src/app/models/action';
+import { ChangePolygonPoints, JointAction } from 'src/app/models/action';
 import { Drawer, Pencil, UIInteraction } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { SegmentationModel } from 'src/app/models/segmentation-model';
@@ -14,6 +14,8 @@ import { polygon } from 'polygon-tools';
 
 const tree = require( 'tree-kit' ) ;
 
+// as a ES module
+import RBush from 'rbush';
 
 @Component({
   selector: 'app-brush',
@@ -54,6 +56,13 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
   simplificationTolerance = 0.2;
 
   showOverlay = true;
+
+  preventOverlap = true;
+
+  // track the polygons that get changed while drawing
+  changedPolygons = new Map<string, Polygon>();
+  // keep a copy of the old segModel to make the changes when stopping draw
+  oldSegModel: SegmentationModel;
 
   @Output()
   changedEvent = new EventEmitter<void>();
@@ -169,6 +178,9 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
       event.preventDefault();
       this.brushActivated = true;
 
+      this.changedPolygons = new Map<string, Polygon>();
+      this.oldSegModel = this.segModel.clone();
+
       if (this.currentPolygon === null) {
           // add a new polygon if there is none selected
           this.segModel.addNewPolygon();
@@ -205,11 +217,12 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
     this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
     if (this.brushActivated) {
         this.dirty = true;
+        this.changedPolygons.set(this.segModel.activePolygonId, this.currentPolygon);
         const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
 
         // Increase/Decrease depending on selected mode
         if (this.increase) {
-        this.currentPolygon.join(circle);
+            this.currentPolygon.join(circle);
         } else {
             this.currentPolygon.subtract(circle);
         }
@@ -222,8 +235,46 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
         }
             
         // simplify polygon points
-        this.currentPolygon.points = Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance);
+        this.currentPolygon.setPoints(Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance));
 
+        if (this.preventOverlap) {
+
+            // check on other polygons
+            const tree = new RBush();
+
+            for (const [uuid, poly] of this.segModel.segmentationData.getPolygons()){
+                if (poly == this.currentPolygon) {
+                    continue;
+                }
+                const bbox = poly.boundingBox
+                tree.insert({
+                    minX: bbox.x,
+                    minY: bbox.y,
+                    maxX: bbox.x + bbox.w,
+                    maxY: bbox.y + bbox.h,
+                    uuid: uuid,
+                });
+            }
+            const curBbox = this.currentPolygon.boundingBox;
+            // coarse intersection test via bbox (but fast)
+            const result = tree.search({
+                minX: curBbox.x,
+                minY: curBbox.y,
+                maxX: curBbox.x + curBbox.w,
+                maxY: curBbox.y + curBbox.h
+            });
+            for(const {uuid} of result) {
+                const conflictPolygon = this.segModel.segmentationData.getPolygon(uuid);
+                // detailed intersection test (slow)
+                if(this.currentPolygon.isIntersecting(conflictPolygon)) {
+                    conflictPolygon.subtract(this.currentPolygon);
+                    this.changedPolygons.set(uuid, conflictPolygon);
+                }
+            }
+
+            console.log(curBbox);
+            console.log(result);
+        }
     }
     // Notify change
     this.changedEvent.emit();
@@ -236,6 +287,7 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
 
       this.commitChanges();
 
+      this.oldSegModel = null;
       this.changedEvent.emit();
       return true;
   }
@@ -246,16 +298,21 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
 
   commitChanges() {
       if (this.currentPolygon) {
-          if (this.dirty) {
-              // only add actions if we have changed something
-              this.segModel.addAction(new ChangePolygonPoints(this.segModel.segmentationData,
-                                      this.currentPolygon.points,
-                                      this.segModel.activePolygonId,
-                                      this.oldPoints));
-          }
-          this.dirty = false;
 
-          this.changedEvent.emit();
+        const actions = [];
+        for(const [uuid, poly] of this.changedPolygons.entries()) {
+            actions.push(
+                new ChangePolygonPoints(this.segModel.segmentationData,
+                    poly.points,
+                    uuid,
+                    this.oldSegModel.segmentationData.getPolygon(uuid).points));
+        }
+
+        if (actions.length > 0) {
+            this.segModel.addAction(new JointAction(...actions), false);
+        }
+
+        this.changedEvent.emit();
       }
   }
 

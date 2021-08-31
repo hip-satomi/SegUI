@@ -19,7 +19,7 @@ export class SegmentationModel {
 
     // action Manager that contains the actions forming the segmentation
     @JsonProperty()
-    actionManager: ActionManager;
+    private actionManager: ActionManager;
 
     onModelChange = new EventEmitter<ModelChanged<SegmentationModel>>();
 
@@ -129,12 +129,7 @@ export class SegmentationModel {
         this.actionManager.addAction(action, toPerform);
     }
 
-    /**
-     * Adds a new polygon to the segmentation model if necessary
-     * 
-     * if there is  an empty polygon at the end, this one is used
-     */
-    addNewPolygon(): string {
+    addNewPolygonActions(): Action[] {
         let uuid = '';
         // do not allow undo for the first segment (it should be always present)
         let allowUndo = true;
@@ -173,10 +168,20 @@ export class SegmentationModel {
             actions.push(new PreventUndoActionWrapper(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId)));
         }
 
+        return actions;
+    }
+
+    /**
+     * Adds a new polygon to the segmentation model if necessary
+     * 
+     * if there is  an empty polygon at the end, this one is used
+     */
+    addNewPolygon() {
+
+        const actions = this.addNewPolygonActions();
+
         // add all these actions as a joint action
         this.addAction(new JointAction(...actions));
-
-        return uuid;
     }
 
     /**
@@ -229,7 +234,7 @@ export class SegmentationModel {
 
     undo() {
         if (this.actionManager.canUndo) {
-            this.actionManager.undo();
+            this.actionManager.undo({segmentationData: this.segmentationData});
         }
     }
 
@@ -238,6 +243,27 @@ export class SegmentationModel {
             this.actionManager.redo();
         }
     }
+
+    get canUndo() {
+        return this.actionManager.canUndo;
+    }
+
+    get canRedo() {
+        return this.actionManager.canRedo;
+    }
+
+    clone() {
+        const newSegMod = new SegmentationModel();
+        newSegMod.actionManager.clear();
+        newSegMod.actionManager.reapplyActions({segmentationData: newSegMod.segmentationData});
+        for (const action of this.actionManager.actions) {
+            newSegMod.addAction(action, false);
+        }
+        newSegMod.actionManager.reapplyActions({segmentationData: newSegMod.segmentationData});
+
+        return newSegMod;
+    }
+
 }
 
 /**

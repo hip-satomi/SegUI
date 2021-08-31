@@ -36,6 +36,7 @@
     "mathjs": "^7.6.0",
     "point-in-polygon": "^1.1.0",
     "polygon-tools": "^0.4.8",
+    "rbush": "^3.0.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "~6.5.5",
     "simplify-js": "^1.2.4",
