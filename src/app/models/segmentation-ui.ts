@@ -120,7 +120,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                 const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonId, this.segmentationModel.segmentationData);
                 this.segmentationModel.addAction(act);
 
-                this.segmentationModel.activePointIndex = insertAt;
+                //this.segmentationModel.activePointIndex = insertAt;
                 return true;
             }
         }
