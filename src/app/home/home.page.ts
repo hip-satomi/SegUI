@@ -13,7 +13,7 @@ import { StateService } from './../services/state.service';
 import { SegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation } from './../services/seg-rest.service';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, concatMap, concatAll, mergeAll, combineAll, switchMapTo, mapTo, throttle, throttleTime, catchError } from 'rxjs/operators';
-import { BehaviorSubject, EMPTY, from, Observable, of, ReplaySubject, Subject, Subscription, throwError, zip } from 'rxjs';
+import { BehaviorSubject, EMPTY, from, Observable, of, pipe, ReplaySubject, Subject, Subscription, throwError, zip } from 'rxjs';
 import { TrackingUI } from './../models/tracking-ui';
 import { TrackingModel } from './../models/tracking';
 import { Pencil, UIInteraction } from './../models/drawing';
@@ -285,6 +285,62 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   ngOnInit() {
+    const handleError = catchError(err => {
+      console.log(err)
+      this.showError(err.message);
+      return of();
+    })
+
+    const thTime = 1500;
+
+    // pipeline for handling left arrow key
+    this.leftKeyMove$.pipe(
+      //takeUntil(this.ngUnsubscribe),
+      map(() => {
+        if (this.canPrevImage) {
+          this.prevImage();
+          return true;
+        } else {
+          return false;
+        }    
+      }),
+      throttleTime(thTime),
+      switchMap((handeled) => {
+        if(!handeled) {
+          return this.askForPreviousImageSequence().pipe(
+            switchMap(() => this.navigateToPreviousImageSequence()),
+            handleError,
+          )
+        }
+
+        return of();
+      })
+    ).subscribe();
+
+    // pipeline for handling right arrow key
+    this.rightKeyMove$.pipe(
+      //takeUntil(this.ngUnsubscribe),
+      map(() => {
+        if (this.canNextImage) {
+          this.nextImage();
+          return true;
+        } else {
+          return false;
+        }    
+      }),
+      throttleTime(thTime),
+      tap(() => console.log('event')),
+      switchMap((handeled) => {
+        if(!handeled) {
+          return this.askForNextImageSequence().pipe(
+            take(1),
+            switchMap(() => this.navigateToNextImageSequence()),
+            handleError
+          )
+        }
+        return of();
+      })
+    ).subscribe();
   }
 
   async ngAfterViewInit() {
@@ -307,7 +363,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // setup loading pipeline when we get a new imageId (also used for refreshing!)
     this.imageSetId.pipe(
       // disable all previous subscribers
-      //tap(() => this.ngUnsubscribe.next()),
+      tap(() => this.ngUnsubscribe.next()),
       tap(() => {
         loading.then(l => l.present());
       }),
@@ -321,61 +377,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       )),
       tap(() => {
 
-        const handleError = catchError(err => {
-          console.log(err)
-          this.showError(err.message);
-          return of();
-        })
 
-        const thTime = 1500;
-
-        // pipeline for handling left arrow key
-        this.leftKeyMove$.pipe(
-          takeUntil(this.ngUnsubscribe),
-          map(() => {
-            if (this.canPrevImage) {
-              this.prevImage();
-              return true;
-            } else {
-              return false;
-            }    
-          }),
-          throttleTime(thTime),
-          switchMap((handeled) => {
-            if(!handeled) {
-              return this.askForPreviousImageSequence().pipe(
-                switchMap(() => this.navigateToPreviousImageSequence()),
-                handleError,
-              )
-            }
-
-            return of();
-          })
-        ).subscribe();
-
-        // pipeline for handling right arrow key
-        this.rightKeyMove$.pipe(
-          takeUntil(this.ngUnsubscribe),
-          map(() => {
-            if (this.canNextImage) {
-              this.nextImage();
-              return true;
-            } else {
-              return false;
-            }    
-          }),
-          throttleTime(thTime),
-          tap(() => console.log('event')),
-          switchMap((handeled) => {
-            if(!handeled) {
-              return this.askForNextImageSequence().pipe(
-                switchMap(() => this.navigateToNextImageSequence()),
-                handleError
-              )
-            }
-            return of();
-          })
-        ).subscribe();
       })
     ).subscribe((id) => console.log(`Loaded image set ${id}`))
 
@@ -395,7 +397,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   ionViewDidLeave() {
     // This aborts all HTTP requests.
     this.ngUnsubscribe.next();
-    // This completes the subject properlly.
+    // This completes the subject properly.
     this.ngUnsubscribe.complete();
   }
 
@@ -1224,6 +1226,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    */
   navigateToNextImageSequence() {
     return this.imageSetId.pipe(
+      take(1),
       switchMap(id => {
         return this.omeroAPI.nextImageSequence(id)
       }),
@@ -1238,6 +1241,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    */
   navigateToPreviousImageSequence() {
     return this.imageSetId.pipe(
+      take(1),
       switchMap(id => {
         return this.omeroAPI.previousImageSequence(id)
       }),
