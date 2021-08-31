@@ -33,8 +33,8 @@ class BoundingBox {
 
 @Serializable()
 export class Polygon {
-    @JsonProperty()
-    points: Point[] = [];
+    @JsonProperty({name: 'points'})
+    _points: Point[] = [];
 
     @JsonProperty()
     color: string;
@@ -73,10 +73,18 @@ export class Polygon {
         this._cached_bounding_box = null;
     }
 
-    setPoints(points: Point[]) {
-        this.points = points;
+    set points(points: Point[]) {
+        this._points = points;
 
         this._cached_bounding_box = null;
+    }
+
+    get points() {
+        return this._points;
+    }
+
+    setPoints(points: Point[]) {
+        this.points = points;
     }
 
     addPoint(index: number, point: Point) {
@@ -223,6 +231,10 @@ export class Polygon {
                 console.error(e);
             }
         }
+    }
+
+    isIntersecting(other: Polygon) {
+        return polygon.intersection(this.points, other.points).length > 0;
     }
 
     /**
