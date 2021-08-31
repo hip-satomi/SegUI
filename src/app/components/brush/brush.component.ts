@@ -204,25 +204,25 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
   onPan(event: any): boolean {
     this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
     if (this.brushActivated) {
-    this.dirty = true;
-    const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
+        this.dirty = true;
+        const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
 
-    // Increase/Decrease depending on selected mode
-    if (this.increase) {
-    this.currentPolygon.join(circle);
-    } else {
-        this.currentPolygon.subtract(circle);
-    }
+        // Increase/Decrease depending on selected mode
+        if (this.increase) {
+        this.currentPolygon.join(circle);
+        } else {
+            this.currentPolygon.subtract(circle);
+        }
 
-    // prevent segmentation outside of the image area
-    const imagePolygon = new Rectangle(0, 0, this.segUI.imageWidth, this.segUI.imageHeight);
-    const outsideOfAllowed = polygon.subtract(this.currentPolygon.points, imagePolygon.points);
-    for (const pointList of outsideOfAllowed) {
-        this.currentPolygon.subtract(new Polygon(...pointList));   
-    }
-        
-    // simplify polygon points
-    this.currentPolygon.points = Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance);
+        // prevent segmentation outside of the image area
+        const imagePolygon = new Rectangle(0, 0, this.segUI.imageWidth, this.segUI.imageHeight);
+        const outsideOfAllowed = polygon.subtract(this.currentPolygon.points, imagePolygon.points);
+        for (const pointList of outsideOfAllowed) {
+            this.currentPolygon.subtract(new Polygon(...pointList));   
+        }
+            
+        // simplify polygon points
+        this.currentPolygon.points = Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance);
 
     }
     // Notify change
