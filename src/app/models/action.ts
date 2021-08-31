@@ -35,6 +35,10 @@ export abstract class Action {
     type: ActionTypes;
 
     abstract perform(): void;
+
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     abstract reverse(): void;
     abstract setData(info): void;
 
@@ -111,6 +115,9 @@ export class AddEmptyPolygon extends SegmentationAction {
         this.segmentationData.addPolygon(this.uuid, poly);
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.segmentationData.removePolygon(this.uuid);
     }
@@ -140,6 +147,9 @@ export class AddPolygon extends SegmentationAction {
         this.segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly));
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.segmentationData.removePolygon(this.uuid);
     }
@@ -166,6 +176,9 @@ export class RemovePolygon extends SegmentationAction {
         this.polygon = this.segmentationData.removePolygon(this.polygonId);
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         if (!this.polygon) {
             throw Error('No polygon information available! Please make sure the action has been performed before it is reversed!');
@@ -198,6 +211,9 @@ export class SelectPolygon extends SegmentationAction {
         this.segmentationData.activePointIndex = 0;
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.segmentationData.activePolygonId = this.oldPolyId;
         this.segmentationData.activePointIndex = this.segmentationData.getPolygon(this.segmentationData.activePolygonId).numPoints - 1;
@@ -245,6 +261,9 @@ export class AddPointAction extends SegmentationAction {
         this.segmentationData.activePointIndex = this.index;
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.getPolygon(this.polygonId).removePoint(this.index);
     }
@@ -280,6 +299,9 @@ export class RemovePointAction extends SegmentationAction {
         this.getPolygon(this.polygonId).removePoint(this.pointIndex);
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         // add point
         this.getPolygon(this.polygonId).addPoint(this.pointIndex, Utils.tree.clone(this.point));
@@ -318,6 +340,9 @@ export class MovePointAction extends SegmentationAction {
         this.point[1] = this.newPoint[1];
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.point[0] = this.oldPoint[0];
         this.point[1] = this.oldPoint[1];
@@ -377,6 +402,9 @@ export class ChangePolygonPoints extends SegmentationAction {
         this.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.newPoints));
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.oldPoints));
     }
@@ -427,6 +455,9 @@ export class SelectSegmentAction extends TrackingAction {
         this.trackingData.selectedSegments.push(this.selection);
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.trackingData.selectedSegments.pop();
     }
@@ -451,6 +482,9 @@ export class UnselectSegmentAction extends TrackingAction {
         }
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.trackingData.selectedSegments.push(this.selection);
     }
@@ -499,6 +533,9 @@ export class AddLinkAction extends TrackingAction {
         }
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         this.trackingData.trackingLinks.pop();
 
@@ -582,6 +619,9 @@ export class JointAction extends Action{
         }
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         for (const act of this.actions.slice().reverse()) {
             act.reverse();
@@ -632,6 +672,9 @@ export class PreventUndoActionWrapper extends DataAction {
         this.action.perform();
     }
 
+    /**
+     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
+     */
     reverse() {
         throw new Error('Calling reverse on PreventUndoAction is not allowed');
     }
@@ -718,7 +761,6 @@ export class ActionManager {
         //lastAction.reverse();
         this.currentActionPointer -= 1;
 
-        // TODO: Maybe it is smarter to reapply action instead of reversing them one by one (reverse is difficult to implement)
         this.reapplyActions(info);
 
         this.notifyDataChanged();
