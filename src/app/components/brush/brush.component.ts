@@ -202,35 +202,32 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
   }
 
   onPan(event: any): boolean {
-      this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
-      if (this.brushActivated) {
-          this.dirty = true;
-          const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
+    this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+    if (this.brushActivated) {
+    this.dirty = true;
+    const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
 
-          // Increase/Decrease depending on selected mode
-          if (this.increase) {
-            this.currentPolygon.join(circle);
-          } else {
-              this.currentPolygon.subtract(circle);
-          }
+    // Increase/Decrease depending on selected mode
+    if (this.increase) {
+    this.currentPolygon.join(circle);
+    } else {
+        this.currentPolygon.subtract(circle);
+    }
 
-        // prevent segmentation outside of the image area
-        const imagePolygon = new Rectangle(0, 0, this.segUI.imageWidth, this.segUI.imageHeight);
-        const outsideOfAllowed = polygon.subtract(this.currentPolygon.points, imagePolygon.points);
-        for (const pointList of outsideOfAllowed) {
-            this.currentPolygon.subtract(new Polygon(...pointList));   
-        }
-          
-          // simplify polygon points
-          this.currentPolygon.points = Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance);
-          /*const points = this.currentPolygon.points.map(p => ({x: p[0], y: p[1]}) );
-          const simplePoints = simplify(points, this.simplificationTolerance);
-          this.currentPolygon.points = simplePoints.map(sp => [sp.x, sp.y]);*/
+    // prevent segmentation outside of the image area
+    const imagePolygon = new Rectangle(0, 0, this.segUI.imageWidth, this.segUI.imageHeight);
+    const outsideOfAllowed = polygon.subtract(this.currentPolygon.points, imagePolygon.points);
+    for (const pointList of outsideOfAllowed) {
+        this.currentPolygon.subtract(new Polygon(...pointList));   
+    }
+        
+    // simplify polygon points
+    this.currentPolygon.points = Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance);
 
-      }
-      // Notify change
-      this.changedEvent.emit();
-      return true;
+    }
+    // Notify change
+    this.changedEvent.emit();
+    return true;
   }
 
   onPanEnd(event: any): boolean {
