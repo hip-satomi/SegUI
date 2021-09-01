@@ -472,7 +472,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                 const currentModel = srsc.getModel().segmentations[poly.t]
 
                 // create polygon add action
-                const action = new AddPolygon(currentModel.segmentationData, new Polygon(...poly.points));
+                const action = new AddPolygon(new Polygon(...poly.points));
 
                 // execute the action
                 currentModel.addAction(action);
@@ -876,7 +876,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                 poly.setColor(UIUtils.randomColor());
     
                 // collection new polygon actions
-                actions.push(new AddPolygon(segModel.segmentationData, poly));
+                actions.push(new AddPolygon(poly));
               }
             }
     
@@ -1023,7 +1023,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           for (const target of link.targets) {
             targets.push(new SelectedSegment(target));
           }
-          actions.push(new AddLinkAction(this.trackingModel.trackingData, new SelectedSegment(link.sources[0]), targets));
+          actions.push(new AddLinkAction(new SelectedSegment(link.sources[0]), targets));
         }
 
         this.trackingModel.actionManager.addAction(new JointAction(...actions));
@@ -1090,7 +1090,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           const currentModel = srsc.getModel().segmentations[poly.t]
 
           // create polygon add action
-          const action = new AddPolygon(currentModel.segmentationData, new Polygon(...poly.points));
+          const action = new AddPolygon(new Polygon(...poly.points));
 
           // execute the action
           currentModel.addAction(action);

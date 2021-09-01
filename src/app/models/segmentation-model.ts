@@ -19,7 +19,7 @@ export class SegmentationModel {
 
     // action Manager that contains the actions forming the segmentation
     @JsonProperty()
-    private actionManager: ActionManager;
+    private actionManager: ActionManager<SegmentationData>;
 
     onModelChange = new EventEmitter<ModelChanged<SegmentationModel>>();
 
@@ -29,14 +29,14 @@ export class SegmentationModel {
 
     constructor() {
 
-        this.actionManager = new ActionManager(0.5);
+        this.actionManager = new ActionManager(0.5, this.segmentationData);
 
         // clear segmentation data
         this.clear();
         // load the image
         //this.loadImage();
 
-        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
+        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager<SegmentationData>) => {
             this.notfiyModelChanged();
         });
 
@@ -54,13 +54,13 @@ export class SegmentationModel {
         // after deserialization load the image
         //this.loadImage();
 
-        // clear the model
-        this.clear();
+        // reconnect action manager to data
+        this.actionManager.data = this.segmentationData;
 
         // reapply actions from action manager
-        this.actionManager.reapplyActions({segmentationData: this.segmentationData});
+        this.actionManager.reapplyActions();
 
-        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
+        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager<SegmentationData>) => {
             this.notfiyModelChanged();
         });
     }
@@ -129,16 +129,16 @@ export class SegmentationModel {
         this.actionManager.addAction(action, toPerform);
     }
 
-    addNewPolygonActions(): Action[] {
+    addNewPolygonActions(): Action<SegmentationData>[] {
         let uuid = '';
         // do not allow undo for the first segment (it should be always present)
         let allowUndo = true;
 
-        const actions: Action[] = [];
+        const actions: Action<SegmentationData>[] = [];
 
         if (this.segmentationData.numPolygons === 0) {
             // when there are no polygons we simply have to add one
-            const newAction = new AddEmptyPolygon(this.segmentationData, UIUtils.randomColor());
+            const newAction = new AddEmptyPolygon(UIUtils.randomColor());
             uuid = newAction.uuid;
             //this.addAction(newAction);
             actions.push(newAction);
@@ -152,7 +152,7 @@ export class SegmentationModel {
             if (emptyId) {
                 uuid = emptyId;
             } else {
-                const newAction = new AddEmptyPolygon(this.segmentationData, UIUtils.randomColor());
+                const newAction = new AddEmptyPolygon(UIUtils.randomColor());
                 uuid = newAction.uuid;
                 //this.addAction(newAction);
                 actions.push(newAction);
@@ -163,9 +163,9 @@ export class SegmentationModel {
 
         // select the correct polygon
         if (allowUndo) {
-            actions.push(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId));
+            actions.push(new SelectPolygon(uuid, this.segmentationData.activePolygonId));
         } else {
-            actions.push(new PreventUndoActionWrapper(new SelectPolygon(this.segmentationData, uuid, this.segmentationData.activePolygonId)));
+            actions.push(new PreventUndoActionWrapper(new SelectPolygon(uuid, this.segmentationData.activePolygonId)));
         }
 
         return actions;
@@ -203,7 +203,7 @@ export class SegmentationModel {
      * sets the currently active polygon index
      */
     set activePolygonId(activePolygonId: string) {
-        this.addAction(new SelectPolygon(this.segmentationData, activePolygonId, this.segmentationData.activePolygonId));
+        this.addAction(new SelectPolygon(activePolygonId, this.segmentationData.activePolygonId));
     }
 
     /**
@@ -234,7 +234,7 @@ export class SegmentationModel {
 
     undo() {
         if (this.actionManager.canUndo) {
-            this.actionManager.undo({segmentationData: this.segmentationData});
+            this.actionManager.undo();
         }
     }
 
@@ -253,13 +253,18 @@ export class SegmentationModel {
     }
 
     clone() {
+        // TODO: rather use this.actionManager.clone()
+        // create blank model
         const newSegMod = new SegmentationModel();
         newSegMod.actionManager.clear();
-        newSegMod.actionManager.reapplyActions({segmentationData: newSegMod.segmentationData});
+        newSegMod.actionManager.reapplyActions();
+        // add all the actions from the other model
         for (const action of this.actionManager.actions) {
             newSegMod.addAction(action, false);
         }
-        newSegMod.actionManager.reapplyActions({segmentationData: newSegMod.segmentationData});
+        // apply the actions
+        newSegMod.actionManager.currentActionPointer = this.actionManager.currentActionPointer;
+        newSegMod.actionManager.reapplyActions();
 
         return newSegMod;
     }

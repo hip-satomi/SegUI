@@ -402,7 +402,7 @@ export class TrackingUI implements UIInteraction, Drawer {
             const targets = this.trackingModel.trackingData.selectedSegments
                                 .filter((selSeg: SelectedSegment) => targetFrame === this.getSelectedSegmentFrame(selSeg));
 
-            this.trackingModel.actionManager.addAction(new AddLinkAction(this.trackingModel.trackingData, sources[0], targets));
+            this.trackingModel.actionManager.addAction(new AddLinkAction(sources[0], targets));
 
             const toast = await this.toastController.create({
                 message: 'Added link',

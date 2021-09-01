@@ -1,6 +1,6 @@
 import { SegmentationUI } from './../models/segmentation-ui';
 import { Point, Rectangle } from './../models/geometry';
-import { AddPolygon, RemovePolygon, JointAction, ChangePolygonPoints, SelectPolygon, SegmentationAction} from './../models/action';
+import { AddPolygon, RemovePolygon, JointAction, ChangePolygonPoints, SelectPolygon, Action} from './../models/action';
 import { ApproxCircle, Polygon } from 'src/app/models/geometry';
 import { Utils, Position, UIUtils } from './../models/utils';
 import { ModelChanged } from './../models/change';
@@ -11,6 +11,7 @@ import { UIInteraction, Deletable } from './../models/drawing';
 import { polygon } from 'polygon-tools';
 import { switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { SegmentationData } from '../models/segmentation-data';
 
 
 const tree = require( 'tree-kit' ) ;
@@ -57,10 +58,10 @@ export class RectangleTool extends UIInteraction implements Drawer, Deletable {
             return false;
         }
 
-        const actions: SegmentationAction[] = [];
+        const actions: Action<SegmentationData>[] = [];
         for (const [uuid, poly] of this.segModel.segmentationData.getPolygonEntries()) {
             if (this.rectangle.isInside(poly.center)) {
-                actions.push(new RemovePolygon(this.segModel.segmentationData, uuid));
+                actions.push(new RemovePolygon(uuid));
             }
         }
 
@@ -206,8 +207,7 @@ export class RectangleTool extends UIInteraction implements Drawer, Deletable {
     commitChanges() {
         if (this.dirty) {
             // only add actions if we have changed something
-            this.segModel.addAction(new ChangePolygonPoints(this.segModel.segmentationData,
-                                    this.currentPolygon.points,
+            this.segModel.addAction(new ChangePolygonPoints(this.currentPolygon.points,
                                     this.segModel.activePolygonId,
                                     this.oldPoints));
         }

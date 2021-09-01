@@ -117,7 +117,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
             if (lineInsert) {
                 // place at correct place (maybe close to line --> directly on the line)
-                const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonId, this.segmentationModel.segmentationData);
+                const act = new AddPointAction([x, y], insertAt, this.segmentationModel.activePolygonId);
                 this.segmentationModel.addAction(act);
 
                 //this.segmentationModel.activePointIndex = insertAt;
@@ -158,8 +158,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             // match contains [uuid, Polygon] of the selected polygon
 
             // select the polygon
-            this.segmentationModel.addAction(new SelectPolygon(this.segmentationModel.segmentationData,
-                                                               match[0],
+            this.segmentationModel.addAction(new SelectPolygon(match[0],
                                                                this.segmentationModel.activePolygonId));
 
             // show action opportunities
@@ -171,7 +170,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                   icon: 'trash',
                   handler: () => {
                     // create an action to remove the polygon
-                    const removeAction = new RemovePolygon(this.segmentationModel.segmentationData, match[0]);
+                    const removeAction = new RemovePolygon(match[0]);
                     // add another polygon for safety
                     this.segmentationModel.addNewPolygon();
                     // execute the remove action
@@ -224,8 +223,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             const polygon = this.segmentationModel.activePolygon;
             this.segmentationModel.addAction(new MovePointAction([mousePos.x, mousePos.y],
                                                 this.segmentationModel.activePointIndex,
-                                                this.segmentationModel.activePolygonId,
-                                                this.segmentationModel.segmentationData));
+                                                this.segmentationModel.activePolygonId));
 
             return true;
         }
@@ -258,8 +256,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             const jointAction = 
                 new JointAction(
                     ...this.segmentationModel.addNewPolygonActions(),
-                    new RemovePolygon(this.segmentationModel.segmentationData,
-                                    removalId));
+                    new RemovePolygon(removalId));
 
             this.segmentationModel.addAction(jointAction);
 

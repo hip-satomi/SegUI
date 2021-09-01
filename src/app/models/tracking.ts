@@ -12,22 +12,27 @@ export class TrackingModel extends SynchronizedObject<TrackingModel> {
     trackingData = new TrackingData();
 
     @JsonProperty()
-    actionManager: ActionManager = new ActionManager(0.25);
+    actionManager: ActionManager<TrackingData> = new ActionManager(0.25, this.trackingData);
 
     onModelChanged = new EventEmitter<ModelChanged<TrackingModel>>();
 
     constructor() {
         super();
 
-        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
+        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager<TrackingData>) => {
             this.onModelChanged.emit(new ModelChanged<TrackingModel>(this, ChangeType.HARD));
         });
     }
 
     onDeserialized() {
-        this.actionManager.reapplyActions({trackingData: this.trackingData});
+        // reconnect action manager and data
+        this.actionManager.data = this.trackingData;
 
-        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager) => {
+        // reconstruct state by applying the actions
+        this.actionManager.reapplyActions();
+
+        // subscribe to change events
+        this.actionManager.onDataChanged.subscribe((actionManager: ActionManager<TrackingData>) => {
             this.onModelChanged.emit(new ModelChanged<TrackingModel>(this, ChangeType.HARD));
         });
     }
@@ -40,13 +45,12 @@ export class TrackingModel extends SynchronizedObject<TrackingModel> {
         if (existing) {
             // we found element in selected segments --> deselect it
             this.actionManager.addAction(
-                new UnselectSegmentAction(segmentSelection, this.trackingData)
+                new UnselectSegmentAction(segmentSelection)
             );
         } else {
             // there is no such selection --> select it
             this.actionManager.addAction(
-                new SelectSegmentAction(segmentSelection,
-                this.trackingData));
+                new SelectSegmentAction(segmentSelection));
         }
     }
 

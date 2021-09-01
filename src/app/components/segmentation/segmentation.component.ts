@@ -257,7 +257,7 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
         poly.setColor(UIUtils.randomColor());
 
         // collection new polygon actions
-        const addAction = new AddPolygon(this.localSegModel.segmentationData, poly);
+        const addAction = new AddPolygon(poly);
         actions.push(addAction);
 
         // save the detection score
@@ -301,14 +301,14 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
     if (!this.showOverlay) {
       // we need to delete all existing polyongs
       for (const [uuid, poly] of this.segModel.segmentationData.getPolygonEntries()) {
-        deleteActions.push(new RemovePolygon(this.segModel.segmentationData, uuid));
+        deleteActions.push(new RemovePolygon(uuid));
       }
     }
 
     if (this.showNewOverlay) {
       // add all the polygons here
       for (const [uuid, poly] of this.filteredDets) {
-        addActions.push(new AddPolygon(this.segModel.segmentationData, poly));
+        addActions.push(new AddPolygon(poly));
       }
     }
 

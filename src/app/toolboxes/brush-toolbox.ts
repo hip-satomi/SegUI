@@ -214,8 +214,7 @@ export class BrushTool extends UIInteraction implements Drawer {
         if (this.currentPolygon) {
             if (this.dirty) {
                 // only add actions if we have changed something
-                this.segModel.addAction(new ChangePolygonPoints(this.segModel.segmentationData,
-                                        this.currentPolygon.points,
+                this.segModel.addAction(new ChangePolygonPoints(this.currentPolygon.points,
                                         this.segModel.activePolygonId,
                                         this.oldPoints));
             }

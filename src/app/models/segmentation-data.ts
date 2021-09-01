@@ -1,7 +1,8 @@
 import { Polygon } from 'src/app/models/geometry';
+import { ClearableStorage } from './action';
 
 
-export class SegmentationData {
+export class SegmentationData implements ClearableStorage {
     private polygons: Map<string, Polygon>;
     activePolygonId: string;
     activePointIndex: number;

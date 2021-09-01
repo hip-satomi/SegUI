@@ -29,24 +29,23 @@ enum ActionTypes {
 }
 
 @Serializable()
-export abstract class Action {
+export abstract class Action<T> {
 
     @JsonProperty()
     type: ActionTypes;
 
-    abstract perform(): void;
+    abstract perform(data: T): void;
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    abstract reverse(): void;
-    abstract setData(info): void;
+    abstract reverse(data: T): void;
 
     constructor(type: ActionTypes) {
         this.type = type;
     }
 
-    join(action: Action): boolean {
+    join(action: Action<T>): boolean {
         return false;
     }
 
@@ -59,13 +58,13 @@ export abstract class Action {
     }
 }
 
-@Serializable()
-export abstract class DataAction extends Action {
-    abstract setData(info): void;
-}
+//@Serializable()
+//export abstract class DataAction extends Action {
+//    abstract setData(info): void;
+//}
 
-@Serializable()
-export abstract class SegmentationAction extends DataAction {
+/*@Serializable()
+export abstract class SegmentationAction extends Action<SegmentationData> {
 
     protected segmentationData: SegmentationData;
 
@@ -74,7 +73,7 @@ export abstract class SegmentationAction extends DataAction {
         this.segmentationData = segmentationData;
     }
 
-    setData(info) {
+    /*setData(info) {
         const segData = info.segmentationData;
 
         if (!segData) {
@@ -86,15 +85,15 @@ export abstract class SegmentationAction extends DataAction {
 
     /*protected get polygonList() {
         return this.segmentationData.polygons;
-    }*/
+    }
 
     getPolygon(polygonId: string) {
         return this.segmentationData.getPolygon(polygonId);
     }
-}
+}*/
 
 @Serializable()
-export class AddEmptyPolygon extends SegmentationAction {
+export class AddEmptyPolygon extends Action<SegmentationData> {
 
     @JsonProperty()
     color: string;
@@ -102,24 +101,24 @@ export class AddEmptyPolygon extends SegmentationAction {
     @JsonProperty()
     uuid: string;
 
-    constructor(segmentationData: SegmentationData, color: string) {
-        super(ActionTypes.AddEmptyPolygon, segmentationData);
+    constructor(color: string) {
+        super(ActionTypes.AddEmptyPolygon);
 
         this.color = color;
         this.uuid = uuidv4();
     }
 
-    perform() {
+    perform(segmentationData: SegmentationData) {
         const poly = new Polygon();
         poly.setColor(this.color);
-        this.segmentationData.addPolygon(this.uuid, poly);
+        segmentationData.addPolygon(this.uuid, poly);
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.segmentationData.removePolygon(this.uuid);
+    reverse(segmentationData: SegmentationData) {
+        segmentationData.removePolygon(this.uuid);
     }
 
 }
@@ -128,7 +127,7 @@ export class AddEmptyPolygon extends SegmentationAction {
  * Action to add a full polygon
  */
 @Serializable()
-export class AddPolygon extends SegmentationAction {
+export class AddPolygon extends Action<SegmentationData> {
 
     @JsonProperty()
     uuid: string;
@@ -136,29 +135,29 @@ export class AddPolygon extends SegmentationAction {
     @JsonProperty()
     poly: Polygon;
 
-    constructor(segmentationData: SegmentationData, poly: Polygon) {
-        super(ActionTypes.AddPolygon, segmentationData);
+    constructor(poly: Polygon) {
+        super(ActionTypes.AddPolygon);
 
         this.uuid = uuidv4();
         this.poly = poly;
     }
 
-    perform() {
-        this.segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly));
+    perform(segmentationData: SegmentationData) {
+        segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly));
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.segmentationData.removePolygon(this.uuid);
+    reverse(segmentationData: SegmentationData) {
+        segmentationData.removePolygon(this.uuid);
     }
 
 }
 
 
 @Serializable()
-export class RemovePolygon extends SegmentationAction {
+export class RemovePolygon extends Action<SegmentationData> {
 
     @JsonProperty()
     polygonId: string;
@@ -166,60 +165,63 @@ export class RemovePolygon extends SegmentationAction {
     @JsonProperty()
     polygon: Polygon;
 
-    constructor(segData: SegmentationData, polgonId: string) {
-        super(ActionTypes.RemovePolygon, segData);
+    constructor(polgonId: string) {
+        super(ActionTypes.RemovePolygon);
 
         this.polygonId = polgonId;
     }
 
-    perform() {
-        this.polygon = this.segmentationData.removePolygon(this.polygonId);
+    perform(segmentationData: SegmentationData) {
+        this.polygon = segmentationData.removePolygon(this.polygonId);
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
+    reverse(segmentationData: SegmentationData) {
         if (!this.polygon) {
             throw Error('No polygon information available! Please make sure the action has been performed before it is reversed!');
         }
-        this.segmentationData.addPolygon(this.polygonId, this.polygon);
+        segmentationData.addPolygon(this.polygonId, this.polygon);
     }
 
 }
 
 @Serializable()
-export class SelectPolygon extends SegmentationAction {
+export class SelectPolygon extends Action<SegmentationData> {
 
     @JsonProperty() newPolyId: string;
     @JsonProperty() oldPolyId: string;
 
-    constructor(segmentationData: SegmentationData, newPolyId: string, oldPolyId: string = null) {
-        super(ActionTypes.SelectPolygon, segmentationData);
+    constructor(newPolyId: string, oldPolyId: string = null) {
+        super(ActionTypes.SelectPolygon);
 
         this.newPolyId = newPolyId;
         if (oldPolyId) {
             this.oldPolyId = oldPolyId;
-        } else if (this.segmentationData) {
-            // use the currently active polygon for old id
-            this.oldPolyId = this.segmentationData.activePolygonId;
-        }
+        } 
     }
 
-    perform() {
-        this.segmentationData.activePolygonId = this.newPolyId;
-        this.segmentationData.activePointIndex = 0;
+    perform(segmentationData: SegmentationData) {
+        if (!this.oldPolyId) {
+            // use the currently active polygon for old id
+            this.oldPolyId = segmentationData.activePolygonId;
+        }
+
+        // update selected polygon
+        segmentationData.activePolygonId = this.newPolyId;
+        segmentationData.activePointIndex = 0;
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.segmentationData.activePolygonId = this.oldPolyId;
-        this.segmentationData.activePointIndex = this.segmentationData.getPolygon(this.segmentationData.activePolygonId).numPoints - 1;
+    reverse(segmentationData: SegmentationData) {
+        segmentationData.activePolygonId = this.oldPolyId;
+        segmentationData.activePointIndex = segmentationData.getPolygon(segmentationData.activePolygonId).numPoints - 1;
     }
 
-    join(action: Action): boolean {
+    join(action: Action<SegmentationData>): boolean {
         if (action instanceof SelectPolygon) {
             console.log('Joining Select polygon');
             const selectAction = action as SelectPolygon;
@@ -234,7 +236,7 @@ export class SelectPolygon extends SegmentationAction {
 }
 
 @Serializable()
-export class AddPointAction extends SegmentationAction {
+export class AddPointAction extends Action<SegmentationData> {
 
     @JsonProperty()
     private point: [number, number];
@@ -243,8 +245,8 @@ export class AddPointAction extends SegmentationAction {
     @JsonProperty()
     private polygonId: string;
 
-    constructor(point: [number, number], index: number, polygonId: string, segmentationData: SegmentationData) {
-        super(ActionTypes.AddPointAction, segmentationData);
+    constructor(point: [number, number], index: number, polygonId: string) {
+        super(ActionTypes.AddPointAction);
 
         if(!point) {
             return;
@@ -255,22 +257,22 @@ export class AddPointAction extends SegmentationAction {
         this.polygonId = polygonId;
     }
 
-    perform() {
-        this.getPolygon(this.polygonId).addPoint(this.index, Utils.tree.clone(this.point));
+    perform(segmentationData: SegmentationData) {
+        segmentationData.getPolygon(this.polygonId).addPoint(this.index, Utils.tree.clone(this.point));
 
-        this.segmentationData.activePointIndex = this.index;
+        segmentationData.activePointIndex = this.index;
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.getPolygon(this.polygonId).removePoint(this.index);
+    reverse(segmentationData: SegmentationData) {
+        segmentationData.getPolygon(this.polygonId).removePoint(this.index);
     }
 }
 
 @Serializable()
-export class RemovePointAction extends SegmentationAction {
+export class RemovePointAction extends Action<SegmentationData> {
 
     @JsonProperty()
     polygonId: string;
@@ -280,36 +282,31 @@ export class RemovePointAction extends SegmentationAction {
     @JsonProperty()
     point: [number, number];
 
-    constructor(segData: SegmentationData, polygonId: string, pointIndex: number) {
-        super(ActionTypes.RemovePointAction, segData);
-
-        if (!segData) {
-            // this is just loaded from json
-            return;
-        }
+    constructor(polygonId: string, pointIndex: number) {
+        super(ActionTypes.RemovePointAction);
 
         this.polygonId = polygonId;
         this.pointIndex = pointIndex;
-
-        this.point = this.getPolygon(this.polygonId).getPoint(this.pointIndex);
     }
 
-    perform() {
+    perform(segmentationData: SegmentationData) {
+        // store point data
+        this.point = segmentationData.getPolygon(this.polygonId).getPoint(this.pointIndex);
         // remove point
-        this.getPolygon(this.polygonId).removePoint(this.pointIndex);
+        segmentationData.getPolygon(this.polygonId).removePoint(this.pointIndex);
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
+    reverse(segmentationData: SegmentationData) {
         // add point
-        this.getPolygon(this.polygonId).addPoint(this.pointIndex, Utils.tree.clone(this.point));
+        segmentationData.getPolygon(this.polygonId).addPoint(this.pointIndex, Utils.tree.clone(this.point));
     }
 }
 
 @Serializable()
-export class MovePointAction extends SegmentationAction {
+export class MovePointAction extends Action<SegmentationData> {
 
     @JsonProperty()
     private newPoint: [number, number];
@@ -320,39 +317,34 @@ export class MovePointAction extends SegmentationAction {
     @JsonProperty()
     private pointIndex: number;
 
-    constructor(newPoint: [number, number], pointIndex: number, polygonId: string, segmentationData: SegmentationData) {
-        super(ActionTypes.MovePointAction, segmentationData);
-
-        if (!segmentationData) {
-            // this is a json recreation
-            return;
-        }
+    constructor(newPoint: [number, number], pointIndex: number, polygonId: string) {
+        super(ActionTypes.MovePointAction);
 
         this.polygonId = polygonId;
         this.pointIndex = pointIndex;
 
         this.newPoint = Utils.tree.clone([...newPoint]);
-        this.oldPoint = Utils.tree.clone([...this.point]);
     }
 
-    perform() {
-        this.point[0] = this.newPoint[0];
-        this.point[1] = this.newPoint[1];
+    perform(segmentationData: SegmentationData) {
+        const point = segmentationData.getPolygon(this.polygonId).getPoint(this.pointIndex)
+        this.oldPoint = Utils.tree.clone(point);
+
+        point[0] = this.newPoint[0];
+        point[1] = this.newPoint[1];
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.point[0] = this.oldPoint[0];
-        this.point[1] = this.oldPoint[1];
+    reverse(segmentationData: SegmentationData) {
+        const point = segmentationData.getPolygon(this.polygonId).getPoint(this.pointIndex)
+
+        point[0] = this.oldPoint[0];
+        point[1] = this.oldPoint[1];
     }
 
-    private get point() {
-        return this.getPolygon(this.polygonId).getPoint(this.pointIndex);
-    }
-
-    join(action: Action) {
+    join(action: Action<SegmentationData>) {
         if (action instanceof MovePointAction) {
             const mpAction = action as MovePointAction;
 
@@ -368,7 +360,7 @@ export class MovePointAction extends SegmentationAction {
 }
 
 @Serializable()
-export class ChangePolygonPoints extends SegmentationAction {
+export class ChangePolygonPoints extends Action<SegmentationData> {
 
     @JsonProperty()
     private newPoints: Point[];
@@ -377,20 +369,16 @@ export class ChangePolygonPoints extends SegmentationAction {
     @JsonProperty()
     private polygonId: string;
 
-    constructor(segmentationData: SegmentationData, newPoints: Point[], polygonId: string, oldPoints) {
-        super(ActionTypes.ChangePolygonPoints, segmentationData);
+    constructor(newPoints: Point[], polygonId: string, oldPoints) {
+        super(ActionTypes.ChangePolygonPoints);
 
-        if (!segmentationData) {
+        if (!newPoints) {
             // this is a json recreation
             return;
         }
 
         this.polygonId = polygonId;
         this.newPoints = Utils.tree.clone(newPoints);
-        /*if (oldPoints !== null) {
-            this.oldPoints = oldPoints;
-        } else {
-        }*/
         this.oldPoints = Utils.tree.clone(oldPoints);
 
         if (this.oldPoints === null) {
@@ -398,19 +386,15 @@ export class ChangePolygonPoints extends SegmentationAction {
         }
     }
 
-    perform() {
-        this.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.newPoints));
+    perform(segmentationData: SegmentationData) {
+        segmentationData.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.newPoints));
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.oldPoints));
-    }
-
-    private get points() {
-        return this.getPolygon(this.polygonId).points;
+    reverse(segmentationData: SegmentationData) {
+        segmentationData.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.oldPoints));
     }
 }
 
@@ -419,8 +403,8 @@ export class ChangePolygonPoints extends SegmentationAction {
  * 
  * works on tracking data
  */
-@Serializable()
-export abstract class TrackingAction extends DataAction {
+/*@Serializable()
+export abstract class TrackingAction extends Action<TrackingData> {
 
     protected trackingData: TrackingData;
 
@@ -436,48 +420,48 @@ export abstract class TrackingAction extends DataAction {
 
         this.trackingData = info.trackingData;
     }
-}
+}*/
 
 /**
  * Select a segmentation during the tracking process
  */
 @Serializable()
-export class SelectSegmentAction extends TrackingAction {
+export class SelectSegmentAction extends Action<TrackingData> {
     @JsonProperty()
     selection: SelectedSegment;
 
-    constructor(selectedSegment: SelectedSegment, trackingData: TrackingData) {
-        super(ActionTypes.SelectSegmentAction, trackingData);
+    constructor(selectedSegment: SelectedSegment) {
+        super(ActionTypes.SelectSegmentAction);
         this.selection = selectedSegment;
     }
 
-    perform() {
-        this.trackingData.selectedSegments.push(this.selection);
+    perform(trackingData: TrackingData) {
+        trackingData.selectedSegments.push(this.selection);
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.trackingData.selectedSegments.pop();
+    reverse(trackingData: TrackingData) {
+        trackingData.selectedSegments.pop();
     }
 }
 
 @Serializable()
-export class UnselectSegmentAction extends TrackingAction {
+export class UnselectSegmentAction extends Action<TrackingData> {
     @JsonProperty()
     selection: SelectedSegment;
 
-    constructor(selectedSegment: SelectedSegment, trackingData: TrackingData) {
-        super(ActionTypes.UnselectSegmentAction, trackingData);
+    constructor(selectedSegment: SelectedSegment) {
+        super(ActionTypes.UnselectSegmentAction);
 
         this.selection = selectedSegment;
     }
 
-    perform() {
-        for (const [index, item] of this.trackingData.selectedSegments.entries()) {
+    perform(trackingData: TrackingData) {
+        for (const [index, item] of trackingData.selectedSegments.entries()) {
             if (item.polygonId === this.selection.polygonId) {
-                this.trackingData.selectedSegments.splice(index, 1);
+                trackingData.selectedSegments.splice(index, 1);
             }
         }
     }
@@ -485,8 +469,8 @@ export class UnselectSegmentAction extends TrackingAction {
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.trackingData.selectedSegments.push(this.selection);
+    reverse(trackingData: TrackingData) {
+        trackingData.selectedSegments.push(this.selection);
     }
 }
 
@@ -494,7 +478,7 @@ export class UnselectSegmentAction extends TrackingAction {
  * Add a link during the tracking process
  */
 @Serializable()
-export class AddLinkAction extends TrackingAction {
+export class AddLinkAction extends Action<TrackingData> {
 
     @JsonProperty()
     link: TrackingLink;
@@ -502,45 +486,40 @@ export class AddLinkAction extends TrackingAction {
     @JsonProperty({type: UnselectSegmentAction})
     unselections: UnselectSegmentAction[] = [];
 
-    constructor(trackingData: TrackingData, source: SelectedSegment, targets: SelectedSegment[]) {
-        super(ActionTypes.AddLinkAction, trackingData);
+    constructor(source: SelectedSegment, targets: SelectedSegment[]) {
+        super(ActionTypes.AddLinkAction);
 
-        if (!trackingData) {
+        if (!source) {
             // restoring from json
             return;
         }
 
         this.link = new TrackingLink(source, targets);
 
+    }
+
+    perform(trackingData: TrackingData) {
+        this.unselections = [];
+
         for (const segment of trackingData.selectedSegments) {
-            this.unselections.push(new UnselectSegmentAction(segment, this.trackingData));
+            this.unselections.push(new UnselectSegmentAction(segment));
         }
-    }
 
-    setData(info) {
-        super.setData(info);
+        trackingData.trackingLinks.push(this.link);
 
         for (const unsel of this.unselections) {
-            unsel.setData(info);
-        }
-    }
-
-    perform() {
-        this.trackingData.trackingLinks.push(this.link);
-
-        for (const unsel of this.unselections) {
-            unsel.perform();
+            unsel.perform(trackingData);
         }
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
-        this.trackingData.trackingLinks.pop();
+    reverse(trackingData: TrackingData) {
+        trackingData.trackingLinks.pop();
 
         for (const unsel of this.unselections) {
-            unsel.reverse();
+            unsel.reverse(trackingData);
         }
     }
 }
@@ -551,7 +530,6 @@ export class AddLinkAction extends TrackingAction {
  * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions (https://github.com/JohnWeisz/TypedJSON/blob/master/spec/polymorphism-abstract-class.spec.ts)
  */
 const knownTypes = [Action,
-                    SegmentationAction,
                     AddEmptyPolygon,
                     AddPolygon,
                     RemovePolygon,
@@ -562,7 +540,6 @@ const knownTypes = [Action,
                     ChangePolygonPoints,
 
                     // Actions for tracking
-                    TrackingAction,
                     SelectSegmentAction,
                     AddLinkAction,
                     UnselectSegmentAction];
@@ -603,34 +580,28 @@ const actionRestorer = action => {
 };
 
 @Serializable()
-export class JointAction extends Action{
+export class JointAction<T> extends Action<T>{
 
     @JsonProperty({predicate: actionRestorer})
-    actions: Action[];
+    actions: Action<T>[];
 
-    constructor(...actions: Action[]) {
+    constructor(...actions: Action<T>[]) {
         super(ActionTypes.JointAction);
         this.actions = actions;
     }
 
-    perform() {
+    perform(data: T) {
         for (const act of this.actions) {
-            act.perform();
+            act.perform(data);
         }
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
+    reverse(data: T) {
         for (const act of this.actions.slice().reverse()) {
-            act.reverse();
-        }
-    }
-
-    setData(info) {
-        for (const act of this.actions) {
-            act.setData(info);
+            act.reverse(data);
         }
     }
 
@@ -658,29 +629,25 @@ export class JointAction extends Action{
 }
 
 @Serializable()
-export class PreventUndoActionWrapper extends DataAction {
+export class PreventUndoActionWrapper<T> extends Action<T> {
 
     @JsonProperty({predicate: actionRestorer})
-    action: DataAction;
+    action: Action<T>;
 
-    constructor(action: DataAction) {
+    constructor(action: Action<T>) {
         super(ActionTypes.PreventUndoActionWrapper);
         this.action = action;
     }
 
-    perform() {
-        this.action.perform();
+    perform(data: T) {
+        this.action.perform(data);
     }
 
     /**
      * @deprecated The method should not be used! Reversing is done via action manager complete refresh
      */
-    reverse() {
+    reverse(data: T) {
         throw new Error('Calling reverse on PreventUndoAction is not allowed');
-    }
-
-    setData(info) {
-        this.action.setData(info);
     }
 
     allowUndo() {
@@ -688,11 +655,15 @@ export class PreventUndoActionWrapper extends DataAction {
     }
 }
 
+export interface ClearableStorage {
+    clear();
+}
+
 @Serializable()
-export class ActionManager {
+export class ActionManager<T extends ClearableStorage> {
 
     @JsonProperty({predicate: actionRestorer})
-    actions: Action[] = [];
+    actions: Action<T>[] = [];
     @JsonProperty() actionTimeSplitThreshold: number;
     @JsonProperty()
     currentActionPointer: number;
@@ -700,11 +671,14 @@ export class ActionManager {
     @JsonProperty()
     recordedActionPointer: number;
 
-    onDataChanged = new EventEmitter<ActionManager>();
+    onDataChanged = new EventEmitter<ActionManager<T>>();
 
-    constructor(actionTimeSplitThreshold: number) {
+    data: T;
+
+    constructor(actionTimeSplitThreshold: number, data: T) {
         this.actionTimeSplitThreshold = actionTimeSplitThreshold;
         this.currentActionPointer = 0;
+        this.data = data;
     }
 
     /**
@@ -712,11 +686,11 @@ export class ActionManager {
      * @param action the current action
      * @param toPerform if true action is performed before adding to list
      */
-    addAction(action: Action, toPerform: boolean = true) {
+    addAction(action: Action<T>, toPerform: boolean = true) {
         console.log('Add action: ' + action.constructor.name);
 
         if (toPerform) {
-            action.perform();
+            action.perform(this.data);
         }
 
         if (!this.recordedActionPointer && this.currentActionPointer > 0 && this.actions[this.currentActionPointer - 1].join(action)) {
@@ -748,7 +722,7 @@ export class ActionManager {
      * 
      * if there is no last action, does nothing
      */
-    undo(info) {
+    undo() {
         if (!this.canUndo) {
             return;
         }
@@ -761,7 +735,7 @@ export class ActionManager {
         //lastAction.reverse();
         this.currentActionPointer -= 1;
 
-        this.reapplyActions(info);
+        this.reapplyActions();
 
         this.notifyDataChanged();
 
@@ -779,11 +753,11 @@ export class ActionManager {
         }
         const nextAction = this.actions[this.currentActionPointer];
 
-        console.log('Undo:');
+        console.log('Redo:');
         console.log(nextAction.constructor.name);
         console.log(nextAction);
 
-        nextAction.perform();
+        nextAction.perform(this.data);
         this.currentActionPointer++;
 
         this.notifyDataChanged();
@@ -812,18 +786,13 @@ export class ActionManager {
         return this.actions.length > this.currentActionPointer;
     }
 
-    reapplyActions(info) {
-        // attach actions with information
-        for (const action of this.actions) {
-            action.setData(info);
-        }
-
-        info.segmentationData.clear();
+    reapplyActions(data = this.data) {
+        data.clear();
 
         for (let i = 0; i < this.currentActionPointer; i++) {
             const action = this.actions[i];
 
-            action.perform();
+            action.perform(data);
         }
 
         this.notifyDataChanged();
