@@ -558,7 +558,7 @@ export class OmeroAPIService {
             const formData = new FormData();
             formData.set('parent', 'image-' + imageId);
             deletions.push(
-              this.httpClient.post(`/omero/webclient/action/remove/file/${ann.id}/`, formData)
+              this.httpClient.post(`/omero/webclient/action/delete/file/${ann.id}/`, formData)
             );
           }
           if (deletions.length > 0) {
