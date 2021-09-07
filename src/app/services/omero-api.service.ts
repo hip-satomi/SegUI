@@ -39,6 +39,8 @@ export class Base extends Id {
 
 @Serializable()
 export class Project extends Base {
+  @JsonProperty({name: 'Name'})
+  name: string;
 
   @JsonProperty({name: 'url:project', onDeserialize: rewriteOmeroUrl})
   url: string;
@@ -48,6 +50,9 @@ export class Project extends Base {
 
 @Serializable()
 export class Dataset extends Base {
+  @JsonProperty({name: 'Name'})
+  name: string;
+
   @JsonProperty({name: 'url:dataset', onDeserialize: rewriteOmeroUrl})
   url: string;
   @JsonProperty({name: 'url:images', onDeserialize: rewriteOmeroUrl})
@@ -325,6 +330,21 @@ export class OmeroAPIService {
     );
   }
 
+  getProjectByUrl(url: string): Observable<Project> {
+    return this.httpClient.get(url).pipe(
+      map((r: DataResponse<any>) => deserialize(r.data, Project))
+    );
+  }
+
+  getDatasetProjects(dataset: Dataset): Observable<Array<Project>> {
+    return this.httpClient.get(dataset.urlProjects).pipe(
+      map((r: DataListResponse<any>) => r.data),
+      map(rawProjects => {
+        return rawProjects.map(p => deserialize(p, Project));
+      })
+    );
+  }
+
   /**
    * returns all the datasets within the project
    * @param projectId project id
@@ -367,6 +387,15 @@ export class OmeroAPIService {
       })
     );
   };
+
+  getDataset(datasetId: number): Observable<Dataset> {
+    return this.httpClient.get(`/omero/api/m/datasets/${datasetId}/`).pipe(
+      map((r: DataResponse<any>) => {
+        console.log(r);
+        return deserialize(r.data, Dataset);
+      })
+    );
+  }
 
   getThumbnailUrl(imageId: number) {
     return `/omero/webclient/render_thumbnail/${imageId}/?version=0`;

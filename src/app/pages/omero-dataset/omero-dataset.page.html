@@ -1,6 +1,6 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>omeroDataset</ion-title>
+    <ion-title>{{(project$ | async)?.name}} > {{(dataset$ | async)?.name }}</ion-title>
   </ion-toolbar>
 </ion-header>
 

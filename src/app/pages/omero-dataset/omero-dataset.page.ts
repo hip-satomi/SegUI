@@ -1,6 +1,6 @@
-import { switchMap } from 'rxjs/operators';
+import { map, switchMap, tap } from 'rxjs/operators';
 import { ActivatedRoute } from '@angular/router';
-import { OmeroAPIService, Image } from './../../services/omero-api.service';
+import { OmeroAPIService, Image, Dataset, Project } from './../../services/omero-api.service';
 import { Observable } from 'rxjs';
 import { Component, OnInit } from '@angular/core';
 
@@ -15,6 +15,8 @@ export class OmeroDatasetPage implements OnInit {
               public omeroApi: OmeroAPIService) { }
 
   images$: Observable<Image[]>;
+  dataset$: Observable<Dataset>;
+  project$: Observable<Project>;
 
   ngOnInit() {
     this.images$ = this.route.paramMap.pipe(
@@ -22,6 +24,25 @@ export class OmeroDatasetPage implements OnInit {
         const datasetId = Number(params.get('dataset'));
         return this.omeroApi.getImagesFromDataset(datasetId);
       })
+    );
+
+    this.dataset$ = this.route.paramMap.pipe(
+      switchMap(params => {
+        const datasetId = Number(params.get('dataset'));
+        return this.omeroApi.getDataset(datasetId);
+      }),
+    );
+
+    this.project$ = this.route.paramMap.pipe(
+      switchMap(params => {
+        const datasetId = Number(params.get('dataset'));
+        return this.omeroApi.getDataset(datasetId);
+      }),
+      switchMap(dataset => {
+        return this.omeroApi.getDatasetProjects(dataset);
+      }),
+      map((projects: Project[]) => projects[0]),
+      tap((p) => console.log('Project name:' + p.name))
     );
   }
 
