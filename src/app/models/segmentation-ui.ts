@@ -4,8 +4,8 @@ import { UIInteraction, Drawer, Pencil } from './drawing';
 import { AddPointAction, JointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
 import { Utils } from './utils';
 import { SegmentationModel } from './segmentation-model';
-import { from, Observable, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { from, Observable, of, ReplaySubject } from 'rxjs';
+import { map, switchMap, take } from 'rxjs/operators';
 export class SegmentationUI implements UIInteraction, Drawer {
 
     segmentationModel: SegmentationModel;
@@ -17,6 +17,8 @@ export class SegmentationUI implements UIInteraction, Drawer {
     imageLoaded: boolean;
     imageIsLoading = false;
     image = null;
+
+    image$ = new ReplaySubject<any>(1);
 
     /**
      * 
@@ -54,33 +56,40 @@ export class SegmentationUI implements UIInteraction, Drawer {
             // image loading not started or failed
             this.image = new Image();
 
+            // catch when the image comes in
+            from(new Promise((resolve, reject) => {
+                // reject the image request when running out of time
+                const timer = setTimeout(() => {
+                    reject();
+                    console.error(`Timeout loading image! ${this.imageUrl}`);
+                }, timeout);
+
+                this.image.onload = () => {
+                    this.imageIsLoading = false;
+                    this.imageLoaded = true;
+    
+                    console.log('Image truly loaded!');
+                    
+                    clearTimeout(timer);
+                    resolve(this.image);
+                };
+                this.image.onerror = () => {
+                    this.imageIsLoading = false;
+                    clearTimeout(timer);
+                    reject();
+                }
+            })).pipe(
+                take(1),
+                map(img => this.image$.next(img))
+            ).subscribe();
+            
+
             // start loading the image by giving it a url
             this.image.src = this.imageUrl;
             this.imageIsLoading = true;
         }
 
-        return from(new Promise((resolve, reject) => {
-            this.image.onload = () => {
-                this.imageIsLoading = false;
-                this.imageLoaded = true;
-
-                console.log('Image truly loaded!');
-                
-    
-                resolve(this.image);
-            };
-            this.image.onerror = () => {
-                this.imageIsLoading = false;
-                reject();
-            }
-
-            // reject the image request when running out of time
-            setTimeout(() => {
-                reject();
-                console.error("Timeout loading image!");
-            }, timeout);
-
-        }));
+        return this.image$;
     }
 
     onPointerDown(event: any): boolean {
