@@ -1,6 +1,6 @@
 import { SelectedSegment } from './../models/tracking-data';
 import { TrackingService, Link } from './../services/tracking.service';
-import { OmeroAPIService, RoIData, RoIModData } from './../services/omero-api.service';
+import { Dataset, OmeroAPIService, Project, RoIData, RoIModData } from './../services/omero-api.service';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { BrushTool } from './../toolboxes/brush-toolbox';
@@ -123,6 +123,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   drawTimer = null;
   drawLoader = null;
 
+  dataset$ = new ReplaySubject<Dataset>(1);
+  project$ = new ReplaySubject<Project>(1);
 
   constructor(private toastController: ToastController,
               private actionSheetController: ActionSheetController,
@@ -378,6 +380,25 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           }),
           take(1)
         ).subscribe();
+
+        // updateding dataset and project information
+        this.imageSetId.pipe(
+          takeUntil(this.ngUnsubscribe),
+          switchMap((imageId: number) => {
+            // notify dataset change
+            return this.omeroAPI.getImageDataset(imageId).pipe(
+              tap((dataset: Dataset) => this.dataset$.next(dataset)),
+            );
+          }),
+          switchMap((dataset: Dataset) => {
+            // notfy project change
+            return this.omeroAPI.getDatasetProjects(dataset).pipe(
+              map(projects => projects[0]),
+              tap((project: Project) => this.project$.next(project))
+            );
+          }),
+        ).subscribe();
+    
       })
     ).subscribe((id) => console.log(`Loaded image set ${id}`))
 
