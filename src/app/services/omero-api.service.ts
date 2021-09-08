@@ -309,12 +309,7 @@ export class OmeroAPIService {
   constructor(private httpClient: HttpClient) {
 
     // pipe to list all omero projects
-    this.projects$ = this.httpClient.get('/omero/api/m/projects/').pipe(
-      map((r: DataListResponse<any>) => r.data),
-      map(rawProjects => {
-        return rawProjects.map(p => deserialize(p, Project));
-      })
-    );
+    this.projects$ = this.getPagedData('/omero/api/m/projects/', Project);
   }
 
   /**
