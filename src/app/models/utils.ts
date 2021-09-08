@@ -62,6 +62,10 @@ export class Utils {
 
   static tree = require( 'tree-kit' );
 
+  static euclideanDistance(a: Point, b: Point) {
+    return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
+  }
+
   /**
    * Converts a canvas transform to a 3x3 transformation matrix
    * @param t 
