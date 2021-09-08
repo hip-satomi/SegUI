@@ -66,8 +66,47 @@ export class Permissions extends Type {
   @JsonProperty()
   isUserRead: boolean;
 }
+
+@Serializable()
+export class PermissionDetails extends Type {
+  @JsonProperty()
+  permissions: Permissions;
+}
+
+export class Owner extends Type {
+  @JsonProperty({name: '@id'})
+  id: number;
+
+  @JsonProperty({name: 'omero:details'})
+  details: PermissionDetails;
+
+  @JsonProperty({name: 'FirstName'})
+  firstName: string;
+  @JsonProperty({name: 'LastName'})
+  lastName: string;
+  @JsonProperty({name: 'UserName'})
+  userName: string;
+}
+
+export class Group extends Type {
+  @JsonProperty({name: '@id'})
+  id: number;
+
+  @JsonProperty({name: 'omero:details'})
+  details: PermissionDetails;
+
+  @JsonProperty({name: 'Name'})
+  name: string
+}
+
 @Serializable()
 export class Details {
+  @JsonProperty()
+  owner: Owner;
+
+  @JsonProperty()
+  group: Group;
+
   @JsonProperty()
   permissions: Permissions;
 }
