@@ -7,13 +7,15 @@ import { IonicModule } from '@ionic/angular';
 import { OmeroDatasetPageRoutingModule } from './omero-dataset-routing.module';
 
 import { OmeroDatasetPage } from './omero-dataset.page';
+import { SharedComponentsModule } from 'src/app/shared-components-module/shared-components.module';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    OmeroDatasetPageRoutingModule
+    OmeroDatasetPageRoutingModule,
+    SharedComponentsModule
   ],
   declarations: [OmeroDatasetPage]
 })

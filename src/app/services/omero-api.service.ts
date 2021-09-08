@@ -187,6 +187,9 @@ export class Image {
   @JsonProperty({name: 'Name'})
   name: string;
 
+  @JsonProperty({name: 'omero:details'})
+  details: Details;
+
   //@JsonProperty({onDeserialize: (raw: string) => dayjs.unix(raw), onSerialize: (date: Date) => dayjs})
   //AxcquisitionDate: Date;
 
