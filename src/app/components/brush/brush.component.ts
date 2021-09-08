@@ -12,6 +12,10 @@ import { Position, Utils } from 'src/app/models/utils';
 import { SegmentationService } from 'src/app/services/segmentation.service';
 import { polygon } from 'polygon-tools';
 
+import { rotate, matrix, create, all, chain, subtract, multiply, add } from 'mathjs';
+const math = create(all);
+
+
 const tree = require( 'tree-kit' ) ;
 
 // as a ES module
@@ -213,7 +217,58 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
       return true;
   }
 
+  smoothBrush(startPos: Position, endPos: Position) {
+    // no intersection, most likely due to quick draw
+    const originCircle = new ApproxCircle(startPos.x, startPos.y, this.brushSize);
+    const endCircle = new ApproxCircle(endPos.x, endPos.y, this.brushSize);
+
+    // make rectangle
+    const distance = Utils.euclideanDistance([startPos.x, startPos.y], [this.pointerPos.x, this.pointerPos.y]);
+
+    // angle
+    const alpha = Math.asin((this.pointerPos.x - startPos.x) / distance);
+
+    // compute vector between circles
+    const betweenCirlces = math.chain([this.pointerPos.x, this.pointerPos.y]).subtract([startPos.x, startPos.y]).done()
+
+    if (math.norm(betweenCirlces) == 0) {
+        // no real movement
+        return originCircle;
+    }
+
+    // use that to compute up direction
+    let dirUp = rotate(betweenCirlces, Math.PI/2);
+    dirUp = multiply(dirUp, 1./math.norm(dirUp));
+
+
+    // compute start point
+    const start = [startPos.x, startPos.y];
+
+    // compute rectangle points
+    const leftUp = add(start, multiply(dirUp, this.brushSize));
+    const rightUp = add(leftUp, betweenCirlces);
+    const rightLow = subtract(rightUp, multiply(dirUp, 2 * this.brushSize));
+    const leftLow = subtract(rightLow, betweenCirlces);
+
+    // polygon between circles
+    const interPolygon = new Polygon(...[leftUp, rightUp, rightLow, leftLow]);
+
+    if (!endPos) {
+        return null;
+    }
+
+    try{
+        // join polygons
+        originCircle.join(interPolygon);
+        originCircle.join(endCircle);
+    } catch(e: unknown) {
+        return null;
+    }
+    return originCircle;
+  }
+
   onPan(event: any): boolean {
+    const oldPointerPos = Utils.tree.clone(this.pointerPos);
     this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
     if (this.brushActivated) {
         this.dirty = true;
@@ -222,7 +277,8 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
 
         // Increase/Decrease depending on selected mode
         if (this.increase) {
-            this.currentPolygon.join(circle);
+            const increase = this.smoothBrush(oldPointerPos, this.pointerPos);
+            this.currentPolygon.join(increase);
         } else {
             this.currentPolygon.subtract(circle);
         }
