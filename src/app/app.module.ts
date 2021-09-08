@@ -34,10 +34,11 @@ export class MyHammerConfig extends HammerGestureConfig  {
             HammerModule,
             HttpClientModule,
             BrowserAnimationsModule,
-            HttpClientXsrfModule.withOptions({
+            /*HttpClientXsrfModule.withOptions({
               cookieName: 'csrftoken', // this is optional
               headerName: 'X-CSRFToken' // this is optional
-            }) ],
+            })*/
+          ],
   providers: [
     StatusBar,
     SplashScreen,
