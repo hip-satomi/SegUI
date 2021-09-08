@@ -6,12 +6,13 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { BrushComponent } from '../components/brush/brush.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { PermissionVizComponent } from '../components/permission-viz/permission-viz.component';
 
 
 
 @NgModule({
-  declarations: [ImageDisplayComponent, SegmentationComponent, BrushComponent],
-  exports: [ImageDisplayComponent, SegmentationComponent, BrushComponent],
+  declarations: [ImageDisplayComponent, SegmentationComponent, BrushComponent, PermissionVizComponent],
+  exports: [ImageDisplayComponent, SegmentationComponent, BrushComponent, PermissionVizComponent],
   imports: [
     CommonModule,
     FormsModule,
