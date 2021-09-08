@@ -65,8 +65,6 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
 
   // track the polygons that get changed while drawing
   changedPolygons = new Map<string, Polygon>();
-  // keep a copy of the old segModel to make the changes when stopping draw
-  oldSegModel: SegmentationModel;
 
   @Output()
   changedEvent = new EventEmitter<void>();
@@ -183,7 +181,6 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
       this.brushActivated = true;
 
       this.changedPolygons = new Map<string, Polygon>();
-      this.oldSegModel = this.segModel.clone();
 
       if (this.currentPolygon === null) {
           // add a new polygon if there is none selected
@@ -327,9 +324,6 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
                     this.changedPolygons.set(uuid, conflictPolygon);
                 }
             }
-
-            console.log(curBbox);
-            console.log(result);
         }
     }
     // Notify change
@@ -343,7 +337,6 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
 
       this.commitChanges();
 
-      this.oldSegModel = null;
       this.changedEvent.emit();
       return true;
   }
@@ -360,7 +353,7 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
             actions.push(
                 new ChangePolygonPoints(poly.points,
                     uuid,
-                    this.oldSegModel.segmentationData.getPolygon(uuid).points));
+                    null));
         }
 
         if (actions.length > 0) {
