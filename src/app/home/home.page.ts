@@ -817,6 +817,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // TODO: show timer if loading takes long!
 
     this.drawingSubscription = this.prepareDraw()?.pipe(
+      take(1),
       tap(() => clearTimeout(this.drawTimer)),
       map((drawer) => {
         if (drawer) {
