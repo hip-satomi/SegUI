@@ -50,9 +50,6 @@ export class Project extends Base {
 
 @Serializable()
 export class Dataset extends Base {
-  @JsonProperty({name: 'Name'})
-  name: string;
-
   @JsonProperty({name: 'url:dataset', onDeserialize: rewriteOmeroUrl})
   url: string;
   @JsonProperty({name: 'url:images', onDeserialize: rewriteOmeroUrl})
