@@ -60,10 +60,12 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
   async fitToContainer(canvas){
     if (this.enabled) {
       // try to maximize canvas
+      const transform = this.ctx.getTransform();
       const changed = UIUtils.fitToContainer(canvas);
 
       if (changed) {
         // redraw when the container has changed
+        this.ctx.setTransform(transform);
         this.draw()
       }
     }
