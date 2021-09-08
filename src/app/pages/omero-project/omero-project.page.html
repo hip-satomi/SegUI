@@ -14,14 +14,6 @@
 </ion-header>
 
 <ion-content>
-  <ng-container *ngIf="(project$ | async) as project">
-    <p>{{ project.name }}</p>
-    <p>{{ project.description }}</p>
-    <p>{{ project.urlDatasets }}</p>
-  </ng-container>
-  <ng-container *ngIf="(datasets$ | async) as datasets">
-    <p>Num datasets: {{datasets.length}}</p>
-  </ng-container>
   <ion-grid>
     <ion-row>
       <ion-col *ngFor="let dataset of datasets$ | async" size-sm="6" size-xl="3">
