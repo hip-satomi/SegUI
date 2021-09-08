@@ -45,4 +45,8 @@
       </ion-col>
     </ion-row>
   </ion-grid>
+  <!-- Check whether there is content -->
+  <ion-grid class="ion-text-center" *ngIf="(images$ | async)?.length == 0">
+    <ion-badge color="primary" class="ion-text-center" ><h1>This dataset does not contain any images</h1></ion-badge>
+  </ion-grid>
 </ion-content>

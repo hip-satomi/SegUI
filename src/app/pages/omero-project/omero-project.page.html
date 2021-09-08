@@ -29,4 +29,7 @@
       </ion-col>
     </ion-row>
   </ion-grid>
+  <ion-grid class="ion-text-center" *ngIf="(datasets$ | async)?.length == 0">
+    <ion-badge color="primary" class="ion-text-center" ><h1>This project does not contain any datasets</h1></ion-badge>
+  </ion-grid>
 </ion-content>
