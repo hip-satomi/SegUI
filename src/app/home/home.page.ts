@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { BrushTool } from './../toolboxes/brush-toolbox';
 import { OmeroUtils, UIUtils, Utils } from './../models/utils';
-import { Polygon, Point } from './../models/geometry';
+import { Polygon, Point, BoundingBox } from './../models/geometry';
 import { AddPolygon, JointAction, AddLinkAction } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged, ChangeType } from './../models/change';
@@ -544,7 +544,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       }),
       tap(() => {
         console.log('Draw');
-        this.draw();
+        this.centerAndDraw();
       })
     );
 
@@ -774,6 +774,17 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     console.log('slider changed');
     console.log(event);
     this.setImageIndex(event.detail.value);
+  }
+
+  /**
+   * Center the image and draw segmentation model
+   */
+  centerAndDraw() {
+    this.curSegUI.loadImage().pipe(
+      take(1),
+      map(img => this.imageDisplay.showFixedBox(new BoundingBox(0, 0, img.width, img.height))),
+      map(() => this.draw())
+    ).subscribe();
   }
 
   prepareDraw(): Observable<Drawer> {
