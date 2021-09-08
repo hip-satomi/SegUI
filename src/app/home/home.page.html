@@ -7,6 +7,57 @@
     </ion-select>
     <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
     <ion-buttons slot="end">
+      <ion-button (click)="omeroImport(this.stateService.imageSetId).subscribe()" #tooltip="matTooltip"
+      matTooltip="Import segmentation from OMERO">Import</ion-button>
+      <ion-button (click)="omeroExport()" #tooltip="matTooltip"
+      matTooltip="Export segmentation to OMERO">Export</ion-button>
+      <a ion-button href="https://jugit.fz-juelich.de/satomi/segtrackui/-/issues" target="_blank" #tooltip="matTooltip"
+      matTooltip="Please report problems/feature requests for the software here">ISSUES</a>
+      <ion-button *ngIf="isSegmentation" (click)="isOpen = !isOpen; this.draw()" type="button" #tooltip="matTooltip"
+      matTooltip="Advanced ML based segmentation proposals">
+        {{isOpen ? "Close" : "ADV-SEG"}}
+      </ion-button>
+      <ion-button *ngIf="isSegmentation" (click)="isBrushOpen = !isBrushOpen; newBrushTool(); this.draw();" type="button"
+      #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
+        {{isOpen ? "Close" : "BRUSH"}}
+      </ion-button>
+      <!--<ion-button (click)=showPop()>
+        ADV-SEG
+      </ion-button>-->
+      <!--<ion-button (click)="openToolkit()">
+        <ion-icon name="medkit-outline"></ion-icon>
+      </ion-button>-->
+      <ion-button *ngIf="isTracking" (click)="track()">
+        TRACK
+      </ion-button>
+      <ion-button *ngIf="isSegmentation" (click)="rectTool()" [ngClass]="{active: this.tool !== null}"
+      #tooltip="matTooltip" matTooltip="Open rectangle segmentation Tool">
+        RECT
+      </ion-button>
+      <!--<ion-button *ngIf="isSegmentation" (click)="brushTool()" [ngClass]="{active: this.tool !== null}">
+        Brush
+      </ion-button>-->
+      <!--<ion-button (click)="doSegment('cs')">
+        SP-CS
+      </ion-button>-->
+      <ion-button *ngIf="isSegmentation" (click)="doSegment('js')">
+        SP-JS
+      </ion-button>
+      <!--<ion-button (click)="segmentAll()">
+        ALL
+      </ion-button>-->
+      <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px" #tooltip="matTooltip"
+      matTooltip="Undo (Ctrl+Z)">
+        <ion-icon name="arrow-undo-outline"></ion-icon>
+      </ion-button>
+      <ion-button [disabled]="!canRedo" (click)="redo()" style="padding-right:10xpx" #tooltip="matTooltip"
+      matTooltip="Redo (Ctrl+Y)">
+        <ion-icon name="arrow-redo-outline"></ion-icon>
+      </ion-button>
+      <ion-button [disabled]="!canSave" (click)="done()">
+        <ion-icon name="checkmark-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
