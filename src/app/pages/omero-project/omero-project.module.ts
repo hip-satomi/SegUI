@@ -7,13 +7,15 @@ import { IonicModule } from '@ionic/angular';
 import { OmeroProjectPageRoutingModule } from './omero-project-routing.module';
 
 import { OmeroProjectPage } from './omero-project.page';
+import { SharedComponentsModule } from 'src/app/shared-components-module/shared-components.module';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    OmeroProjectPageRoutingModule
+    OmeroProjectPageRoutingModule,
+    SharedComponentsModule
   ],
   declarations: [OmeroProjectPage]
 })
