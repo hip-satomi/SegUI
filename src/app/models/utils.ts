@@ -69,6 +69,17 @@ export class Utils {
   static transformToMatrix(t) {
     return [[t.a, t.c, t.e], [t.b, t.d, t.f], [0, 0, 1]];
   }
+
+  static createTransform(xScale, yScale, xTranlate, yTranslate) {
+    return {
+      a: xScale,
+      b: 0,
+      c: 0,
+      d: yScale,
+      e: xTranlate,
+      f: yTranslate
+    };
+  }
   
   /**
    * Converts a 3x3 transformation matrix to a canvas transform named dictionary.

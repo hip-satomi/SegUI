@@ -6,7 +6,7 @@ import { polygon } from 'polygon-tools';
 
 export type Point = [number, number];
 
-class BoundingBox {
+export class BoundingBox {
     x: number;
     y: number;
     w: number;
