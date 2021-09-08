@@ -22,11 +22,63 @@ const rewriteOmeroUrl = (url: string): string => {
   return url;
 };
 
+@Serializable()
+export class Type {
+  @JsonProperty({name: '@type'})
+  type: string;
+}
+
+@Serializable()
+export class Permissions extends Type {
+  @JsonProperty()
+  perm: string;
+
+  @JsonProperty()
+  canAnnotate: boolean;
+
+  @JsonProperty()
+  canDelete: boolean;
+
+  @JsonProperty()
+  canEdit: boolean;
+
+  @JsonProperty()
+  canLink: boolean;
+
+  @JsonProperty()
+  isWorldWrite: boolean;
+
+  @JsonProperty()
+  isWorldRead: boolean;
+
+  @JsonProperty()
+  isGroupWrite: boolean;
+
+  @JsonProperty()
+  isGroupRead: boolean;
+
+  @JsonProperty()
+  isGroupAnnotate: boolean;
+
+  @JsonProperty()
+  isUserWrite: boolean;
+
+  @JsonProperty()
+  isUserRead: boolean;
+}
+@Serializable()
+export class Details {
+  @JsonProperty()
+  permissions: Permissions;
+}
 
 @Serializable()
 export class Id {
   @JsonProperty({name: '@id'})
   id: number;
+
+  @JsonProperty({name: 'omero:details'})
+  details: Details;
 }
 
 @Serializable()
@@ -37,10 +89,11 @@ export class Base extends Id {
   description: string;
 }
 
+
 @Serializable()
 export class Project extends Base {
-  @JsonProperty({name: 'Name'})
-  name: string;
+  @JsonProperty({name: 'omero:details'})
+  details: Details;
 
   @JsonProperty({name: 'url:project', onDeserialize: rewriteOmeroUrl})
   url: string;
