@@ -4,6 +4,7 @@ import { UIUtils, Utils, Position } from './../../models/utils';
 import { Component, Input, OnInit, AfterViewInit, ViewChild, ElementRef, HostListener, AfterViewChecked } from '@angular/core';
 import { Drawer } from 'src/app/models/drawing';
 import { multiply} from 'mathjs';
+import { BoundingBox, Rectangle } from 'src/app/models/geometry';
 
 @Component({
   selector: 'app-image-display',
@@ -213,12 +214,49 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     }
   }
 
+  /**
+   * 
+   * @param box the box to center and show (zooming)
+   */
+  showFixedBox(box: BoundingBox) {
+    // obtain canvas (drawing) dimensions
+    const cWidth = this.canvasElement.width
+    const cHeight = this.canvasElement.height
+
+    // obtain box dimensions
+    const boxWidth = box.w;
+    const boxHeight = box.h;
+
+    // reset current transform
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // compute the zoom factor
+    const xZoomFactor = cWidth / boxWidth;
+    const yZoomFactor = cHeight / boxHeight;
+
+    const zoomFactor = Math.min(xZoomFactor, yZoomFactor);
+
+    // compute zoomed translation
+    const xTranslate = (cWidth - boxWidth * zoomFactor) / 2;
+    const yTranslate = (cHeight - boxHeight * zoomFactor) / 2;
+
+    // create the full transform
+    const transform = Utils.createTransform(zoomFactor, zoomFactor, xTranslate, yTranslate);
+
+    // update transform
+    this.ctx.setTransform(transform);
+
+    console.log('zoomToShowFixedBox');
+  }
+
+
+
     /**
    * Apply zoom at current mouse pointer position
    * @param factor zoom factor (< 1: shring, > 1 enlarge)
    * @param mousePos current mouse position (in model coordinates)
    */
-  zoom(factor, mousePos: Position) {
+  zoom(factor, mousePos: Position, draw=true) {
     const mousex = mousePos.x;
     const mousey = mousePos.y;
 
@@ -249,8 +287,10 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     // set the new transform to canvas
     this.ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
 
-    // redraw
-    this.draw();
+    if (draw) {
+      // redraw
+      this.draw();
+    }
   }
 
   // --- Redirect pointer events ---
