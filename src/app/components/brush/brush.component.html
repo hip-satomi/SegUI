@@ -20,28 +20,32 @@
       </ion-item>
       </ion-col>
     </ion-row>
-    <ion-row>
-      <ion-col class="vertical-align-content">
-        <ion-label style="text-align: center;" #tooltip="matTooltip"
-        matTooltip="The polygons you draw get simplified! This is the tolerance you allow. 0 means you do not perform simplification.">
-          Simp. Tolerance: {{simplificationTolerance | number:'1.2-2'}}
-        </ion-label>
-      </ion-col>
-      <ion-col size="12">
-        <ion-range  min="0" max="1" step="0.05" snaps="true" [(ngModel)]="simplificationTolerance" pin="true" style="padding: 0px;"></ion-range>
-      </ion-col>
-    </ion-row>
-    <ion-row>
-      <ion-col class="vertical-align-content">
-        <ion-label style="text-align: center;">Brush Size: {{brushSize | number:'1.0-0'}}</ion-label>
-      </ion-col>
-      <ion-col size="12">
-        <ion-range  min="0" max="50" step="1" snaps="true" [(ngModel)]="brushSize" pin="true" style="padding: 0px;">
-          <ion-label slot="start">0</ion-label>
-          <ion-label slot="end">50</ion-label>
-        </ion-range>
-      </ion-col>
-    </ion-row>
+    <ion-item>
+      <ion-row>
+        <ion-col class="vertical-align-content">
+          <ion-label style="text-align: center;" #tooltip="matTooltip"
+          matTooltip="The polygons you draw get simplified! This is the tolerance you allow. 0 means you do not perform simplification.">
+            Simp. Tolerance: {{simplificationTolerance | number:'1.2-2'}}
+          </ion-label>
+        </ion-col>
+        <ion-col size="12">
+          <ion-range  min="0" max="1" step="0.05" snaps="true" [(ngModel)]="simplificationTolerance" pin="true" style="padding: 0px;"></ion-range>
+        </ion-col>
+      </ion-row>
+    </ion-item>
+    <ion-item>
+      <ion-row>
+        <ion-col class="vertical-align-content">
+          <ion-label style="text-align: center;">Brush Size: {{brushSize | number:'1.0-0'}}</ion-label>
+        </ion-col>
+        <ion-col size="12">
+          <ion-range  min="0" max="50" step="1" snaps="true" [(ngModel)]="brushSize" pin="true" style="padding: 0px;">
+            <ion-label slot="start">0</ion-label>
+            <ion-label slot="end">50</ion-label>
+          </ion-range>
+        </ion-col>
+      </ion-row>
+    </ion-item>
     <ion-row>
       <ion-col>
         <ion-button expand="block" (click)="close.emit()">Close</ion-button>
