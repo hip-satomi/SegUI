@@ -7,17 +7,32 @@ import { IonicModule } from '@ionic/angular';
 import { BrushComponent } from '../components/brush/brush.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PermissionVizComponent } from '../components/permission-viz/permission-viz.component';
+import { SimpleNavigationComponent } from '../components/simple-navigation/simple-navigation.component';
+import { RouterModule } from '@angular/router';
 
 
 
 @NgModule({
-  declarations: [ImageDisplayComponent, SegmentationComponent, BrushComponent, PermissionVizComponent],
-  exports: [ImageDisplayComponent, SegmentationComponent, BrushComponent, PermissionVizComponent],
+  declarations: [
+    ImageDisplayComponent,
+    SegmentationComponent,
+    BrushComponent,
+    PermissionVizComponent,
+    SimpleNavigationComponent
+  ],
+  exports: [
+    ImageDisplayComponent,
+    SegmentationComponent,
+    BrushComponent,
+    PermissionVizComponent,
+    SimpleNavigationComponent
+  ],
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
     MatTooltipModule,
+    RouterModule
   ]
 })
 export class SharedComponentsModule { }
