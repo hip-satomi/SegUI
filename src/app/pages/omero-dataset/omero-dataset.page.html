@@ -1,6 +1,20 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>{{(project$ | async)?.name}} > {{(dataset$ | async)?.name }}</ion-title>
+    <ion-title>
+      <ion-chip [routerLink]="['/omero-dashboard']">
+        <ion-label color="primary">Dashboard</ion-label>
+      </ion-chip>
+      >
+      <ion-chip [routerLink]="['/omero-project', {id: (project$ | async)?.id}]">
+        <ion-label color="secondary">{{(project$ | async)?.name}}
+        </ion-label>
+      </ion-chip>
+      >
+      <ion-chip [routerLink]="['/omero-dataset', {dataset: (project$ | async)?.id}]">
+        <ion-label color="tertiary">{{(dataset$ | async)?.name}}
+        </ion-label>
+      </ion-chip>
+    </ion-title>
   </ion-toolbar>
 </ion-header>
 
