@@ -352,8 +352,7 @@ export class BrushComponent extends UIInteraction implements Drawer, OnInit {
         for(const [uuid, poly] of this.changedPolygons.entries()) {
             actions.push(
                 new ChangePolygonPoints(poly.points,
-                    uuid,
-                    null));
+                    uuid));
         }
 
         if (actions.length > 0) {

@@ -303,11 +303,9 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
     @JsonProperty()
     private newPoints: Point[];
     @JsonProperty()
-    private oldPoints: Point[];
-    @JsonProperty()
     private polygonId: string;
 
-    constructor(newPoints: Point[], polygonId: string, oldPoints) {
+    constructor(newPoints: Point[], polygonId: string) {
         super(ActionTypes.ChangePolygonPoints);
 
         if (!newPoints) {
@@ -317,11 +315,6 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
 
         this.polygonId = polygonId;
         this.newPoints = Utils.tree.clone(newPoints);
-        this.oldPoints = Utils.tree.clone(oldPoints);
-
-        if (this.oldPoints === null) {
-            throw new Error('Invalid points!');
-        }
     }
 
     perform(segmentationData: SegmentationData) {
