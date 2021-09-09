@@ -36,11 +36,6 @@ export abstract class Action<T> {
 
     abstract perform(data: T): void;
 
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    abstract reverse(data: T): void;
-
     constructor(type: ActionTypes) {
         this.type = type;
     }
@@ -114,13 +109,6 @@ export class AddEmptyPolygon extends Action<SegmentationData> {
         segmentationData.addPolygon(this.uuid, poly);
     }
 
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(segmentationData: SegmentationData) {
-        segmentationData.removePolygon(this.uuid);
-    }
-
 }
 
 /**
@@ -146,13 +134,6 @@ export class AddPolygon extends Action<SegmentationData> {
         segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly));
     }
 
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(segmentationData: SegmentationData) {
-        segmentationData.removePolygon(this.uuid);
-    }
-
 }
 
 
@@ -174,17 +155,6 @@ export class RemovePolygon extends Action<SegmentationData> {
     perform(segmentationData: SegmentationData) {
         this.polygon = segmentationData.removePolygon(this.polygonId);
     }
-
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(segmentationData: SegmentationData) {
-        if (!this.polygon) {
-            throw Error('No polygon information available! Please make sure the action has been performed before it is reversed!');
-        }
-        segmentationData.addPolygon(this.polygonId, this.polygon);
-    }
-
 }
 
 @Serializable()
@@ -211,14 +181,6 @@ export class SelectPolygon extends Action<SegmentationData> {
         // update selected polygon
         segmentationData.activePolygonId = this.newPolyId;
         segmentationData.activePointIndex = 0;
-    }
-
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(segmentationData: SegmentationData) {
-        segmentationData.activePolygonId = this.oldPolyId;
-        segmentationData.activePointIndex = segmentationData.getPolygon(segmentationData.activePolygonId).numPoints - 1;
     }
 
     join(action: Action<SegmentationData>): boolean {
@@ -262,13 +224,6 @@ export class AddPointAction extends Action<SegmentationData> {
 
         segmentationData.activePointIndex = this.index;
     }
-
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(segmentationData: SegmentationData) {
-        segmentationData.getPolygon(this.polygonId).removePoint(this.index);
-    }
 }
 
 @Serializable()
@@ -296,13 +251,6 @@ export class RemovePointAction extends Action<SegmentationData> {
         segmentationData.getPolygon(this.polygonId).removePoint(this.pointIndex);
     }
 
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(segmentationData: SegmentationData) {
-        // add point
-        segmentationData.getPolygon(this.polygonId).addPoint(this.pointIndex, Utils.tree.clone(this.point));
-    }
 }
 
 @Serializable()
@@ -332,16 +280,6 @@ export class MovePointAction extends Action<SegmentationData> {
 
         point[0] = this.newPoint[0];
         point[1] = this.newPoint[1];
-    }
-
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(segmentationData: SegmentationData) {
-        const point = segmentationData.getPolygon(this.polygonId).getPoint(this.pointIndex)
-
-        point[0] = this.oldPoint[0];
-        point[1] = this.oldPoint[1];
     }
 
     join(action: Action<SegmentationData>) {
@@ -389,13 +327,6 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
     perform(segmentationData: SegmentationData) {
         segmentationData.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.newPoints));
     }
-
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(segmentationData: SegmentationData) {
-        segmentationData.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.oldPoints));
-    }
 }
 
 /**
@@ -439,12 +370,6 @@ export class SelectSegmentAction extends Action<TrackingData> {
         trackingData.selectedSegments.push(this.selection);
     }
 
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(trackingData: TrackingData) {
-        trackingData.selectedSegments.pop();
-    }
 }
 
 @Serializable()
@@ -464,13 +389,6 @@ export class UnselectSegmentAction extends Action<TrackingData> {
                 trackingData.selectedSegments.splice(index, 1);
             }
         }
-    }
-
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(trackingData: TrackingData) {
-        trackingData.selectedSegments.push(this.selection);
     }
 }
 
@@ -509,17 +427,6 @@ export class AddLinkAction extends Action<TrackingData> {
 
         for (const unsel of this.unselections) {
             unsel.perform(trackingData);
-        }
-    }
-
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(trackingData: TrackingData) {
-        trackingData.trackingLinks.pop();
-
-        for (const unsel of this.unselections) {
-            unsel.reverse(trackingData);
         }
     }
 }
@@ -597,15 +504,6 @@ export class JointAction<T> extends Action<T>{
     }
 
     /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(data: T) {
-        for (const act of this.actions.slice().reverse()) {
-            act.reverse(data);
-        }
-    }
-
-    /**
      * 
      * @returns true if all actions allow undo, otherwise false
      */
@@ -641,13 +539,6 @@ export class PreventUndoActionWrapper<T> extends Action<T> {
 
     perform(data: T) {
         this.action.perform(data);
-    }
-
-    /**
-     * @deprecated The method should not be used! Reversing is done via action manager complete refresh
-     */
-    reverse(data: T) {
-        throw new Error('Calling reverse on PreventUndoAction is not allowed');
     }
 
     allowUndo() {
