@@ -1,5 +1,6 @@
+<div [class.ion-hide]="!show">
 <ion-toolbar>Brush Tool
-  <ion-button slot='end' (click)="close.emit()">
+  <ion-button slot='end' (click)="close()">
     <ion-icon name="close-outline"></ion-icon>
   </ion-button>
 </ion-toolbar>
@@ -48,7 +49,8 @@
     </ion-item>
     <ion-row>
       <ion-col>
-        <ion-button expand="block" (click)="close.emit()">Close</ion-button>
+        <ion-button expand="block" (click)="close()">Close</ion-button>
       </ion-col>
     </ion-row>
 </ion-grid>
+</div>

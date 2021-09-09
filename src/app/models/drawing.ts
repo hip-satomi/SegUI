@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import { Observable, ReplaySubject } from 'rxjs';
 import { UIUtils } from './utils';
 
 export class Pencil {
@@ -56,6 +56,22 @@ export class UIInteraction {
     onMove(event): boolean {
         return false;
     }
+}
+
+export class Tool extends UIInteraction {
+    show = false;
+    visibilityChange = new ReplaySubject<boolean>(1);
+
+    open() {
+        this.show = true;
+        this.visibilityChange.next(this.show);
+    }
+
+    close() {
+        this.show = false;
+        this.visibilityChange.next(this.show);
+    }
+
 }
 
 export interface Deletable {

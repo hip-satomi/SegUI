@@ -31,6 +31,7 @@ import * as dayjs from 'dayjs';
 import { RectangleTool } from '../toolboxes/rectangle-tool';
 import { SegmentationComponent } from '../components/segmentation/segmentation.component';
 import { BrushComponent } from '../components/brush/brush.component';
+import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
 
 
 const { Storage } = Plugins;
@@ -64,6 +65,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   @ViewChild('toolContainer', { read: ViewContainerRef }) container;
   @ViewChild('segTool') segTool: SegmentationComponent;
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
+  @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
 
   segmentationUIs: SegmentationUI[] = [];
 
@@ -792,12 +794,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   prepareDraw(): Observable<Drawer> {
-    if (this.isOpen) {
-      // this is for the segmentation tool
-      return this.segTool.prepareDraw();
-    }
-
-    if (this.tool) {
+    if (this.activeTool) {
       return this.tool.prepareDraw();
     }
     else if (this.editMode === EditMode.Segmentation) {
@@ -1286,6 +1283,34 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         return this.router.navigate(['/seg-track', { imageSetId: nextId}])
       })
     );
+  }
+
+  toggleTool(tool) {
+    // TODO: close all other tools
+    
+    if (this.tool == tool && this.tool.show) {
+      tool.close();
+      this.tool = null;
+    } else {
+      // close other tool
+      if (this.tool) {
+        this.tool.close();
+      }
+      this.tool = tool;
+      // open new tool
+      this.tool.open();
+    }
+
+    // draw -> via new tool
+    this.draw();
+  }
+
+  get activeTool() {
+    if (this.tool && this.tool.show) {
+      return this.tool;
+    } else {
+      return null;
+    }
   }
 
 }

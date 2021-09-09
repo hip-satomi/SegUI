@@ -4,7 +4,7 @@ import { LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
 import { ChangePolygonPoints, JointAction } from 'src/app/models/action';
-import { Drawer, Pencil, UIInteraction } from 'src/app/models/drawing';
+import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
@@ -26,9 +26,8 @@ import RBush from 'rbush';
   templateUrl: './brush.component.html',
   styleUrls: ['./brush.component.scss'],
 })
-export class BrushComponent extends UIInteraction implements Drawer, OnInit {
+export class BrushComponent extends Tool implements Drawer, OnInit {
 
-  @Output() close = new EventEmitter<void>();
   // input the current segmentation model and ui
   @Input() segModel: SegmentationModel;
   _segUI: SegmentationUI;

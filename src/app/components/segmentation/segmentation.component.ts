@@ -5,7 +5,7 @@ import { LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
 import { AddPolygon, JointAction, RemovePolygon } from 'src/app/models/action';
-import { Drawer, Pencil, UIInteraction } from 'src/app/models/drawing';
+import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { Point, Polygon } from 'src/app/models/geometry';
 import { SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
@@ -18,9 +18,8 @@ import { threadId } from 'worker_threads';
   templateUrl: './segmentation.component.html',
   styleUrls: ['./segmentation.component.scss'],
 })
-export class SegmentationComponent extends UIInteraction implements Drawer {
+export class SegmentationComponent extends Tool implements Drawer {
 
-  @Output() close = new EventEmitter<void>();
   // input the current segmentation model and ui
   @Input() segModel: SegmentationModel;
   @Input() segUI: SegmentationUI;
@@ -317,6 +316,6 @@ export class SegmentationComponent extends UIInteraction implements Drawer {
     this.segModel.addAction(jointAction);
 
     // close the window
-    this.close.emit();
+    this.close();
   }
 }
