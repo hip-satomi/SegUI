@@ -21,7 +21,7 @@
       </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(brushToolComponent)" type="button" [color]="(activeTool == brushToolComponent) ? 'primary' : ''"
         #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
-        <ion-icon name="brush-outline"></ion-icon>Brush<!--{{isOpen ? "Close" : "BRUSH"}}-->
+        <ion-icon name="brush-outline"></ion-icon>Brush
       </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(multiSelectComponent)" type="button" [color]="(activeTool == multiSelectComponent) ? 'primary' : ''"
         #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">

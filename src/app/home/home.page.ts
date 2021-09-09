@@ -3,7 +3,6 @@ import { TrackingService, Link } from './../services/tracking.service';
 import { Dataset, OmeroAPIService, Project, RoIData, RoIModData } from './../services/omero-api.service';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
-import { BrushTool } from './../toolboxes/brush-toolbox';
 import { OmeroUtils, UIUtils, Utils } from './../models/utils';
 import { Polygon, Point, BoundingBox } from './../models/geometry';
 import { AddPolygon, JointAction, AddLinkAction } from './../models/action';
@@ -28,7 +27,6 @@ import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
-import { RectangleTool } from '../toolboxes/rectangle-tool';
 import { SegmentationComponent } from '../components/segmentation/segmentation.component';
 import { BrushComponent } from '../components/brush/brush.component';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
@@ -83,9 +81,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   backendMode = BackendMode.OMERO;
 
   _activeView = 0;
-
-  isOpen = false;
-  isBrushOpen = false;
 
   rightKeyMove$ = new Subject<void>();
   leftKeyMove$ = new Subject<void>();
@@ -945,61 +940,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.doSegment(type, indices);
   }
 
-  brushTool() {
-    if (this.tool) {
-      this.tool.stop();
-      this.tool = null;
-    }
-    else if (this.editMode === EditMode.Segmentation) {
-      this.tool = new BrushTool(this.curSegModel, this.curSegUI, this.imageDisplay.canvasElement);
-      this.tool.changedEvent.subscribe(() =>  {
-        this.draw();
-      });
-    }
-
-    this.draw();
-  }
-
-  newBrushTool() {
-    if (this.tool) {
-      this.tool.stop();
-      this.tool = null;
-    }
-    else if (this.editMode === EditMode.Segmentation) {
-      this.tool = this.brushToolComponent;
-      /*this.tool.changedEvent.subscribe(() =>  {
-        this.draw();
-      });*/
-    }
-
-    this.draw();
-  }
-
-  rectTool() {
-    if (this.tool) {
-      this.tool.stop();
-      this.tool = null;
-    }
-    else if (this.editMode === EditMode.Segmentation) {
-      this.tool = new RectangleTool(this.curSegModel, this.curSegUI, this.imageDisplay.canvasElement);
-      this.tool.changedEvent.subscribe(() =>  {
-        this.draw();
-      });
-    }
-
-    this.draw();
-  }
-
-  openToolkit() {
-    //this.authService.logout();
-
-    // segmentation proposals have been applied successfully
-    this.toastController.create({
-      message: 'Toolkit not yet implemented!',
-      duration: 2000
-    }).then(toast => toast.present());
-  }
-
   /**
    * Show an error to the user
    * @param message the message
@@ -1064,12 +1004,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       }),
       () => this.showError('Error while tracking!')
     );
-  }
-
-  async showPop(ev) {
-    this.isOpen = true;
-    this.tool = this.segTool;
-    this.draw();
   }
 
   omeroImport(imageSetId) {
