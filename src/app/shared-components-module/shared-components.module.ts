@@ -9,6 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { PermissionVizComponent } from '../components/permission-viz/permission-viz.component';
 import { SimpleNavigationComponent } from '../components/simple-navigation/simple-navigation.component';
 import { RouterModule } from '@angular/router';
+import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
 
 
 
@@ -18,14 +19,16 @@ import { RouterModule } from '@angular/router';
     SegmentationComponent,
     BrushComponent,
     PermissionVizComponent,
-    SimpleNavigationComponent
+    SimpleNavigationComponent,
+    MultiSelectToolComponent
   ],
   exports: [
     ImageDisplayComponent,
     SegmentationComponent,
     BrushComponent,
     PermissionVizComponent,
-    SimpleNavigationComponent
+    SimpleNavigationComponent,
+    MultiSelectToolComponent
   ],
   imports: [
     CommonModule,
