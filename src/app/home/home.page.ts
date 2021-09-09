@@ -344,7 +344,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           throttleTime(thTime),
           switchMap((handeled) => {
             if(!handeled) {
-              return this.askForPreviousImageSequence().pipe(
+              // TODO: manager permission questions
+              //return this.askForPreviousImageSequence()
+              return of(1).pipe(
                 switchMap(() => this.navigateToPreviousImageSequence()),
                 handleError,
               )
@@ -370,7 +372,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           tap(() => console.log('event')),
           switchMap((handeled) => {
             if(!handeled) {
-              return this.askForNextImageSequence().pipe(
+              // TODO: manager permission questions
+              //return this.askForNextImageSequence()
+              return of(1).pipe(
                 take(1),
                 switchMap(() => this.navigateToNextImageSequence()),
                 handleError

@@ -271,7 +271,10 @@ export class MovePointAction extends Action<SegmentationData> {
         this.polygonId = polygonId;
         this.pointIndex = pointIndex;
 
-        this.newPoint = Utils.tree.clone([...newPoint]);
+        // newPoint can be null -> on deserialization
+        if (newPoint) {
+            this.newPoint = Utils.tree.clone([...newPoint]);
+        }
     }
 
     perform(segmentationData: SegmentationData) {
