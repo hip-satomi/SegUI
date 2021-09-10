@@ -1,13 +1,14 @@
 import { Router } from '@angular/router';
 import { Platform, AlertController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, from, Observable, of } from 'rxjs';
+import { BehaviorSubject, from, interval, Observable, of } from 'rxjs';
 import { Injectable } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
 import { JwtHelperService } from '@auth0/angular-jwt';
 import { switchMap, map, tap } from 'rxjs/operators';
 import * as dayjs from 'dayjs';
+import { CsrfService } from './csrf.service';
 
 const { Storage } = Plugins;
 
@@ -81,7 +82,8 @@ export class OmeroAuthService {
   constructor(private httpClient: HttpClient,
               private plt: Platform,
               private router: Router,
-              private alertController: AlertController) {
+              private alertController: AlertController,
+              private csrfService: CsrfService) {
 
       this.server$ = this.httpClient.get('/omero/api/servers/').pipe(
         map((r: DataListResponse<Server>) => {
@@ -137,7 +139,7 @@ export class OmeroAuthService {
   }
 
   refreshToken() {
-    return this.httpClient.get('/omero/api/servers/')
+    return this.csrfService.getToken(true)
         .pipe(tap(() => {
             this.startRefreshTokenTimer();
             console.log('CSRF Refresh Timer!')
@@ -145,11 +147,20 @@ export class OmeroAuthService {
   }
 
 
-  private startRefreshTokenTimer() {
+  public startRefreshTokenTimer() {
     // set a timeout to refresh the token a minute before it expires
-    const expires = dayjs().add(5, 'minute').toDate();
-    const timeout = expires.getTime() - Date.now() - (60 * 1000);
-    this.refreshTokenTimeout = setTimeout(() => this.refreshToken().subscribe(), timeout);
+    if (!this.refreshTokenTimeout) {
+      //const expires = dayjs().add(5, 'minute').toDate();
+      //const timeout = expires.getTime() - Date.now() - (60 * 1000);
+      
+      // schedule every five minutes
+      this.refreshTokenTimeout = interval(5 * 60 * 1000).pipe(
+        switchMap(() => this.csrfService.getToken(true)),
+        tap(() => console.log('CSRF Refresh Timer!'))
+      ).subscribe();
+      //(() => this.refreshToken().subscribe(), timeout);
+      console.log('refresh token timer startet')
+    }
   }
 
   private stopRefreshTokenTimer() {
