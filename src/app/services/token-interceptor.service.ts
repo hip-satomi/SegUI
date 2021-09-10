@@ -5,6 +5,7 @@ import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/c
 import { Injectable } from '@angular/core';
 import { Observable, merge, timer, from, throwError } from 'rxjs';
 import { ToastController } from '@ionic/angular';
+import { OmeroAuthService } from './omero-auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +14,8 @@ export class TokenInterceptorService implements HttpInterceptor {
 
   constructor(private authService: AuthService,
               private csrfService: CsrfService,
-              private toastController: ToastController) { }
+              private toastController: ToastController,
+              private omeroAuthService: OmeroAuthService) { }
 
   loginAttempts = 2;
 
@@ -45,7 +47,9 @@ export class TokenInterceptorService implements HttpInterceptor {
           console.log(`token: ${token}`);
           const newRequest = req.clone({ setHeaders: {'X-CSRFToken': token}, body: req.body});
           return next.handle(newRequest);
-        })
+        }),
+        // make sure the refresh timer is running! (so that the session cookie does not expire)
+        tap(() => this.omeroAuthService.startRefreshTokenTimer())
       ).pipe(
         catchError(err => {
           if ([401, 403].includes(err.status) && this.authService.user) {
