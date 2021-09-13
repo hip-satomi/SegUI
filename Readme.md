@@ -61,6 +61,15 @@ npm install
 ionic serve
 ```
 
+## Build from source
+
+Build the application from source and launch it together with a full omero server instance
+```
+docker-compose -f ./docker-compose/docker-compose.full.yml up --build
+```
+
+You can reach the local segTrack app [here](http://localhost) and the omero web [here](http://localhost:4080). The username is `root` and the password is `omero` for the standard user.
+
 ## Important notes
 
 The segTrackUI is only functionable with an [OMERO](https://www.openmicroscopy.org/omero/) server as data backend. Furthermore, the ionic server is not recommended for deployment. Please use a secure web server, for example, [nginx](https://www.nginx.com/).
