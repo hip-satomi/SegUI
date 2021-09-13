@@ -16,10 +16,7 @@ export class AnimatedPreviewComponent implements OnInit, AfterViewInit {
       delay:	1000,
     },
     preloadImages: false,
-    lazy: {
-      loadPrevNext: true, // pre-loads the next image to avoid showing a loading placeholder if possible
-      loadPrevNextAmount: 2 //or, if you wish, preload the next 2 images
-    },
+    lazy: true
   }
 
   @Input() urlList: string[] = [2,3,4].map((imageId: number) => `/omero/webclient/render_thumbnail/${imageId}/?version=0`);
