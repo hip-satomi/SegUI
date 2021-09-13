@@ -519,8 +519,8 @@ export class OmeroAPIService {
    * @param max maximum image value
    * @param quality jpeg quality parameter
    */
-  getImageViewUrl(imageId: number, z: number, t: number, min: number, max: number, quality = 1.0) {
-    return `/omero/webgateway/render_image/${imageId}/${z}/${t}/?c=1|${min}:${max}$808080&q=${quality}`;
+  getImageViewUrl(imageId: number, z: number, t: number, min: number, max: number, quality = 1.0, channel=1) {
+    return `/omero/webgateway/render_image/${imageId}/${z}/${t}/?c=${channel}|${min}:${max}$808080&q=${quality}`;
   }
 
   /**
