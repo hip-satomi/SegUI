@@ -412,24 +412,27 @@ export class OmeroAPIService {
    * @param id project omero id
    */
   getProject(id: number): Observable<Project> {
-    return this.httpClient.get(`/omero/api/m/projects/${id}/`).pipe(
+    return this.getData(`/omero/api/m/projects/${id}/`, Project);
+    /*return this.httpClient.get(`/omero/api/m/projects/${id}/`).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Project))
-    );
+    );*/
   }
 
   getProjectByUrl(url: string): Observable<Project> {
-    return this.httpClient.get(url).pipe(
+    return this.getData(url, Project);
+    /*return this.httpClient.get(url).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Project))
-    );
+    );*/
   }
 
   getDatasetProjects(dataset: Dataset): Observable<Array<Project>> {
-    return this.httpClient.get(dataset.urlProjects).pipe(
+    return this.getPagedData(dataset.urlProjects, Project);
+    /*return this.httpClient.get(dataset.urlProjects).pipe(
       map((r: DataListResponse<any>) => r.data),
       map(rawProjects => {
         return rawProjects.map(p => deserialize(p, Project));
       })
-    );
+    );*/
   }
 
   /**
@@ -439,24 +442,22 @@ export class OmeroAPIService {
   getDatasetsByProjectId(projectId: number): Observable<Dataset[]> {
     const fullUrl = `/omero/api/m/projects/${projectId}/datasets/`;
 
-    return this.httpClient.get(fullUrl).pipe(
+    return this.getPagedData(fullUrl, Dataset);
+
+    /*return this.httpClient.get(fullUrl).pipe(
       map((r: DataListResponse<any>) => r.data.map(rawDataset => deserialize(rawDataset, Dataset)))
-    );
+    );*/
   }
 
   getImagesFromDataset(datasetId: number): Observable<Image[]> {
-    const params = new HttpParams()
-      .set('dataset', '' + datasetId);
-    return this.httpClient.get(`/omero/api/m/images/`, {params}).pipe(
-      tap(r => console.log(r)),
-      map((r: DataListResponse<any>) => r.data.map(rawImage => deserialize(rawImage, Image)))
-    );
+    return this.getPagedData(`/omero/api/m/images/`, Image, 500, {dataset : '' + datasetId});
   }
 
   getImage(imageId: number): Observable<Image> {
-    return this.httpClient.get(`/omero/api/m/images/${imageId}/`).pipe(
+    return this.getData(`/omero/api/m/images/${imageId}/`, Image);
+    /*return this.httpClient.get(`/omero/api/m/images/${imageId}/`).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Image))
-    );
+    );*/
   }
 
   /**
@@ -476,11 +477,15 @@ export class OmeroAPIService {
   };
 
   getDataset(datasetId: number): Observable<Dataset> {
-    return this.httpClient.get(`/omero/api/m/datasets/${datasetId}/`).pipe(
+    return this.getData(`/omero/api/m/datasets/${datasetId}/`, Dataset);
+    /*return this.httpClient.get(`/omero/api/m/datasets/${datasetId}/`).pipe(
       map((r: DataResponse<any>) => {
         console.log(r);
         return deserialize(r.data, Dataset);
       })
+    );*/
+  }
+
     );
   }
 
@@ -553,59 +558,20 @@ export class OmeroAPIService {
    * Show all file annotations associated with an image sequence in omero
    * @param imageId image sequence id
    */
-  getFileAnnotations(imageId: number) {
+  getFileAnnotations(imageId: number): Observable<Array<Annotation>> {
     return this.httpClient.get(`/omero/webclient/api/annotations/?type=file&image=${imageId}`).pipe(
       map(r => {
         return deserialize(r, AnnotationResult);
-      })
-    );
-  }
-
-  genRoIRequest(imageId: number, limit: number, offset: number): Observable<RoIResult> {
-    // Begin assigning parameters
-    const params = {
-      limit: `${limit}`,
-      offset: `${offset}`
-    };
-    
-    return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`, {params}).pipe(
-      map(r => deserialize(r, RoIResult))
+      }),
+      map(r => r.annotations)
     );
   }
 
   getPagedRoIData(imageId: number): Observable<Array<RoIData>> {
-    return this.genRoIRequest(imageId, 500, 0).pipe(
-      switchMap(result => {
-
-        // extract paging meta data from request
-        const limit = result.meta.limit;
-        const maxLimit = result.meta.maxLimit;
-        const totalCount = result.meta.totalCount;
-
-        const requestList: Array<Observable<RoIResult>> = [];
-
-        if (totalCount > limit) {
-          for(let i = 0; i < Math.ceil((totalCount - limit) / maxLimit); i++) {
-            requestList.push(this.genRoIRequest(imageId, maxLimit, limit + i * maxLimit));
-          }
-        }
-
-        return of(of(result), ...requestList).pipe(
-          combineAll(),
-          map((res: Array<RoIResult>) => {
-            // combine all RoIDatas
-            return res.map(r => r.data).reduce((a,b) => a.concat(b), [])
-          })
-        )
-        //return result.data;
-      }),
-      /*map((data: RoIData[]) => {
-        // join all rois and shapes into an array of shape polygons
-        return data.map(roi => roi.shapes
-          .filter(s => s.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
-          .map(s => new ShapePolygon(s.points, s.t, s.z))).reduce((a,b) => a.concat(b), []);
-      }),*/
-    );
+    return this.getPagedData(`/omero/api/m/images/${imageId}/rois/`, RoIData);
+    /*return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`, {params}).pipe(
+      map(r => deserialize(r, RoIResult))
+    );*/
   }
 
   /**
@@ -619,8 +585,8 @@ export class OmeroAPIService {
     // get all annotations first
     return this.getFileAnnotations(imageId).pipe(
       // filter by name and sort by date
-      map(annotResult => {
-        return annotResult.annotations.filter(ann => ann.file.name === fileName).sort((a, b) => -(a.date.getTime() - b.date.getTime()));
+      map(annotations => {
+        return annotations.filter(ann => ann.file.name === fileName).sort((a, b) => -(a.date.getTime() - b.date.getTime()));
       }),
       // download file and parse
       switchMap(sortedAnnots => {
@@ -659,7 +625,6 @@ export class OmeroAPIService {
     return this.httpClient.post(`/omero/webclient/annotate_file/`, formData).pipe(
       // if file is posted successfully get all annotations
       switchMap(() => this.getFileAnnotations(imageId)),
-      map(annotations => annotations.annotations),
       // filter by current filename
       map(annotations => annotations.filter(ann => ann.file.name === fileName)),
       // delete all but the latest file version
@@ -768,18 +733,36 @@ export class OmeroAPIService {
   }
 
   /**
+   * Get data of certain type
+   * @param url endpoint url
+   * @param c the type (must be serializable)
+   * @returns returns the deserialize object instance
+   */
+  getData<T>(url: string, c: new () => T) {
+    if (!url.startsWith('/omero/api')) {
+      console.warn(`url ${url} is not compatible with endpoint.`)
+    }
+    return this.httpClient.get(url).pipe(
+      map((r: DataResponse<any>) => deserialize(r.data, c))
+    );
+  }
+
+  /**
    * Loads all pages of the backend and combines the result in array
    * @param url backend url
    * @param c class type
    * @param limit the limit you request with first api call (later automatically max limit)
    * @returns an array of obtained data items
    */
-  getPagedData<T>(url, c: new () => T, limit=500): Observable<Array<T>> {
+  getPagedData<T>(url, c: new () => T, limit=500, params?: { [param: string]: string | string[]}): Observable<Array<T>> {
+    if (!url.startsWith('/omero/api')) {
+      console.warn(`url ${url} is not compatible with endpoint.`)
+    }
     const unpackPage = map(r => {
       const response = deserialize(r, PagedResponse);
       return <PagedResponse<T>>response;
     });
-    return this.httpClient.get(url, {params: {limit: limit + ''}}).pipe(
+    return this.httpClient.get(url, {params: {limit: limit + '', ...params}}).pipe(
       unpackPage,
       switchMap((result: PagedResponse<T>) => {
 
@@ -794,7 +777,7 @@ export class OmeroAPIService {
 
         if (totalCount > limit) {
           for(let i = 0; i < Math.ceil((totalCount - limit) / maxLimit); i++) {
-            requestList.push(this.httpClient.get(url, {params: {limit: maxLimit + '', offset: limit + i * maxLimit + ''}}).pipe(unpackPage));
+            requestList.push(this.httpClient.get(url, {params: {limit: maxLimit + '', offset: limit + i * maxLimit + '', ...params}}).pipe(unpackPage));
           }
         }
 
