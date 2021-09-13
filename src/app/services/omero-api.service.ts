@@ -486,8 +486,25 @@ export class OmeroAPIService {
     );*/
   }
 
+  getDatasetThumbnailUrls(datasetId: number): Observable<string[]> {
+    return this.getImagesFromDataset(datasetId)
+      .pipe(
+        tap(() => console.log('get dataset urls ' + datasetId)),
+        map(images => images.map(image => this.getThumbnailUrl(image.id))),
+        tap(data => console.log(data))
+      );
+  }
+
+  getProjectThumbnailUrls(projectId: number): Observable<string[]> {
+    return this.getDatasetsByProjectId(projectId).pipe(
+      switchMap(datasets => of(...datasets.map(ds => this.getDatasetThumbnailUrls(ds.id)))),
+      combineAll(),
+      map(imgUrls => {
+        return imgUrls.reduce((a,b) => a.concat(b), [])
+      })
     );
   }
+
 
   getThumbnailUrl(imageId: number) {
     return `/omero/webclient/render_thumbnail/${imageId}/?version=0`;
