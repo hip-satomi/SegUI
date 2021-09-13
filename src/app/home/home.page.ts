@@ -1221,22 +1221,25 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   toggleTool(tool) {
     // TODO: close all other tools
+    of(1).pipe(
+      map(() => {
+        if (this.tool == tool && this.tool.show) {
+          tool.close();
+          this.tool = null;
+        } else {
+          // close other tool
+          if (this.tool) {
+            this.tool.close();
+          }
+          this.tool = tool;
+          // open new tool
+          this.tool.open();
+        }
     
-    if (this.tool == tool && this.tool.show) {
-      tool.close();
-      this.tool = null;
-    } else {
-      // close other tool
-      if (this.tool) {
-        this.tool.close();
-      }
-      this.tool = tool;
-      // open new tool
-      this.tool.open();
-    }
-
-    // draw -> via new tool
-    this.draw();
+        // draw -> via new tool
+        this.draw();
+      })
+    ).subscribe();
   }
 
   get activeTool() {
