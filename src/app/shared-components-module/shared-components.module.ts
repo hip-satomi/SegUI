@@ -20,7 +20,8 @@ import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-
     BrushComponent,
     PermissionVizComponent,
     SimpleNavigationComponent,
-    MultiSelectToolComponent
+    MultiSelectToolComponent,
+    AnimatedPreviewComponent
   ],
   exports: [
     ImageDisplayComponent,
@@ -28,7 +29,8 @@ import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-
     BrushComponent,
     PermissionVizComponent,
     SimpleNavigationComponent,
-    MultiSelectToolComponent
+    MultiSelectToolComponent,
+    AnimatedPreviewComponent
   ],
   imports: [
     CommonModule,
