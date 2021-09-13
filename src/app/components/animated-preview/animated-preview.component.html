@@ -1,0 +1,7 @@
+<ion-slides #slider pager="true" [options]="slideOpts" (mouseover)="startAutoPlay()" (mouseout)="stopAutoPlay()">
+  <ion-slide *ngFor="let imageUrl of urlList">
+    <ion-thumbnail style="--size: 150px;--border-radius:5%">
+      <ion-img src="{{imageUrl}}" class="swiper-lazy"></ion-img>
+    </ion-thumbnail>
+  </ion-slide>
+</ion-slides>
