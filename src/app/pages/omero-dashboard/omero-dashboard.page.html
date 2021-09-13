@@ -15,6 +15,7 @@
           </ion-card-header>
           <ion-card-content>
             <app-permission-viz [item]="project"></app-permission-viz>
+            <app-animated-preview [urlList]="(project | projectThumbnails) | async"></app-animated-preview>
             <p>{{ project.description }}</p>
           </ion-card-content>
         </ion-card>
