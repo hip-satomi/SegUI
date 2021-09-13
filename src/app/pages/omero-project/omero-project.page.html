@@ -15,7 +15,7 @@
             <h4>{{dataset.name}}</h4>
           </ion-card-header>
           <app-permission-viz [item]="dataset"></app-permission-viz>
-          <app-animated-preview [urlList]="dataset | projectThumbnails | async"></app-animated-preview>
+          <app-animated-preview [urlList]="dataset | thumbnails | async"></app-animated-preview>
           <ion-card-content>
             {{dataset.description}}
           </ion-card-content>

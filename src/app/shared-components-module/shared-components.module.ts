@@ -10,6 +10,8 @@ import { PermissionVizComponent } from '../components/permission-viz/permission-
 import { SimpleNavigationComponent } from '../components/simple-navigation/simple-navigation.component';
 import { RouterModule } from '@angular/router';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
+import { AnimatedPreviewComponent } from '../components/animated-preview/animated-preview.component';
+import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
 
 
 
@@ -21,7 +23,8 @@ import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-
     PermissionVizComponent,
     SimpleNavigationComponent,
     MultiSelectToolComponent,
-    AnimatedPreviewComponent
+    AnimatedPreviewComponent,
+    ThumbnailsPipe
   ],
   exports: [
     ImageDisplayComponent,
@@ -30,7 +33,8 @@ import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-
     PermissionVizComponent,
     SimpleNavigationComponent,
     MultiSelectToolComponent,
-    AnimatedPreviewComponent
+    AnimatedPreviewComponent,
+    ThumbnailsPipe
   ],
   imports: [
     CommonModule,
