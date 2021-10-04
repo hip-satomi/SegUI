@@ -695,12 +695,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         this.trackingUI.save();
         return;
       }
+    } else {
+      // TODO: this case should not happen because you should not be able to click the done button then
+      console.info('Cannot redirect the save signal to tools!');
     }
-    const toast = await this.toastController.create({
-      message: 'Sorry but I cannot save the current state!',
-      duration: 2000
-    });
-    toast.present();
   }
 
   get canRedo() {
