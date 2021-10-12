@@ -21,6 +21,10 @@ export class TokenInterceptorService implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
 
+    if (req.url.startsWith('assets')) {
+      return next.handle(req);
+    }
+
     if (req.url.match('/api/token')) {
       // do not ask for a token if we are managing the tokens right now
       return next.handle(req);
