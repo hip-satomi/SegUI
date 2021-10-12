@@ -304,6 +304,11 @@ export class WindowInfo {
   min: number;
   @JsonProperty()
   max: number;
+
+  @JsonProperty()
+  start: number;
+  @JsonProperty()
+  end: number;
 }
 
 @Serializable()
@@ -530,7 +535,9 @@ export class OmeroAPIService {
    */
   getImageRenderInfos(imageId: number) {
     return this.httpClient.get(`/omero/webgateway/imgData/${imageId}/`).pipe(
-      map(r => deserialize(r, RenderInfos))
+      map(r => {
+        return deserialize(r, RenderInfos)
+      })
     );
   }
 
@@ -564,8 +571,8 @@ export class OmeroAPIService {
       }),
       // generate the final image urls with render info
       map((data: {image: Image, renderInfos: RenderInfos, it: Array<{imageId: number, z: number, t: number}>}) => {
-        const min = data.renderInfos.channels[0].window.min;
-        const max = data.renderInfos.channels[0].window.max;
+        const min = data.renderInfos.channels[0].window.start;
+        const max = data.renderInfos.channels[0].window.end;
         return data.it.map(item => this.getImageViewUrl(item.imageId, item.z, item.t, min, max));
       })
     );
