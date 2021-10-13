@@ -7,7 +7,7 @@ import { finalize, switchMap, tap } from 'rxjs/operators';
 import { AddPolygon, JointAction, RemovePolygon } from 'src/app/models/action';
 import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { Point, Polygon } from 'src/app/models/geometry';
-import { SegmentationModel } from 'src/app/models/segmentation-model';
+import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { UIUtils, Utils } from 'src/app/models/utils';
 import { Detection, SegmentationService } from 'src/app/services/segmentation.service';
@@ -21,17 +21,51 @@ import { threadId } from 'worker_threads';
 export class SegmentationComponent extends Tool implements Drawer {
 
   // input the current segmentation model and ui
-  @Input() segModel: SegmentationModel;
-  @Input() segUI: SegmentationUI;
+  _localSegModel: LocalSegmentationModel;
+  _globalSegModel: GlobalSegmentationModel;
+  _segUI: SegmentationUI;
+
+
+  updateInputs() {
+    this.temporarySegModel = new SegmentationModel();
+    this.data = []
+  }
+
+  @Input() set localSegModel(lsg: LocalSegmentationModel) {
+    this._localSegModel = lsg;
+    this.createLocalSegModel();
+  }
+
+  @Input() set globalSegModel(gsm: GlobalSegmentationModel) {
+    this._globalSegModel = gsm;
+    this.createLocalSegModel();
+  }
+
+  @Input() set segUI(sUI: SegmentationUI) {
+    this._segUI = this.segUI;
+    this.createLocalSegModel();
+  }
+
+  get localeSegModel() {
+    return this._localSegModel;
+  }
+
+  get globalSegModel() {
+    return this._globalSegModel;
+  }
+
+  get segUI() {
+    return this._segUI;
+  }
 
   // the local segmentation model that is temporal and independent of the real one
-  localSegModel: SegmentationModel;
+  temporarySegModel: SegmentationModel;
 
   // the pencil for drawing
   oldPencil: Pencil;
 
-  data: Detection[];
-  polyMeta: {};
+  data: Detection[] = [];
+  polyMeta: {} = {};
 
   // dialog properties
   showOverlay = true;
@@ -75,7 +109,7 @@ export class SegmentationComponent extends Tool implements Drawer {
     this.oldPencil = pencil;
 
     // display the new overlay
-    if (this.showNewOverlay && this.localSegModel) {
+    if (this.showNewOverlay && this.temporarySegModel) {
       this.filteredDets.map(([uuid, poly]) => {
         poly.draw(pencil.canvasCtx, false);
       })
@@ -83,7 +117,7 @@ export class SegmentationComponent extends Tool implements Drawer {
 
     // display the old overlay
     if (this.showOverlay) {
-      this.segModel.draw(pencil.canvasCtx, false);
+      this.segUI.drawPolygons(pencil.canvasCtx, false);
     }
 
     // draw the image in the background
@@ -99,7 +133,7 @@ export class SegmentationComponent extends Tool implements Drawer {
     }
 
     // filter by score threshold (there might also be empty items in the localSegModel)
-    const thresholdFiltered = Array.from(this.localSegModel.segmentationData.getPolygonEntries()).filter(([uuid, poly]) => uuid in this.polyMeta && this.polyMeta[uuid]['score'] >= this.scoreThreshold);
+    const thresholdFiltered = Array.from(this.temporarySegModel.segmentationData.getPolygonEntries()).filter(([uuid, poly]) => uuid in this.polyMeta && this.polyMeta[uuid]['score'] >= this.scoreThreshold);
 
     // filter by overlaps (if bbox center is in other bbox only keep max-scored)
     if (this.filterOverlaps) {
@@ -127,9 +161,9 @@ export class SegmentationComponent extends Tool implements Drawer {
     return this.filteredDets.length;
   }
 
-  ngOnChanges(changes) {
+  /*ngOnChanges(changes) {
     console.log(changes);
-  }
+  }*/
 
   update(e) {
     console.log(this.showOverlay)
@@ -146,11 +180,11 @@ export class SegmentationComponent extends Tool implements Drawer {
    * @param curSegModel 
    * @param curSegUI 
    */
-  setModel(curSegModel: SegmentationModel, curSegUI: SegmentationUI) {
-    this.segModel = curSegModel;
+  setModel(curSegModel: LocalSegmentationModel, curSegUI: SegmentationUI) {
+    this.localSegModel = curSegModel;
     this.segUI = curSegUI;
 
-    this.localSegModel = new SegmentationModel();
+    this.temporarySegModel = new SegmentationModel();
     this.data = []
   }
 
@@ -168,7 +202,7 @@ export class SegmentationComponent extends Tool implements Drawer {
     loading.then(l => l.present());
 
     const segUI = this.segUI;
-    const segModel = this.segModel;
+    const segModel = this.localSegModel;
 
     // start http request --> get image urls
     const sub = of(segUI.imageUrl).pipe(
@@ -227,7 +261,7 @@ export class SegmentationComponent extends Tool implements Drawer {
       return;
     }
 
-    this.localSegModel = new SegmentationModel();
+    this.temporarySegModel = new SegmentationModel();
     this.polyMeta = {};
     this._cachedFilterDets = null;
 
@@ -268,7 +302,7 @@ export class SegmentationComponent extends Tool implements Drawer {
     const finalAction = new JointAction(...actions);
 
     // apply the actions to the current segmentation model
-    this.localSegModel.addAction(finalAction);
+    this.temporarySegModel.addAction(finalAction);
   }
 
   /**
@@ -299,7 +333,7 @@ export class SegmentationComponent extends Tool implements Drawer {
 
     if (!this.showOverlay) {
       // we need to delete all existing polyongs
-      for (const [uuid, poly] of this.segModel.segmentationData.getPolygonEntries()) {
+      for (const [uuid, poly] of this.localSegModel.segmentationData.getPolygonEntries()) {
         deleteActions.push(new RemovePolygon(uuid));
       }
     }
@@ -313,7 +347,7 @@ export class SegmentationComponent extends Tool implements Drawer {
 
     // join actions
     const jointAction = new JointAction(...deleteActions, ...addActions);
-    this.segModel.addAction(jointAction);
+    this.localSegModel.addAction(jointAction);
 
     // close the window
     this.close();
