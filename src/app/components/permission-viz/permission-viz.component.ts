@@ -8,12 +8,18 @@ import { Component, Input, OnInit } from '@angular/core';
 export class PermissionVizComponent implements OnInit {
 
   _item: any;
+  _user: any;
 
   data;
 
   @Input() set item(item: any) {
     this._item = item;
 
+    this.updateData();
+  }
+
+  @Input() set user(user: any) {
+    this._user = user;
     this.updateData();
   }
 
@@ -45,6 +51,10 @@ export class PermissionVizComponent implements OnInit {
         color: !this._item.details.permissions.isGroupWrite ? 'medium': ''
       },
     ];
+
+    if (this.user) {
+      
+    }
   }
 
 }

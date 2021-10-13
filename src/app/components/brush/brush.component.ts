@@ -21,6 +21,7 @@ const tree = require( 'tree-kit' ) ;
 // as a ES module
 import RBush from 'rbush';
 import { AnnotationLabel } from 'src/app/models/segmentation-data';
+import { stringify } from 'querystring';
 
 @Component({
   selector: 'app-brush',
@@ -136,11 +137,22 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
       // 1. Draw all other detections
       if (this.showOverlay) {
-        this.segUI.drawPolygons(ctx, false,
+        this.segUI.drawPolygonsAdv(ctx, false,
             // filter only polygons with visible label
             (p: [string, Polygon]) => {
                 return this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(p[0])].visible
+            },
+            ({uuid, poly}) => {
+                const label = this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(uuid)]
+                const mode = label.color;
+
+                if (mode == 'random') {
+                    return poly.color;
+                } else {
+                    return label.color;
+                }
             }
+
         );
         //this.segModel.drawPolygons(ctx, false);
       }
@@ -402,6 +414,18 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
       // TODO: Do this inside an action!
       label.visible = visible;
       this.draw();
+  }
+
+  changeColor(label: AnnotationLabel, color: string) {
+    // TODO: Do this inside an action!
+    label.color = color;
+
+    const toast = this.toastController.create({
+        message: `Your color has been saved ${color}`,
+        duration: 2000
+    }).then(t => t.present());
+
+    this.draw();
   }
 
   get canSave() {

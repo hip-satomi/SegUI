@@ -96,10 +96,12 @@ export class AnnotationLabel {
     id: number;
     name: string;
     visible: boolean;
+    color: string;
 
-    constructor(id: number, name: string, visibile = true) {
+    constructor(id: number, name: string, visibile = true, color = 'random') {
         this.id = id;
         this.name = name;
         this.visible = visibile;
+        this.color = color;
     }
 }

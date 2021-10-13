@@ -5,15 +5,24 @@
   <!--<ng-template *ngIf="!visible">
     <ion-icon (click)="toggleVisibility()" name="eye-off-outline"></ion-icon>
   </ng-template>-->
-      <ion-icon (click)="toggleVisibility()" [name]="(visible) ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
-      <ion-label [hidden]="editing">{{name}}</ion-label>
-      <form (ngSubmit)="save()">
-        <ion-input #nameInput [hidden]="!editing" type="text" [(ngModel)]="tempName" name="something"></ion-input>
-        <ion-button *ngIf="!editing" (click)="toggleEdit()">
+    <div (click)="toggleVisibility()">
+      <ion-label>
+        <ion-icon [name]="(visible) ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+      </ion-label>
+    </div>
+    <div>
+      <ion-button (click)="presentPopover($event)">C</ion-button>
+    </div>
+    <!--<input [value]="color"
+       [style.background]="color"
+       [(colorPicker)]="color"/>-->
+      <form (ngSubmit)="save(); nameInput.blur()">
+        <ion-input #nameInput type="text" [(ngModel)]="tempName" name="something" (keyup.enter)="nameInput.blur();"></ion-input>
+        <!--<ion-button *ngIf="!editing" (click)="toggleEdit()">
           <ion-icon  name="create-outline"></ion-icon>
-        </ion-button>
-        <ion-button *ngIf="editing" (click)="save()">
+        </ion-button>-->
+        <!--<ion-button (click)="save()">
           <ion-icon name="checkmark-outline"></ion-icon>
-        </ion-button>
+        </ion-button>-->
       </form>
 </ion-item>

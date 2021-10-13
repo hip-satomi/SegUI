@@ -17,6 +17,7 @@ import {HttpClientModule, HttpClientXsrfModule, HttpXsrfTokenExtractor, HTTP_INT
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { TokenInterceptorService } from './services/token-interceptor.service';
 
+import { ColorPickerModule } from 'ngx-color-picker';
 @Injectable({providedIn: 'root'})
 export class MyHammerConfig extends HammerGestureConfig  {
   overrides = {
@@ -34,6 +35,7 @@ export class MyHammerConfig extends HammerGestureConfig  {
             HammerModule,
             HttpClientModule,
             BrowserAnimationsModule,
+            ColorPickerModule
             /*HttpClientXsrfModule.withOptions({
               cookieName: 'csrftoken', // this is optional
               headerName: 'X-CSRFToken' // this is optional

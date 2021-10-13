@@ -13,8 +13,9 @@ import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-
 import { AnimatedPreviewComponent } from '../components/animated-preview/animated-preview.component';
 import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
 import { AnnLabelComponent } from '../components/ann-label/ann-label.component';
+import { ColorPickerComponent } from '../components/color-picker/color-picker.component';
 
-
+import { ColorPickerModule } from 'ngx-color-picker';
 
 @NgModule({
   declarations: [
@@ -27,6 +28,7 @@ import { AnnLabelComponent } from '../components/ann-label/ann-label.component';
     AnimatedPreviewComponent,
     ThumbnailsPipe,
     AnnLabelComponent,
+    ColorPickerComponent,
   ],
   exports: [
     ImageDisplayComponent,
@@ -37,14 +39,16 @@ import { AnnLabelComponent } from '../components/ann-label/ann-label.component';
     MultiSelectToolComponent,
     AnimatedPreviewComponent,
     ThumbnailsPipe,
-    AnnLabelComponent
+    AnnLabelComponent,
+    ColorPickerComponent
   ],
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
     MatTooltipModule,
-    RouterModule
+    RouterModule,
+    ColorPickerModule
   ]
 })
 export class SharedComponentsModule { }

@@ -322,6 +322,16 @@ export class SegmentationUI implements UIInteraction, Drawer {
         }
     }
 
+    drawPolygonsAdv(ctx, markActive = true, polyFilter: (p: [string, Polygon]) => boolean = p => true, polyColor: ({uuid: string, poly: Polygon}) => string = ({uuid, poly}) => poly.getColor()) {
+        for (const [index, polygon] of Array.from(this.segModel.segmentationData.getPolygonEntries()).filter(polyFilter)) {
+            if (markActive) {
+                UIUtils.drawSingle(polygon.points, index === this.segModel.activePolygonId, ctx, polygon.getColor());
+            } else {
+                UIUtils.drawSingle(polygon.points, false, ctx, polyColor({uuid: index, poly: polygon}));
+            }
+        }
+    }
+
     drawAdvanced(ctx, colorGenerator: (polygon: Polygon) => string = (poly: Polygon) => poly.getColor()) {
         const markActive = false;
 

@@ -50,7 +50,14 @@
     <ion-row>
       <ion-col class="vertical-align-content">
         <ion-list *ngIf="labels">
-          <app-ann-label *ngFor="let label of labels;" [name]="label.name" (visibleChange)="changeVisibility(label, $event)" [visible]="label.visible" (editName)="changedLabelName($event, label.id)"></app-ann-label>
+          <app-ann-label *ngFor="let label of labels;"
+              [color]="label.color"
+              [name]="label.name"
+              (visibleChange)="changeVisibility(label, $event)"
+              (colorChange)="changeColor(label, $event)"
+              [visible]="label.visible"
+              (editName)="changedLabelName($event, label.id)">
+            </app-ann-label>
         </ion-list>
       </ion-col>
     </ion-row>
