@@ -1,10 +1,10 @@
 import { Serializable, JsonProperty } from 'typescript-json-serializer';
 import { ModelChanged, ChangeType, ChangableModel } from './change';
 import { EventEmitter } from '@angular/core';
-import { SegmentationData } from './segmentation-data';
+import { AnnotationLabel, SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
 import { Polygon, Point } from './geometry';
-import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper, Action, JointAction, ClearableStorage, LocalAction, CreateSegmentationLayersAction } from './action';
+import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper, Action, JointAction, ClearableStorage, LocalAction, CreateSegmentationLayersAction, AddLabelAction } from './action';
 import { SynchronizedObject } from './storage';
 import { Subscription, Observable, combineLatest, Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
@@ -274,8 +274,12 @@ export class SegmentationModel {
 
 export class SegCollData implements ClearableStorage {
     segData: SegmentationData[] = [];
+
+    /** Views on individual frames */
     localModels: LocalSegmentationModel[] = [];
     parent: GlobalSegmentationModel;
+
+    labels: AnnotationLabel[] = [];
 
     constructor(parent: GlobalSegmentationModel) {
         this.parent = parent;
@@ -283,7 +287,8 @@ export class SegCollData implements ClearableStorage {
 
     clear() {
         this.segData = [];
-        this.localModels = [];//this.segData.forEach(segData => segData.clear());
+        this.localModels = [];
+        this.labels = [];
     }
 
     get(index: number) {
@@ -293,6 +298,21 @@ export class SegCollData implements ClearableStorage {
     addSegmentationData(segData: SegmentationData) {
         this.segData.push(segData);
         this.localModels.push(new LocalSegmentationModel(this.parent, this.segData.length - 1));
+    }
+
+    addLabel(labelName: string) {
+        const maxLabel = Math.max(Math.max(...this.labels.map(l => l.id)), 0);
+        this.labels.push(new AnnotationLabel(maxLabel+1, labelName));
+    }
+
+    getLabelById(labelId: number) {
+        const filteredLabels = this.labels.filter(l => l.id == labelId)
+        if (filteredLabels.length == 1) {
+            return filteredLabels[0];
+        } else {
+            console.warn("Could not find label by id");
+            return null;
+        }
     }
 
 }
@@ -341,6 +361,8 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
         }
 
         this.actionManager.addAction(new CreateSegmentationLayersAction(numSegmentationLayers));
+
+        this.actionManager.addAction(new AddLabelAction('Cell'));
     }
 
     onDeserialized(destroySignal: Subject<void>) {

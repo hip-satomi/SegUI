@@ -48,6 +48,22 @@
       </ion-row>
     </ion-item>
     <ion-row>
+      <ion-col class="vertical-align-content">
+        <ion-list *ngIf="labels">
+          <app-ann-label *ngFor="let label of labels;" [name]="label.name" [visible]="false" (editName)="changedLabelName($event, label.id)"></app-ann-label>
+          <!--<ion-item *ngFor="let label of labels">
+            <ion-icon name="eye-outline"></ion-icon>
+            <ion-label>{{label.name}}</ion-label>
+          </ion-item>-->
+        </ion-list>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-button>
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-button>
+    </ion-row>
+    <ion-row>
       <ion-col>
         <ion-button expand="block" (click)="close()">Close</ion-button>
       </ion-col>

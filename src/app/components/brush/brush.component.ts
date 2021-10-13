@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
-import { ChangePolygonPoints, JointAction } from 'src/app/models/action';
+import { ChangePolygonPoints, JointAction, RenameLabelAction } from 'src/app/models/action';
 import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
@@ -20,6 +20,7 @@ const tree = require( 'tree-kit' ) ;
 
 // as a ES module
 import RBush from 'rbush';
+import { AnnotationLabel } from 'src/app/models/segmentation-data';
 
 @Component({
   selector: 'app-brush',
@@ -91,6 +92,10 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
   get currentPolygon(): Polygon {
     return this.localSegModel.activePolygon;
+  }
+
+  get labels(): AnnotationLabel[] {
+    return this.globalSegModel?.segmentationData.labels;
   }
   
   /**
@@ -378,6 +383,10 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
       this.localSegModel.addNewPolygon();
   }
 
+  changedLabelName(name: string, id: number) {
+      this.globalSegModel.addAction(new RenameLabelAction(id, name));
+  }
+
   get canSave() {
       return true;
   }
@@ -396,5 +405,9 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
   redo() {
       return this.globalSegModel.redo();
+  }
+
+  trackItem(index: number, item: AnnotationLabel) {
+    return item.id;
   }
 }

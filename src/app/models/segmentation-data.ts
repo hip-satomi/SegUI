@@ -70,3 +70,14 @@ export class SegmentationData implements ClearableStorage {
         return this.polygons.size;
     }
 }
+
+
+export class AnnotationLabel {
+    id: number;
+    name: string;
+
+    constructor(id: number, name: string) {
+        this.id = id;
+        this.name = name;
+    }
+}

@@ -29,7 +29,10 @@ enum ActionTypes {
     PreventUndoActionWrapper,
 
     LocalAction,
-    CreateSegmentationLayersAction
+    CreateSegmentationLayersAction,
+
+    AddLabelAction,
+    RenameLabelAction
 }
 
 @Serializable()
@@ -450,28 +453,48 @@ export class AddLinkAction extends Action<TrackingData> {
     }
 }
 
+@Serializable()
+export class AddLabelAction extends Action<SegCollData> {
+    @JsonProperty()
+    labelName: string;
+
+    constructor(labelName: string) {
+        super(ActionTypes.AddLabelAction);
+        this.labelName = labelName;
+    }
+
+    perform(data: SegCollData): void {
+        data.addLabel(this.labelName);
+    }
+}
+
+@Serializable()
+export class RenameLabelAction extends Action<SegCollData> {
+    @JsonProperty()
+    labelId: number;
+    @JsonProperty()
+    labelName: string;
+
+    constructor(labelId: number, name: string) {
+        super(ActionTypes.RenameLabelAction);
+        this.labelId = labelId;
+        this.labelName = name;
+    }
+
+    perform(data: SegCollData): void {
+        data.getLabelById(this.labelId).name = this.labelName;
+    }
+    
+}
+
 /**
- * Handles actions with do and undo operations
+ * Restores action with their corresponding types
+ * 
+ * Useful for json deserialization
  * 
  * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions (https://github.com/JohnWeisz/TypedJSON/blob/master/spec/polymorphism-abstract-class.spec.ts)
  */
-const knownTypes = [Action,
-                    AddEmptyPolygon,
-                    AddPolygon,
-                    RemovePolygon,
-                    AddPointAction,
-                    RemovePointAction,
-                    SelectPolygon,
-                    MovePointAction,
-                    ChangePolygonPoints,
-
-                    // Actions for tracking
-                    SelectSegmentAction,
-                    AddLinkAction,
-                    UnselectSegmentAction];
-
-
-const actionRestorer = action => {
+ const actionRestorer = action => {
 
     const lookupList: Array<[ActionTypes, any]> = [
         [ActionTypes.AddEmptyPolygon, AddEmptyPolygon],
@@ -490,7 +513,10 @@ const actionRestorer = action => {
         [ActionTypes.PreventUndoActionWrapper, PreventUndoActionWrapper],
 
         [ActionTypes.LocalAction, LocalAction],
-        [ActionTypes.CreateSegmentationLayersAction, CreateSegmentationLayersAction]
+        [ActionTypes.CreateSegmentationLayersAction, CreateSegmentationLayersAction],
+
+        [ActionTypes.AddLabelAction, AddLabelAction],
+        [ActionTypes.RenameLabelAction, RenameLabelAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();
