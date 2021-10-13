@@ -811,6 +811,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     return this.imageDisplay.ctx;
   }
 
+  // TODO: Removable code? Should not be used anymore!
   /**
    * Get and apply proposal segmentations
    */
@@ -885,7 +886,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                 poly.setColor(UIUtils.randomColor());
     
                 // collection new polygon actions
-                actions.push(new AddPolygon(poly));
+                // TODO: Default label id?
+                actions.push(new AddPolygon(poly, 0));
               }
             }
     
@@ -1038,7 +1040,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           const currentModel = srsc.getModel()//.segmentations[poly.t]
 
           // create polygon add action
-          const action = new AddPolygon(new Polygon(...poly.points));
+          // TODO: How to deal with omero imports & labels?
+          const action = new AddPolygon(new Polygon(...poly.points), 0);
 
           // execute the action
           currentModel.addAction(new LocalAction(action, poly.t));

@@ -231,7 +231,8 @@ export class MultiSelectToolComponent extends Tool {
    * Creates a new polygon
    */
   save() {
-      this.localSegModel.addNewPolygon();
+      // TODO: Default label?
+      this.localSegModel.addNewPolygon(0);
   }
 
   get canSave() {

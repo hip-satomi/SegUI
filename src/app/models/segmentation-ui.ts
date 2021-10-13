@@ -173,6 +173,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                                                                this.segModel.activePolygonId));
 
             // show action opportunities
+            // TODO: Default label id?
             const actionSheet = this.actionSheetController.create({
                 header: 'Cell Actions',
                 buttons: [{
@@ -183,7 +184,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                     // create an action to remove the polygon
                     const removeAction = new RemovePolygon(match[0]);
                     // add another polygon for safety
-                    this.segModel.addNewPolygon();
+                    this.segModel.addNewPolygon(0);
                     // execute the remove action
                     this.segModel.addAction(removeAction);
                   }
@@ -262,16 +263,13 @@ export class SegmentationUI implements UIInteraction, Drawer {
         if (this.segModel.activePolygon) {
             const removalId = this.segModel.activePolygonId;
 
-            // TODO: this action recording can be dangerous
-            //this.segmentationModel.recordActions();
+            // TODO: Default label id ?
             const jointAction = 
                 new JointAction(
-                    ...this.segModel.addNewPolygonActions(),
+                    ...this.segModel.addNewPolygonActions(0),
                     new RemovePolygon(removalId));
 
             this.segModel.addAction(jointAction);
-
-            //this.segmentationModel.actionManager.mergeRecordedActions();
         }
     }
 
@@ -281,7 +279,8 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
     save() {
         if (this.canSave) {
-            this.segModel.addNewPolygon();
+            // TODO: Default label id?
+            this.segModel.addNewPolygon(0);
         }
     }
 

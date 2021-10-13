@@ -6,6 +6,7 @@ export class SegmentationData implements ClearableStorage {
     private polygons: Map<string, Polygon>;
     activePolygonId: string;
     activePointIndex: number;
+    labels: Map<string, number>;
 
     constructor() {
         this.clear();
@@ -15,6 +16,7 @@ export class SegmentationData implements ClearableStorage {
         this.polygons = new Map<string, Polygon>();
         this.activePolygonId = '';
         this.activePointIndex = 0;
+        this.labels = new Map<string, number>();
     }
 
     getPolygon(polygonId: string): Polygon {
@@ -25,8 +27,26 @@ export class SegmentationData implements ClearableStorage {
         }
     }
 
-    addPolygon(uuid: string, polygon: Polygon) {
+    /**
+     * Query the label of a polygon
+     * 
+     * @param polygonId uuid of the polygon
+     * @returns the corresponding label
+     */
+    getPolygonLabel(polygonId: string): number {
+        return this.labels.get(polygonId);
+    }
+
+    /**
+     * Add a new polygon
+     * 
+     * @param uuid id of the polygon
+     * @param polygon the polygon itself
+     * @param labelId the label id of the polygon
+     */
+    addPolygon(uuid: string, polygon: Polygon, labelId: number) {
         this.polygons.set(uuid, polygon);
+        this.labels.set(uuid, labelId);
     }
 
     /**
@@ -75,9 +95,11 @@ export class SegmentationData implements ClearableStorage {
 export class AnnotationLabel {
     id: number;
     name: string;
+    visible: boolean;
 
-    constructor(id: number, name: string) {
+    constructor(id: number, name: string, visibile = true) {
         this.id = id;
         this.name = name;
+        this.visible = visibile;
     }
 }

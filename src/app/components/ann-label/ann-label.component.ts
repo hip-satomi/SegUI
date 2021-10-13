@@ -24,6 +24,7 @@ export class AnnLabelComponent implements OnInit {
 
   toggleVisibility() {
     this.visible = !this.visible;
+    this.visibleChange.emit(this.visible);
   }
 
   toggleEdit() {

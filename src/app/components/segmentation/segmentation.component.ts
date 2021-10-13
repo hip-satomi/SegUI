@@ -290,7 +290,7 @@ export class SegmentationComponent extends Tool implements Drawer {
         poly.setColor(UIUtils.randomColor());
 
         // collection new polygon actions
-        const addAction = new AddPolygon(poly);
+        const addAction = new AddPolygon(poly, 0);
         actions.push(addAction);
 
         // save the detection score
@@ -341,7 +341,8 @@ export class SegmentationComponent extends Tool implements Drawer {
     if (this.showNewOverlay) {
       // add all the polygons here
       for (const [uuid, poly] of this.filteredDets) {
-        addActions.push(new AddPolygon(poly));
+        // TODO: automated prediction labels?
+        addActions.push(new AddPolygon(poly, 0));
       }
     }
 

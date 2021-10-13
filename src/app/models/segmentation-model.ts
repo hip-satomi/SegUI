@@ -41,7 +41,8 @@ export class SegmentationModel {
         });
 
         // TODO this is somehow strange not to able to have an empty model. If the model is empty on interaction a new polygon is added and this can destroy the redo stack.
-        this.addNewPolygon();
+        // TODO: Default label id?
+        this.addNewPolygon(0);
     }
 
     /**
@@ -129,7 +130,7 @@ export class SegmentationModel {
         this.actionManager.addAction(action, toPerform);
     }
 
-    addNewPolygonActions(): Action<SegmentationData>[] {
+    addNewPolygonActions(labelId: number): Action<SegmentationData>[] {
         let uuid = '';
         // do not allow undo for the first segment (it should be always present)
         let allowUndo = true;
@@ -138,7 +139,7 @@ export class SegmentationModel {
 
         if (this.segmentationData.numPolygons === 0) {
             // when there are no polygons we simply have to add one
-            const newAction = new AddEmptyPolygon(UIUtils.randomColor());
+            const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
             uuid = newAction.uuid;
             //this.addAction(newAction);
             actions.push(newAction);
@@ -152,7 +153,7 @@ export class SegmentationModel {
             if (emptyId) {
                 uuid = emptyId;
             } else {
-                const newAction = new AddEmptyPolygon(UIUtils.randomColor());
+                const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
                 uuid = newAction.uuid;
                 //this.addAction(newAction);
                 actions.push(newAction);
@@ -176,9 +177,9 @@ export class SegmentationModel {
      * 
      * if there is  an empty polygon at the end, this one is used
      */
-    addNewPolygon() {
+    addNewPolygon(labelId: number) {
 
-        const actions = this.addNewPolygonActions();
+        const actions = this.addNewPolygonActions(labelId);
 
         // add all these actions as a joint action
         this.addAction(new JointAction(...actions));
@@ -222,7 +223,8 @@ export class SegmentationModel {
      */
     get activePolygon() {
         if (this.segmentationData.numPolygons === 0) {
-            this.addNewPolygon();
+            // TODO: Default label id?
+            this.addNewPolygon(0);
         }
 
         return this.segmentationData.getPolygon(this.activePolygonId);
@@ -300,9 +302,9 @@ export class SegCollData implements ClearableStorage {
         this.localModels.push(new LocalSegmentationModel(this.parent, this.segData.length - 1));
     }
 
-    addLabel(labelName: string) {
+    addLabel(labelName: string, visible = true) {
         const maxLabel = Math.max(Math.max(...this.labels.map(l => l.id)), 0);
-        this.labels.push(new AnnotationLabel(maxLabel+1, labelName));
+        this.labels.push(new AnnotationLabel(maxLabel+1, labelName, visible));
     }
 
     getLabelById(labelId: number) {
@@ -445,7 +447,7 @@ export class LocalSegmentationModel {
         this.segmentationData.activePointIndex = activePointIndex;
     }
 
-    addNewPolygonActions(): Action<SegmentationData>[] {
+    addNewPolygonActions(labelId: number): Action<SegmentationData>[] {
         let uuid = '';
         // do not allow undo for the first segment (it should be always present)
         let allowUndo = true;
@@ -454,7 +456,7 @@ export class LocalSegmentationModel {
 
         if (this.segmentationData.numPolygons === 0) {
             // when there are no polygons we simply have to add one
-            const newAction = new AddEmptyPolygon(UIUtils.randomColor());
+            const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
             uuid = newAction.uuid;
             //this.addAction(newAction);
             actions.push(newAction);
@@ -468,7 +470,7 @@ export class LocalSegmentationModel {
             if (emptyId) {
                 uuid = emptyId;
             } else {
-                const newAction = new AddEmptyPolygon(UIUtils.randomColor());
+                const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
                 uuid = newAction.uuid;
                 //this.addAction(newAction);
                 actions.push(newAction);
@@ -492,9 +494,9 @@ export class LocalSegmentationModel {
      * 
      * if there is  an empty polygon at the end, this one is used
      */
-    addNewPolygon() {
+    addNewPolygon(labelId: number) {
 
-        const actions = this.addNewPolygonActions();
+        const actions = this.addNewPolygonActions(labelId);
 
         // add all these actions as a joint action
         this.addAction(new JointAction(...actions));

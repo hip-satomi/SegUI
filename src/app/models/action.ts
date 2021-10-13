@@ -122,17 +122,22 @@ export class AddEmptyPolygon extends Action<SegmentationData> {
     @JsonProperty()
     uuid: string;
 
-    constructor(color: string) {
+    @JsonProperty()
+    labelId: number;
+
+    constructor(labelId: number, color: string) {
         super(ActionTypes.AddEmptyPolygon);
 
         this.color = color;
+        this.labelId = labelId;
         this.uuid = uuidv4();
     }
 
     perform(segmentationData: SegmentationData) {
         const poly = new Polygon();
         poly.setColor(this.color);
-        segmentationData.addPolygon(this.uuid, poly);
+        // create the polygon
+        segmentationData.addPolygon(this.uuid, poly, this.labelId);
     }
 
 }
@@ -149,15 +154,19 @@ export class AddPolygon extends Action<SegmentationData> {
     @JsonProperty()
     poly: Polygon;
 
-    constructor(poly: Polygon) {
+    @JsonProperty()
+    labelId: number;
+
+    constructor(poly: Polygon, labelId: number) {
         super(ActionTypes.AddPolygon);
 
+        this.labelId = labelId;
         this.uuid = uuidv4();
         this.poly = poly;
     }
 
     perform(segmentationData: SegmentationData) {
-        segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly));
+        segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly), this.labelId);
     }
 
 }
@@ -458,13 +467,17 @@ export class AddLabelAction extends Action<SegCollData> {
     @JsonProperty()
     labelName: string;
 
-    constructor(labelName: string) {
+    @JsonProperty()
+    visible: boolean;
+
+    constructor(labelName: string, visible = true) {
         super(ActionTypes.AddLabelAction);
         this.labelName = labelName;
+        this.visible = visible
     }
 
     perform(data: SegCollData): void {
-        data.addLabel(this.labelName);
+        data.addLabel(this.labelName, this.visible);
     }
 }
 

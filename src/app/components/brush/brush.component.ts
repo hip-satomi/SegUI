@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
-import { ChangePolygonPoints, JointAction, RenameLabelAction } from 'src/app/models/action';
+import { AddLabelAction, ChangePolygonPoints, JointAction, RenameLabelAction } from 'src/app/models/action';
 import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
@@ -136,7 +136,12 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
       // 1. Draw all other detections
       if (this.showOverlay) {
-        this.segUI.drawPolygons(ctx, false);
+        this.segUI.drawPolygons(ctx, false,
+            // filter only polygons with visible label
+            (p: [string, Polygon]) => {
+                return this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(p[0])].visible
+            }
+        );
         //this.segModel.drawPolygons(ctx, false);
       }
       // 2. draw the backgound image
@@ -190,7 +195,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
       if (this.currentPolygon === null) {
           // add a new polygon if there is none selected
-          this.localSegModel.addNewPolygon();
+          // TODO: Default label?
+          this.localSegModel.addNewPolygon(0);
       }
 
       this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
@@ -380,11 +386,22 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
    * Creates a new polygon
    */
   save() {
-      this.localSegModel.addNewPolygon();
+      // Default label?
+      this.localSegModel.addNewPolygon(0);
   }
 
   changedLabelName(name: string, id: number) {
       this.globalSegModel.addAction(new RenameLabelAction(id, name));
+  }
+
+  addLabel() {
+      this.globalSegModel.addAction(new AddLabelAction('New'));
+  }
+
+  changeVisibility(label: AnnotationLabel, visible: boolean) {
+      // TODO: Do this inside an action!
+      label.visible = visible;
+      this.draw();
   }
 
   get canSave() {
@@ -405,9 +422,5 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
   redo() {
       return this.globalSegModel.redo();
-  }
-
-  trackItem(index: number, item: AnnotationLabel) {
-    return item.id;
   }
 }
