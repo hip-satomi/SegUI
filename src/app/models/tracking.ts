@@ -12,7 +12,7 @@ export class TrackingModel extends SynchronizedObject<TrackingModel> {
     trackingData = new TrackingData();
 
     @JsonProperty()
-    actionManager: ActionManager<TrackingData> = new ActionManager(0.25, this.trackingData);
+    actionManager: ActionManager<TrackingData> = new ActionManager(this.trackingData);
 
     onModelChanged = new EventEmitter<ModelChanged<TrackingModel>>();
 

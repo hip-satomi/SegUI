@@ -8,6 +8,7 @@ import { Polygon } from 'src/app/models/geometry';
 import { v4 as uuidv4 } from 'uuid';
 
 import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
+import { SegCollData } from './segmentation-model';
 
 enum ActionTypes {
     AddEmptyPolygon,
@@ -25,7 +26,10 @@ enum ActionTypes {
     UnselectSegmentAction,
 
     JointAction,
-    PreventUndoActionWrapper
+    PreventUndoActionWrapper,
+
+    LocalAction,
+    CreateSegmentationLayersAction
 }
 
 @Serializable()
@@ -86,6 +90,25 @@ export abstract class SegmentationAction extends Action<SegmentationData> {
         return this.segmentationData.getPolygon(polygonId);
     }
 }*/
+
+@Serializable()
+
+export class CreateSegmentationLayersAction extends Action<SegCollData> {
+    @JsonProperty() numSegLayers: number;
+
+    constructor(numSegLayers: number) {
+        super(ActionTypes.CreateSegmentationLayersAction);
+        this.numSegLayers = numSegLayers;
+    }
+
+    perform(data: SegCollData): void {
+        data.clear();
+        for(let i = 0; i < this.numSegLayers; i++) {
+            data.addSegmentationData(new SegmentationData());
+        }
+        //data.segData = new SegmentationData[this.numSegLayers];
+    }
+}
 
 @Serializable()
 export class AddEmptyPolygon extends Action<SegmentationData> {
@@ -464,7 +487,10 @@ const actionRestorer = action => {
         [ActionTypes.UnselectSegmentAction, UnselectSegmentAction],
 
         [ActionTypes.JointAction, JointAction],
-        [ActionTypes.PreventUndoActionWrapper, PreventUndoActionWrapper]
+        [ActionTypes.PreventUndoActionWrapper, PreventUndoActionWrapper],
+
+        [ActionTypes.LocalAction, LocalAction],
+        [ActionTypes.CreateSegmentationLayersAction, CreateSegmentationLayersAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();
@@ -481,6 +507,28 @@ const actionRestorer = action => {
         throw new Error(`Unknown action type: ${type}`);
     }
 };
+
+@Serializable()
+export class LocalAction extends Action<SegCollData> {
+
+    @JsonProperty({predicate: actionRestorer})
+    action: Action<SegmentationData>;
+
+    @JsonProperty()
+    t: number;
+
+    constructor(action: Action<SegmentationData>, t: number) {
+        super(ActionTypes.LocalAction);
+
+        this.action = action;
+        this.t = t;
+    }
+
+    perform(data: SegCollData): void {
+        this.action.perform(data.get(this.t));
+    }
+    
+}
 
 @Serializable()
 export class JointAction<T> extends Action<T>{
@@ -551,7 +599,6 @@ export class ActionManager<T extends ClearableStorage> {
 
     @JsonProperty({predicate: actionRestorer})
     actions: Action<T>[] = [];
-    @JsonProperty() actionTimeSplitThreshold: number;
     @JsonProperty()
     currentActionPointer: number;
 
@@ -562,8 +609,7 @@ export class ActionManager<T extends ClearableStorage> {
 
     data: T;
 
-    constructor(actionTimeSplitThreshold: number, data: T) {
-        this.actionTimeSplitThreshold = actionTimeSplitThreshold;
+    constructor(data: T) {
         this.currentActionPointer = 0;
         this.data = data;
     }
@@ -597,10 +643,10 @@ export class ActionManager<T extends ClearableStorage> {
             this.actions.splice(this.currentActionPointer - 1, this.actions.length, action);
         } else*/
 
-        this.notifyDataChanged();
+        this.notifyDataChanged(action);
     }
 
-    notifyDataChanged() {
+    notifyDataChanged(action: Action<T> = null) {
         this.onDataChanged.emit(this);
     }
 

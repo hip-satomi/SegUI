@@ -3,6 +3,7 @@ import { multiply, inv } from 'mathjs';
 import * as simplify from 'simplify-js';
 import { SegmentationHolder } from './segmentation-model';
 import { pointsToString } from '../services/omero-api.service';
+import { SegmentationData } from './segmentation-data';
 
 export interface Position {
     x: number;
@@ -289,12 +290,12 @@ export class OmeroUtils {
     return empty_rois;
   }
 
-  static createNewRoIList(segHolder: SegmentationHolder) {
+  static createNewRoIList(segHolder: SegmentationData[]) {
     const new_list = [];
-    for (const [index, element] of segHolder.segmentations.entries()) {
+    for (const [index, element] of segHolder.entries()) {
       const z = 0;
       const t = index;
-      for (const roi of element.segmentationData.getPolygons()) {
+      for (const roi of element.getPolygons()) {
         if(roi[1].numPoints == 0) {
           continue;
         }
