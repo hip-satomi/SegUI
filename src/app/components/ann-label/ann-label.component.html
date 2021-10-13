@@ -1,0 +1,19 @@
+<ion-item>
+  <!--<ng-template *ngIf="visible">
+    <ion-icon (click)="toggleVisibility()"  name="eye-outline"></ion-icon>
+  </ng-template>-->
+  <!--<ng-template *ngIf="!visible">
+    <ion-icon (click)="toggleVisibility()" name="eye-off-outline"></ion-icon>
+  </ng-template>-->
+      <ion-icon (click)="toggleVisibility()" [name]="(visible) ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+      <ion-label [hidden]="editing">{{name}}</ion-label>
+      <form (ngSubmit)="save()">
+        <ion-input #nameInput [hidden]="!editing" type="text" [(ngModel)]="tempName" name="something"></ion-input>
+        <ion-button *ngIf="!editing" (click)="toggleEdit()">
+          <ion-icon  name="create-outline"></ion-icon>
+        </ion-button>
+        <ion-button *ngIf="editing" (click)="save()">
+          <ion-icon name="checkmark-outline"></ion-icon>
+        </ion-button>
+      </form>
+</ion-item>

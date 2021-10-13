@@ -12,6 +12,7 @@ import { RouterModule } from '@angular/router';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
 import { AnimatedPreviewComponent } from '../components/animated-preview/animated-preview.component';
 import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
+import { AnnLabelComponent } from '../components/ann-label/ann-label.component';
 
 
 
@@ -24,7 +25,8 @@ import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
     SimpleNavigationComponent,
     MultiSelectToolComponent,
     AnimatedPreviewComponent,
-    ThumbnailsPipe
+    ThumbnailsPipe,
+    AnnLabelComponent,
   ],
   exports: [
     ImageDisplayComponent,
@@ -34,7 +36,8 @@ import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
     SimpleNavigationComponent,
     MultiSelectToolComponent,
     AnimatedPreviewComponent,
-    ThumbnailsPipe
+    ThumbnailsPipe,
+    AnnLabelComponent
   ],
   imports: [
     CommonModule,
