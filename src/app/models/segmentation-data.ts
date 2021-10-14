@@ -77,7 +77,7 @@ export class SegmentationData implements ClearableStorage {
 
     getEmptyPolygons() {
         return [...this.polygons.entries()].filter(([id, poly]) => {
-            return poly.numPoints == 0
+            return poly.numPoints == 0;
         });
     }
 
