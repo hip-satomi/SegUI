@@ -1,4 +1,5 @@
 import { Polygon } from 'src/app/models/geometry';
+import { JsonProperty, Serializable } from 'typescript-json-serializer';
 import { ClearableStorage } from './action';
 
 
@@ -74,6 +75,12 @@ export class SegmentationData implements ClearableStorage {
         return null;
     }
 
+    getEmptyPolygons() {
+        return [...this.polygons.entries()].filter(([id, poly]) => {
+            return poly.numPoints == 0
+        });
+    }
+
     getPolygonEntries() {
         return this.polygons.entries();
     }
@@ -92,16 +99,19 @@ export class SegmentationData implements ClearableStorage {
 }
 
 
+@Serializable()
 export class AnnotationLabel {
-    id: number;
-    name: string;
-    visible: boolean;
-    color: string;
+    @JsonProperty() id: number;
+    @JsonProperty() name: string;
+    @JsonProperty() visible: boolean;
+    @JsonProperty() color: string;
+    @JsonProperty() active: boolean;
 
-    constructor(id: number, name: string, visibile = true, color = 'random') {
+    constructor(id: number, name: string, visibile = true, color = 'random', active = true) {
         this.id = id;
         this.name = name;
         this.visible = visibile;
         this.color = color;
+        this.active = true;
     }
 }

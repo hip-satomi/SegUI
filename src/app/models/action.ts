@@ -3,12 +3,13 @@ import { Point } from './geometry';
 import 'reflect-metadata';
 import { EventEmitter } from '@angular/core';
 import { SelectedSegment, TrackingData, TrackingLink } from './tracking-data';
-import { SegmentationData } from './segmentation-data';
+import { AnnotationLabel, SegmentationData } from './segmentation-data';
 import { Polygon } from 'src/app/models/geometry';
 import { v4 as uuidv4 } from 'uuid';
 
 import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
 import { SegCollData } from './segmentation-model';
+import { LabelOptions } from '@angular/material/core';
 
 enum ActionTypes {
     AddEmptyPolygon,
@@ -464,38 +465,35 @@ export class AddLinkAction extends Action<TrackingData> {
 
 @Serializable()
 export class AddLabelAction extends Action<SegCollData> {
-    @JsonProperty()
-    labelName: string;
 
     @JsonProperty()
-    visible: boolean;
+    label: AnnotationLabel;
 
-    constructor(labelName: string, visible = true) {
+    constructor(label: AnnotationLabel) {
         super(ActionTypes.AddLabelAction);
-        this.labelName = labelName;
-        this.visible = visible
+        this.label = label;
     }
 
     perform(data: SegCollData): void {
-        data.addLabel(this.labelName, this.visible);
+        data.addLabel(this.label);
     }
 }
 
 @Serializable()
 export class RenameLabelAction extends Action<SegCollData> {
     @JsonProperty()
-    labelId: number;
+    id: number;
     @JsonProperty()
     labelName: string;
 
-    constructor(labelId: number, name: string) {
+    constructor(id: number, name: string) {
         super(ActionTypes.RenameLabelAction);
-        this.labelId = labelId;
+        this.id = id;
         this.labelName = name;
     }
 
     perform(data: SegCollData): void {
-        data.getLabelById(this.labelId).name = this.labelName;
+        data.getLabelById(this.id).name = this.labelName;
     }
     
 }

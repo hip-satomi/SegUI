@@ -30,6 +30,7 @@ import * as dayjs from 'dayjs';
 import { SegmentationComponent } from '../components/segmentation/segmentation.component';
 import { BrushComponent } from '../components/brush/brush.component';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
+import { UserQuestionsService } from '../services/user-questions.service';
 
 
 const { Storage } = Plugins;
@@ -137,7 +138,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private trackingService: TrackingService,
               private popoverController: PopoverController,
               private resolver: ComponentFactoryResolver,
-              private alertController: AlertController) {
+              private alertController: AlertController,
+              private userQuestions: UserQuestionsService) {
   }
 
   // Redirect Mouse & Touch interactions
@@ -544,7 +546,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     // generate segmentation uis
     this.segmentationUIs = [];
     for (const [index, segModel] of this.globalSegModel.segmentationModels.entries()) {
-      this.segmentationUIs.push(new SegmentationUI(segModel, imageUrls[index], this.imageDisplay.canvasElement, this.actionSheetController));
+      this.segmentationUIs.push(new SegmentationUI(segModel, imageUrls[index], this.imageDisplay.canvasElement, this.actionSheetController, this.userQuestions));
     }
   }
 
@@ -667,7 +669,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       if (this.tool) {
         this.tool.save();
       }
-      if (this.editMode === EditMode.Segmentation && this.curSegUI) {
+      else if (this.editMode === EditMode.Segmentation && this.curSegUI) {
         this.curSegUI.save();
         return;
       } else if (this.editMode === EditMode.Tracking && this.trackingUI) {

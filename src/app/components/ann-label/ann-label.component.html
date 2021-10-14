@@ -13,11 +13,12 @@
     <div>
       <ion-button (click)="presentPopover($event)">C</ion-button>
     </div>
+    <ion-icon name="create-outline" [color]="(active) ? 'primary' : ''" (click)="toggleActivity()"></ion-icon>
     <!--<input [value]="color"
        [style.background]="color"
        [(colorPicker)]="color"/>-->
       <form (ngSubmit)="save(); nameInput.blur()">
-        <ion-input #nameInput type="text" [(ngModel)]="tempName" name="something" (keyup.enter)="nameInput.blur();"></ion-input>
+        <ion-input #nameInput type="text" [(ngModel)]="tempName" name="something" (keyup.enter)="nameInput.blur();" (ionBlur)="save()"></ion-input>
         <!--<ion-button *ngIf="!editing" (click)="toggleEdit()">
           <ion-icon  name="create-outline"></ion-icon>
         </ion-button>-->

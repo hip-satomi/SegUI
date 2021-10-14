@@ -12,9 +12,12 @@ export class AnnLabelComponent implements OnInit {
   _name: string;
   @Input() visible: boolean;
   @Output() visibleChange = new EventEmitter<boolean>();
-  @Output() editName = new EventEmitter<string>();
+  @Output() nameChange = new EventEmitter<string>();
   @Input() color: string;
   @Output() colorChange = new EventEmitter<string>();
+
+  @Input() active = true;
+  @Output() activeChange = new EventEmitter<boolean>();
 
   @ViewChild('nameInput', { static: false }) myInput: IonInput;
 
@@ -40,12 +43,17 @@ export class AnnLabelComponent implements OnInit {
     this.visibleChange.emit(this.visible);
   }
 
+  toggleActivity() {
+    this.active = !this.active;
+    this.activeChange.emit(this.active);
+  }
+
 
   save() {
     console.log('save');
 
     if (this.tempName != this.name) {
-      this.editName.emit(this.tempName);
+      this.nameChange.emit(this.tempName);
     }
 
     this.myInput.getInputElement().then(
@@ -58,6 +66,7 @@ export class AnnLabelComponent implements OnInit {
 
     if (this.color == 'random') {
       mode = 'random';
+      color = '#FF0000';
     } else {
       mode = 'custom';
       color = this.color;

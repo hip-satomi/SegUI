@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { LoadingController, ToastController } from '@ionic/angular';
+import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
 import { AddLabelAction, ChangePolygonPoints, JointAction, RenameLabelAction } from 'src/app/models/action';
@@ -22,6 +22,7 @@ const tree = require( 'tree-kit' ) ;
 import RBush from 'rbush';
 import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { stringify } from 'querystring';
+import { UserQuestionsService } from 'src/app/services/user-questions.service';
 
 @Component({
   selector: 'app-brush',
@@ -74,7 +75,9 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   constructor(private loadingCtrl: LoadingController,
     private httpClient: HttpClient,
     private segmentationService: SegmentationService,
-    private toastController: ToastController) {
+    private toastController: ToastController,
+    private userQuestions: UserQuestionsService,
+    private actionSheetController: ActionSheetController) {
       super();
 
       //this.changedEvent.subscribe(() => console.log('Render'));
@@ -397,9 +400,10 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
    * 
    * Creates a new polygon
    */
-  save() {
-      // Default label?
-      this.localSegModel.addNewPolygon(0);
+  async save() {
+      this.userQuestions.activeLabel(this.localSegModel).pipe(
+          tap(label => this.localSegModel.addNewPolygon(label.id))
+      ).subscribe();
   }
 
   changedLabelName(name: string, id: number) {
@@ -407,7 +411,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   }
 
   addLabel() {
-      this.globalSegModel.addAction(new AddLabelAction('New'));
+      this.globalSegModel.addAction(new AddLabelAction(new AnnotationLabel(this.localSegModel.nextLabelId(), 'Cell', true, 'random', true)));
   }
 
   changeVisibility(label: AnnotationLabel, visible: boolean) {
@@ -426,6 +430,19 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     }).then(t => t.present());
 
     this.draw();
+  }
+
+  changedLabelActivity(label: AnnotationLabel, active: boolean) {
+      if (active) {
+          // Make sure that all the others are inactive
+          for(const l of this.labels) {
+                  label.active = false;
+          }
+      }
+
+      label.active = active;
+
+      this.draw();
   }
 
   get canSave() {

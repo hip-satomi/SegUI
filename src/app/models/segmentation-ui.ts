@@ -5,8 +5,9 @@ import { AddPointAction, JointAction, MovePointAction, RemovePolygon, SelectPoly
 import { UIUtils, Utils } from './utils';
 import { LocalSegmentationModel, SegmentationModel } from './segmentation-model';
 import { from, Observable, of, ReplaySubject } from 'rxjs';
-import { map, switchMap, take } from 'rxjs/operators';
+import { map, switchMap, take, tap } from 'rxjs/operators';
 import { SegmentationData } from './segmentation-data';
+import { UserQuestionsService } from '../services/user-questions.service';
 export class SegmentationUI implements UIInteraction, Drawer {
 
     segModel: LocalSegmentationModel;
@@ -28,7 +29,8 @@ export class SegmentationUI implements UIInteraction, Drawer {
      */
     constructor(segModel: LocalSegmentationModel,
                 imageUrl: string, canvasElement,
-                private actionSheetController: ActionSheetController) {
+                private actionSheetController: ActionSheetController,
+                private userQuestions: UserQuestionsService) {
         this.segModel = segModel;
         this.canvasElement = canvasElement;
         this.ctx = canvasElement.getContext('2d');
@@ -184,7 +186,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                     // create an action to remove the polygon
                     const removeAction = new RemovePolygon(match[0]);
                     // add another polygon for safety
-                    this.segModel.addNewPolygon(0);
+                    //this.segModel.addNewPolygon(0);
                     // execute the remove action
                     this.segModel.addAction(removeAction);
                   }
@@ -266,7 +268,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             // TODO: Default label id ?
             const jointAction = 
                 new JointAction(
-                    ...this.segModel.addNewPolygonActions(0),
+                    //...this.segModel.addNewPolygonActions(0),
                     new RemovePolygon(removalId));
 
             this.segModel.addAction(jointAction);
@@ -280,7 +282,9 @@ export class SegmentationUI implements UIInteraction, Drawer {
     save() {
         if (this.canSave) {
             // TODO: Default label id?
-            this.segModel.addNewPolygon(0);
+            this.userQuestions.activeLabel(this.segModel).pipe(
+                tap(label => this.segModel.addNewPolygon(label.id))
+            ).subscribe();
         }
     }
 

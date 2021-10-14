@@ -281,6 +281,7 @@ export class SegCollData implements ClearableStorage {
     localModels: LocalSegmentationModel[] = [];
     parent: GlobalSegmentationModel;
 
+    /** Annotation labels */
     labels: AnnotationLabel[] = [];
 
     constructor(parent: GlobalSegmentationModel) {
@@ -302,9 +303,17 @@ export class SegCollData implements ClearableStorage {
         this.localModels.push(new LocalSegmentationModel(this.parent, this.segData.length - 1));
     }
 
-    addLabel(labelName: string, visible = true) {
-        const maxLabel = Math.max(Math.max(...this.labels.map(l => l.id)), 0);
-        this.labels.push(new AnnotationLabel(maxLabel+1, labelName, visible));
+    addLabel(label: AnnotationLabel) {//(labelName: string, visible = true, color = 'random', active = true) {
+        this.labels.push(label);
+
+        // TODO: check activity
+        // make sure only a single label is active
+        if (label.active) {
+            for (const l of this.labels) {
+                l.active = false;
+            }
+            label.active = true;
+        }
     }
 
     getLabelById(labelId: number) {
@@ -315,6 +324,11 @@ export class SegCollData implements ClearableStorage {
             console.warn("Could not find label by id");
             return null;
         }
+    }
+
+    /** View on active labels only */
+    get activeLabels(): Array<AnnotationLabel> {
+        return this.labels.filter(l => l.active);
     }
 
 }
@@ -346,6 +360,10 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
         return this.segmentationData.localModels;
     }
 
+    get labels(): Array<AnnotationLabel> {
+        return this.segmentationData.labels;
+    }
+
     constructor(destroySignal, numSegmentationLayers: number) {
         super();
         this.destroySignal = destroySignal;
@@ -364,7 +382,7 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
 
         this.actionManager.addAction(new CreateSegmentationLayersAction(numSegmentationLayers));
 
-        this.actionManager.addAction(new AddLabelAction('Cell'));
+        this.actionManager.addAction(new AddLabelAction(new AnnotationLabel(0, 'Cell', true, 'random', true)));
     }
 
     onDeserialized(destroySignal: Subject<void>) {
@@ -466,7 +484,13 @@ export class LocalSegmentationModel {
             this.activePointIndex = 0;
         } else {
             // if there are polygons we check whether there are empty ones before creating a new one
-            const emptyId = this.segmentationData.getEmptyPolygonId();
+            const candidates = this.segmentationData.getEmptyPolygons().filter(([id, poly]) => {
+                this.getPolygonLabelId(id) == labelId
+            });
+            let emptyId: string = null;
+            if (candidates.length >= 0) {
+                emptyId = candidates[0][0];
+            }
             if (emptyId) {
                 uuid = emptyId;
             } else {
@@ -500,6 +524,22 @@ export class LocalSegmentationModel {
 
         // add all these actions as a joint action
         this.addAction(new JointAction(...actions));
+    }
+
+    get activeLabels(): Array<AnnotationLabel> {
+        return this.parent.segmentationData.activeLabels;
+    }
+
+    get labels(): Array<AnnotationLabel> {
+        return this.parent.labels;
+    }
+
+    nextLabelId(): number {
+        return Math.max(...this.parent.segmentationData.labels.map(l => l.id), 0) + 1;
+    }
+
+    getPolygonLabelId(id: string): number {
+        return this.segmentationData.labels.get(id);
     }
 }
 
