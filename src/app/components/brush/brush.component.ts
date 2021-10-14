@@ -322,7 +322,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             // check on other polygons
             const tree = new RBush();
 
-            for (const [uuid, poly] of this.localSegModel.segmentationData.getPolygons()){
+            // only do collision checks with active polygons (polygons whoose labels are active)
+            for (const [uuid, poly] of this.localSegModel.getActivePolygons()){
                 if (poly == this.currentPolygon) {
                     continue;
                 }

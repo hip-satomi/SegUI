@@ -444,6 +444,24 @@ export class LocalSegmentationModel {
         return this.parent.segmentationData.get(this.position);
     }
 
+    /**
+     * Only get the polygons of active labels
+     * @returns 
+     */
+    getActivePolygons() {
+        const activeLabelIds: Array<number> = this.parent.segmentationData.labels.filter(l => l.active).map(l => l.id);
+        return this.getVisiblePolygons().filter(([id, poly]) => {
+            return activeLabelIds.includes(this.getPolygonLabelId(id));
+        });
+    }
+
+    getVisiblePolygons() {
+        const visibleLabelIds: Array<number> = this.parent.segmentationData.labels.filter(l => l.visible).map(l => l.id);
+        return [...this.segmentationData.getPolygons().entries()].filter(([id, poly]) => {
+            return this.getPolygonLabelId(id) in visibleLabelIds;
+        });
+    }
+
     get activePolygonId(): string {
         return this.segmentationData.activePolygonId;
     }
