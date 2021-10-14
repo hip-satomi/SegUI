@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
-import { AddLabelAction, ChangePolygonPoints, JointAction, RenameLabelAction } from 'src/app/models/action';
+import { AddLabelAction, ChangePolygonPoints, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
 import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
@@ -410,11 +410,33 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   }
 
   changedLabelName(name: string, id: number) {
-      this.globalSegModel.addAction(new RenameLabelAction(id, name));
+    // does the new name already exist?
+    const candidates = this.localSegModel.labels.filter(l => l.name == name);
+    if (candidates.length > 0) {
+        this.userQuestions.mergeLabels(this.globalSegModel.segmentationData.getLabelById(id).name, candidates[0].name).pipe(
+            tap((result: boolean) => {
+                if(result) {
+                    this.globalSegModel.addAction(new MergeLabelAction(id, candidates[0].id));
+                }
+            })
+        ).subscribe();
+    } else {
+        this.globalSegModel.addAction(new RenameLabelAction(id, name));
+    }
   }
 
   addLabel() {
-      this.globalSegModel.addAction(new AddLabelAction(new AnnotationLabel(this.localSegModel.nextLabelId(), 'Cell', true, 'random', true)));
+    const names = this.localSegModel.labels.map(l => l.name);
+    let newName: string = 'Cell';
+
+    if (names.includes(newName)) {
+        for (let i = 1; names.includes(newName); i += 1) {
+            newName = `Cell ${i}`;
+            i += 1;
+        }
+    }
+
+    this.globalSegModel.addAction(new AddLabelAction(new AnnotationLabel(this.localSegModel.nextLabelId(), newName, true, 'random', true)));
   }
 
   changeVisibility(label: AnnotationLabel, visible: boolean) {

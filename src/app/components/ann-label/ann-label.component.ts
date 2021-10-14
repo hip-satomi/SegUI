@@ -52,8 +52,12 @@ export class AnnLabelComponent implements OnInit {
   save() {
     console.log('save');
 
+    const newName = this.tempName;
+
     if (this.tempName != this.name) {
-      this.nameChange.emit(this.tempName);
+      // undo the change (as it may need confirmation by the user)
+      this.tempName = this.name
+      this.nameChange.emit(newName);
     }
 
     this.myInput.getInputElement().then(

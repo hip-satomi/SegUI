@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ActionSheetButton, ActionSheetController } from '@ionic/angular';
+import { ActionSheetButton, ActionSheetController, AlertController } from '@ionic/angular';
 import { from, Observable, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { AnnotationLabel } from '../models/segmentation-data';
@@ -10,7 +10,8 @@ import { GlobalSegmentationModel, LocalSegmentationModel } from '../models/segme
 })
 export class UserQuestionsService {
 
-  constructor(private actionSheetController: ActionSheetController) { }
+  constructor(private actionSheetController: ActionSheetController,
+    private alertController: AlertController) { }
 
   askForSingleLabel(localSegModel: LocalSegmentationModel): Observable<AnnotationLabel> {
 
@@ -57,5 +58,35 @@ export class UserQuestionsService {
     } else {
       return this.askForSingleLabel(localSegModel);
     }
+  }
+
+  mergeLabels(srcName: string, dstName: string): Observable<boolean> {
+    return from(this.alertController.create({
+      cssClass: 'my-custom-class',
+      header: 'Merge Labels',
+      //subHeader: 'Subtitle',
+      message: `Do you really want to merge the labels '${srcName}' and '${dstName}'`,
+      buttons: [
+        {
+          text: 'Yes',
+          role: 'confirm',
+        },
+        {
+          text: 'No',
+          role: 'cancel'
+        }
+      ]
+    })).pipe(
+      tap(alert => {
+        alert.present()
+      }),
+      switchMap(alert => {
+        return from(alert.onDidDismiss())
+      }),
+      map(data => {
+        return data['role']
+      }),
+      map(role => role == 'confirm')
+    );
   }
 }

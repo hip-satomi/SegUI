@@ -33,7 +33,8 @@ enum ActionTypes {
     CreateSegmentationLayersAction,
 
     AddLabelAction,
-    RenameLabelAction
+    RenameLabelAction,
+    MergeLabelAction
 }
 
 @Serializable()
@@ -496,6 +497,39 @@ export class RenameLabelAction extends Action<SegCollData> {
         data.getLabelById(this.id).name = this.labelName;
     }
     
+}
+
+@Serializable()
+export class MergeLabelAction extends Action<SegCollData> {
+    @JsonProperty()
+    srcId: number;
+    @JsonProperty()
+    dstId: number;
+
+    constructor(srcId: number, dstId: number) {
+        super(ActionTypes.MergeLabelAction);
+        this.srcId = srcId;
+        this.dstId = dstId;
+    }
+
+    perform(data: SegCollData): void {
+        // delete source label
+        data.labels.splice(data.labels.indexOf(data.getLabelById(this.srcId)), 1);
+
+        // assign objects from source to destiation label
+        for(const segData of data.segData) {
+            // determine the polygons that need to switch labels
+            const polyIds = [...segData.labels.entries()].filter(([polyId, labelId]) => {
+                return labelId == this.srcId;
+            }).map(([polyId, labelId]) => polyId);
+
+            // switch labels
+            for (const pId of polyIds) {
+                segData.labels.set(pId, this.dstId);
+                //segData.labels[pId] = this.dstId;
+            }
+        }
+    }
 }
 
 /**
