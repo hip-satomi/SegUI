@@ -506,7 +506,7 @@ export class LocalSegmentationModel {
                 this.getPolygonLabelId(id) == labelId
             });
             let emptyId: string = null;
-            if (candidates.length >= 0) {
+            if (candidates.length >= 1) {
                 emptyId = candidates[0][0];
             }
             if (emptyId) {
