@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { ActionSheetButton, ActionSheetController } from '@ionic/angular';
 import { from, Observable, of } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { map, switchMap, tap } from 'rxjs/operators';
 import { AnnotationLabel } from '../models/segmentation-data';
 import { GlobalSegmentationModel, LocalSegmentationModel } from '../models/segmentation-model';
 
@@ -34,9 +34,19 @@ export class UserQuestionsService {
       }]
     })).pipe(
       tap(as => as.present()),
-      map(as => from(as.onDidDismiss())),
-      tap((role) => console.log(role)),
-      map(() => localSegModel.segmentationData.labels[0]),
+      switchMap(as => from(as.onDidDismiss())),
+      map((result): string => result['role']),
+      tap((role) => {
+        console.log(role)
+      }),
+      map((role: string) => {
+        if (['cancel', 'backdrop'].includes(role)) {
+          throw new Error('User canceled creation');
+        } else {
+          return Number(role);
+        }
+      }),
+      map((labelId: number) => localSegModel.parent.labels.filter(l => l.id == labelId)[0]),
     )
   }
 

@@ -401,9 +401,11 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
    * 
    * Creates a new polygon
    */
-  async save() {
+  save() {
       this.userQuestions.activeLabel(this.localSegModel).pipe(
-          tap(label => this.localSegModel.addNewPolygon(label.id))
+          tap((label: AnnotationLabel) => {
+              this.localSegModel.addNewPolygon(label.id)
+          })
       ).subscribe();
   }
 
