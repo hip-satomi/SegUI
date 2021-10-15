@@ -8,7 +8,15 @@ import { IonInput } from '@ionic/angular';
 })
 export class AnnLabelChipComponent implements OnInit {
 
-  @Input() name: string;
+  _name: string;
+  tempName: string;
+  @Input() set name(name: string) {
+    this._name = name;
+    this.tempName = name;
+  }
+  get name() {
+    return this._name;
+  }
   @Output() nameChange = new EventEmitter<string>();
   @Input() active: boolean = false;
   @Output() activeChange = new EventEmitter<boolean>();
@@ -44,15 +52,17 @@ export class AnnLabelChipComponent implements OnInit {
       setTimeout(() => {
         this.nameInput.setFocus();
       }, 1000);
+    } else {
+      this.tempName = this.name;
     }
   }
 
   submitName(event) {
     event.stopPropagation();
 
-    this.toggleEdit();
+    this.nameChange.emit(this.tempName);
 
-    this.nameChange.emit(this.name);
+    this.toggleEdit();
   }
 
 }

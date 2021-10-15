@@ -1,5 +1,5 @@
 <ion-chip outline  [ngClass]="{active: active}" style="border-color: red" (click)="toggleActivity()" (press)="toggleEdit()">
   <ion-icon [name]="(visible) ? 'eye-outline' : 'eye-off-outline'" (click)="toggleVisibility($event)"></ion-icon>
   <ion-label *ngIf="!edit">{{ name }}</ion-label>
-  <ion-input #nameInput [hidden]="!edit" type="text" [(ngModel)]="name" (ionBlur)="toggleEdit()" (keydown.enter)="submitName($event)"></ion-input>
+  <ion-input #nameInput [hidden]="!edit" type="text" [(ngModel)]="tempName" (ionBlur)="toggleEdit()" (keydown.enter)="submitName($event)"></ion-input>
 </ion-chip>
