@@ -16,6 +16,8 @@ import { AnnLabelComponent } from '../components/ann-label/ann-label.component';
 import { ColorPickerComponent } from '../components/color-picker/color-picker.component';
 
 import { ColorPickerModule } from 'ngx-color-picker';
+import { AnnManagerComponent } from '../components/ann-manager/ann-manager.component';
+import { AnnLabelChipComponent } from '../components/ann-label-chip/ann-label-chip.component';
 
 @NgModule({
   declarations: [
@@ -29,6 +31,8 @@ import { ColorPickerModule } from 'ngx-color-picker';
     ThumbnailsPipe,
     AnnLabelComponent,
     ColorPickerComponent,
+    AnnManagerComponent,
+    AnnLabelChipComponent
   ],
   exports: [
     ImageDisplayComponent,
@@ -40,7 +44,9 @@ import { ColorPickerModule } from 'ngx-color-picker';
     AnimatedPreviewComponent,
     ThumbnailsPipe,
     AnnLabelComponent,
-    ColorPickerComponent
+    ColorPickerComponent,
+    AnnManagerComponent,
+    AnnLabelChipComponent
   ],
   imports: [
     CommonModule,

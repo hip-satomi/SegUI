@@ -425,51 +425,6 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     }
   }
 
-  addLabel() {
-    const names = this.localSegModel.labels.map(l => l.name);
-    let newName: string = 'Cell';
-
-    if (names.includes(newName)) {
-        for (let i = 1; names.includes(newName); i += 1) {
-            newName = `Cell ${i}`;
-            i += 1;
-        }
-    }
-
-    this.globalSegModel.addAction(new AddLabelAction(new AnnotationLabel(this.localSegModel.nextLabelId(), newName, true, 'random', true)));
-  }
-
-  changeVisibility(label: AnnotationLabel, visible: boolean) {
-      // TODO: Do this inside an action!
-      label.visible = visible;
-      this.draw();
-  }
-
-  changeColor(label: AnnotationLabel, color: string) {
-    // TODO: Do this inside an action!
-    label.color = color;
-
-    const toast = this.toastController.create({
-        message: `Your color has been saved ${color}`,
-        duration: 2000
-    }).then(t => t.present());
-
-    this.draw();
-  }
-
-  changedLabelActivity(label: AnnotationLabel, active: boolean) {
-      if (active) {
-          // Make sure that all the others are inactive
-          for(const l of this.labels) {
-                  label.active = false;
-          }
-      }
-
-      label.active = active;
-
-      this.draw();
-  }
-
   get canSave() {
       return true;
   }

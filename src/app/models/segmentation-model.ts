@@ -410,6 +410,10 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
         return new LocalSegmentationModel(this, position);
     }
 
+    nextLabelId(): number {
+        return Math.max(...this.segmentationData.labels.map(l => l.id), 0) + 1;
+    }
+
     get canUndo() {
         return this.actionManager.canUndo;
     }
@@ -553,7 +557,7 @@ export class LocalSegmentationModel {
     }
 
     nextLabelId(): number {
-        return Math.max(...this.parent.segmentationData.labels.map(l => l.id), 0) + 1;
+        return this.parent.nextLabelId();
     }
 
     getPolygonLabelId(id: string): number {

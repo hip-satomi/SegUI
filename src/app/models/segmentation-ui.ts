@@ -306,7 +306,24 @@ export class SegmentationUI implements UIInteraction, Drawer {
         pencil.clear();
 
         const ctx = pencil.canvasCtx;
-        this.drawPolygons(ctx);
+        //this.drawPolygons(ctx);
+        this.drawPolygonsAdv(ctx, false,
+            // filter only polygons with visible label
+            (p: [string, Polygon]) => {
+                return this.segModel.labels[this.segModel.segmentationData.getPolygonLabel(p[0])].visible
+            },
+            ({uuid, poly}) => {
+                const label = this.segModel.labels[this.segModel.segmentationData.getPolygonLabel(uuid)]
+                const mode = label.color;
+
+                if (mode == 'random') {
+                    return poly.color;
+                } else {
+                    return label.color;
+                }
+            }
+
+        );
         this.drawImage(ctx);
     }
 

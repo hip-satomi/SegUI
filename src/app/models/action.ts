@@ -34,7 +34,9 @@ enum ActionTypes {
 
     AddLabelAction,
     RenameLabelAction,
-    MergeLabelAction
+    MergeLabelAction,
+    ChangeLabelActivityAction,
+    ChangeLabelVisibilityAction,
 }
 
 @Serializable()
@@ -532,6 +534,46 @@ export class MergeLabelAction extends Action<SegCollData> {
     }
 }
 
+@Serializable()
+export class ChangeLabelActivityAction extends Action<SegCollData> {
+
+    @JsonProperty() labelId: number;
+    @JsonProperty() active: boolean;
+
+    constructor(labelId: number, active: boolean) {
+        super(ActionTypes.ChangeLabelActivityAction)
+        this.labelId = labelId;
+        this.active = active;
+    }
+
+    perform(data: SegCollData): void {
+        if (this.active) {
+            // disable all others
+            for(const label of data.labels) {
+                label.active = false;
+            }
+        }
+        data.getLabelById(this.labelId).active = this.active;
+    }
+
+}
+
+@Serializable()
+export class ChangeLabelVisibilityAction extends Action<SegCollData> {
+    @JsonProperty() labelId: number;
+    @JsonProperty() visible: boolean;
+
+    constructor(labelId: number, visible: boolean) {
+        super(ActionTypes.ChangeLabelVisibilityAction);
+        this.labelId = labelId;
+        this.visible = visible;
+    }
+
+    perform(data: SegCollData): void {
+        data.getLabelById(this.labelId).visible = this.visible;
+    }
+}
+
 /**
  * Restores action with their corresponding types
  * 
@@ -561,7 +603,9 @@ export class MergeLabelAction extends Action<SegCollData> {
         [ActionTypes.CreateSegmentationLayersAction, CreateSegmentationLayersAction],
 
         [ActionTypes.AddLabelAction, AddLabelAction],
-        [ActionTypes.RenameLabelAction, RenameLabelAction]
+        [ActionTypes.RenameLabelAction, RenameLabelAction],
+        [ActionTypes.ChangeLabelActivityAction, ChangeLabelActivityAction],
+        [ActionTypes.ChangeLabelVisibilityAction, ChangeLabelVisibilityAction],
     ];
 
     const lookup = new Map<ActionTypes, any>();
