@@ -37,6 +37,7 @@ enum ActionTypes {
     MergeLabelAction,
     ChangeLabelActivityAction,
     ChangeLabelVisibilityAction,
+    ChangeLabelColorAction
 }
 
 @Serializable()
@@ -574,6 +575,22 @@ export class ChangeLabelVisibilityAction extends Action<SegCollData> {
     }
 }
 
+@Serializable()
+export class ChangeLabelColorAction extends Action<SegCollData> {
+    @JsonProperty() labelId: number;
+    @JsonProperty() color: string;
+
+    constructor(labelId: number, color: string) {
+        super(ActionTypes.ChangeLabelColorAction);
+        this.labelId = labelId;
+        this.color = color;
+    }
+
+    perform(data: SegCollData): void {
+        data.getLabelById(this.labelId).color = this.color;
+    }
+}
+
 /**
  * Restores action with their corresponding types
  * 
@@ -606,6 +623,7 @@ export class ChangeLabelVisibilityAction extends Action<SegCollData> {
         [ActionTypes.RenameLabelAction, RenameLabelAction],
         [ActionTypes.ChangeLabelActivityAction, ChangeLabelActivityAction],
         [ActionTypes.ChangeLabelVisibilityAction, ChangeLabelVisibilityAction],
+        [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();

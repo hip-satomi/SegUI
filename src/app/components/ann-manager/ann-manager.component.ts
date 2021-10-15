@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { tap } from 'rxjs/operators';
-import { AddLabelAction, ChangeLabelActivityAction, ChangeLabelVisibilityAction, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
+import { AddLabelAction, ChangeLabelActivityAction, ChangeLabelColorAction, ChangeLabelVisibilityAction, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
 import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { GlobalSegmentationModel } from 'src/app/models/segmentation-model';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
@@ -74,6 +74,10 @@ export class AnnManagerComponent implements OnInit {
     } else {
         this.globalSegModel.addAction(new RenameLabelAction(label.id, newName));
     }
+  }
+
+  changeLabelColor(label: AnnotationLabel, color: string) {
+    this.globalSegModel.addAction(new ChangeLabelColorAction(label.id, color));
   }
 
 }

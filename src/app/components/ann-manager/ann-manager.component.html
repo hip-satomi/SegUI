@@ -8,6 +8,8 @@
       (activeChange)="changeActivity(label, $event)"
       [visible]="label.visible"
       (visibleChange)="changeVisibility(label, $event)"
+      [color]="label.color"
+      (colorLabelChange)="changeLabelColor(label, $event)"
       (mouseenter)="beginHover(label)"
       (mouseleave)="endHover(label)">
     </app-ann-label-chip>
