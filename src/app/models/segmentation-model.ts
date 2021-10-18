@@ -441,7 +441,11 @@ export class LocalSegmentationModel {
     }
 
     addAction(action: Action<SegmentationData>, toPerform = true) {
-        this.parent.addAction(new LocalAction(action, this.position), toPerform);
+        this.parent.addAction(this.wrapAction(action), toPerform);
+    }
+
+    wrapAction(action: Action<SegmentationData>) {
+        return new LocalAction(action, this.position);
     }
 
     get segmentationData(): SegmentationData {
