@@ -15,7 +15,7 @@ export class SegmentationData implements ClearableStorage {
 
     clear() {
         this.polygons = new Map<string, Polygon>();
-        this.activePolygonId = '';
+        this.activePolygonId = null;
         this.activePointIndex = 0;
         this.labels = new Map<string, number>();
     }

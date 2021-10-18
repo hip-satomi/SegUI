@@ -1,7 +1,7 @@
 import { ActionSheetController } from '@ionic/angular';
 import { Polygon } from 'src/app/models/geometry';
 import { UIInteraction, Drawer, Pencil } from './drawing';
-import { AddPointAction, JointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
+import { AddPointAction, ChangeLabelActivityAction, JointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
 import { UIUtils, Utils } from './utils';
 import { LocalSegmentationModel, SegmentationModel } from './segmentation-model';
 import { from, Observable, of, ReplaySubject } from 'rxjs';
@@ -146,7 +146,13 @@ export class SegmentationUI implements UIInteraction, Drawer {
                 }
                 if (polygon.isInside([x, y])) {
                     // clicke inside a non active polygon
-                    this.segModel.activePolygonId = index;
+                    this.segModel.addAction(new SelectPolygon(index));
+
+                    if(!this.segModel.activeLabels.map(l => l.id).includes(this.segModel.getPolygonLabelId(index))) {
+                        // activate the label if necessary
+                        this.segModel.parent.addAction(new ChangeLabelActivityAction(this.segModel.getPolygonLabelId(index), true));
+                    }
+                    //this.segModel.activePolygonId = index;
                     return true;
                 }
             }
@@ -209,6 +215,10 @@ export class SegmentationUI implements UIInteraction, Drawer {
         console.log('pan start');
 
         const poly = this.segModel.activePolygon;
+        if(poly == null) {
+            // TODO add a polygon here
+            return false;
+        }
         // check whether we will drag something
         const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         const x = mousePos.x;
@@ -229,15 +239,17 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     onPan(event): boolean {
+        if(this.segModel.activePolygonId == null) {
+            return false;
+        }
         if (this.draggingPointIndex !== -1) {
             console.log("drag");
 
             const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
 
             const polygon = this.segModel.activePolygon;
-            this.segModel.addAction(new MovePointAction([mousePos.x, mousePos.y],
-                                                this.segModel.activePointIndex,
-                                                this.segModel.activePolygonId));
+            // change the point temporarily
+            polygon.points[this.segModel.activePointIndex] = [mousePos.x, mousePos.y];
 
             return true;
         }
@@ -246,10 +258,23 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     onPanEnd(event): boolean {
+        if(this.segModel.activePolygonId == null) {
+            return false;
+        }
+
         console.log('pan end');
 
         if (this.draggingPointIndex !== -1) {
             this.draggingPointIndex = -1;
+
+            // record final drag position
+            const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+
+            const polygon = this.segModel.activePolygon;
+            this.segModel.addAction(new MovePointAction([mousePos.x, mousePos.y],
+                                                this.segModel.activePointIndex,
+                                                this.segModel.activePolygonId));
+
             return true;
         }
 
@@ -307,7 +332,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
         const ctx = pencil.canvasCtx;
         //this.drawPolygons(ctx);
-        this.drawPolygonsAdv(ctx, false,
+        this.drawPolygonsAdv(ctx, true,
             // filter only polygons with visible label
             (p: [string, Polygon]) => {
                 return this.segModel.labels[this.segModel.segmentationData.getPolygonLabel(p[0])].visible
