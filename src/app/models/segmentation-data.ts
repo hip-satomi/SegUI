@@ -60,6 +60,7 @@ export class SegmentationData implements ClearableStorage {
 
         // delete polygon
         this.polygons.delete(uuid);
+        this.labels.delete(uuid);
 
         // return the old one
         return poly;

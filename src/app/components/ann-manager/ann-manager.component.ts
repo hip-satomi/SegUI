@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { tap } from 'rxjs/operators';
-import { AddLabelAction, ChangeLabelActivityAction, ChangeLabelColorAction, ChangeLabelVisibilityAction, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
+import { AddLabelAction, ChangeLabelActivityAction, ChangeLabelColorAction, ChangeLabelVisibilityAction, DeleteLabelAction, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
 import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { GlobalSegmentationModel } from 'src/app/models/segmentation-model';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
@@ -78,6 +78,15 @@ export class AnnManagerComponent implements OnInit {
 
   changeLabelColor(label: AnnotationLabel, color: string) {
     this.globalSegModel.addAction(new ChangeLabelColorAction(label.id, color));
+  }
+
+  deleteLabel(label) {
+    if (this.globalSegModel.labels.length >= 2) {
+      // enough labels to delete one
+      this.globalSegModel.addAction(new DeleteLabelAction(label.id));
+    } else {
+      this.userQuestions.showError('Cannot delete label! You only have one');
+    }
   }
 
 }

@@ -547,9 +547,6 @@ export class MergeLabelAction extends Action<SegCollData> {
     }
 
     perform(data: SegCollData): void {
-        // delete source label
-        data.labels.splice(data.labels.indexOf(data.getLabelById(this.srcId)), 1);
-
         // assign objects from source to destiation label
         for(const segData of data.segData) {
             // determine the polygons that need to switch labels

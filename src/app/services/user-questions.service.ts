@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ActionSheetButton, ActionSheetController, AlertController } from '@ionic/angular';
+import { ActionSheetButton, ActionSheetController, AlertController, ToastController } from '@ionic/angular';
 import { from, Observable, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { AnnotationLabel } from '../models/segmentation-data';
@@ -11,7 +11,8 @@ import { GlobalSegmentationModel, LocalSegmentationModel } from '../models/segme
 export class UserQuestionsService {
 
   constructor(private actionSheetController: ActionSheetController,
-    private alertController: AlertController) { }
+    private alertController: AlertController,
+    private toastController: ToastController) { }
 
   askForSingleLabel(localSegModel: LocalSegmentationModel): Observable<AnnotationLabel> {
 
@@ -88,5 +89,18 @@ export class UserQuestionsService {
       }),
       map(role => role == 'confirm')
     );
+  }
+
+  /**
+   * Show an error to the user
+   * @param message the message
+   * @param duration the duration the message is presented
+   */
+  showError(message: string, duration = 2000) {
+    // segmentation proposals have been applied successfully
+    this.toastController.create({
+      message,
+      duration
+    }).then(toast => toast.present());
   }
 }

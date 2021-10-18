@@ -36,7 +36,7 @@ export class AnnLabelChipComponent implements OnInit {
   @Input() visible: boolean = false;
   @Output() visibleChange = new EventEmitter<boolean>();
 
-  @Output() delete = new EventEmitter<void>();
+  @Output() deleteLabel = new EventEmitter<void>();
 
   constructor(private actionSheetController: ActionSheetController,
     private popoverController: PopoverController) { }
@@ -84,7 +84,7 @@ export class AnnLabelChipComponent implements OnInit {
       cssClass: 'my-custom-class',
       buttons: [{
         text: 'Delete',
-        role: 'destructive',
+        role: 'delete',
         icon: 'trash',
         handler: () => {
           console.log('Delete clicked');
@@ -119,7 +119,7 @@ export class AnnLabelChipComponent implements OnInit {
 
     switch(role) {
       case 'delete':
-        this.delete.emit();
+        this.deleteLabel.emit();
         break;
       case 'rename':
         this.toggleEdit();

@@ -10,6 +10,7 @@
       (visibleChange)="changeVisibility(label, $event)"
       [color]="label.color"
       (colorLabelChange)="changeLabelColor(label, $event)"
+      (deleteLabel)="deleteLabel(label)"
       (mouseenter)="beginHover(label)"
       (mouseleave)="endHover(label)">
     </app-ann-label-chip>
