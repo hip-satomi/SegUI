@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { OmeroUtils, UIUtils, Utils } from './../models/utils';
 import { Polygon, Point, BoundingBox } from './../models/geometry';
-import { AddPolygon, JointAction, AddLinkAction, LocalAction } from './../models/action';
+import { AddPolygon, JointAction, AddLinkAction, LocalAction, AddLabelAction, Action } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
@@ -19,7 +19,7 @@ import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder as SimpleSegmentationHolder, SimpleSegmentation, GlobalSegmentationModel, LocalSegmentationModel } from './../models/segmentation-model';
+import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder as SimpleSegmentationHolder, SimpleSegmentation, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
 import { ActionSheetController, AlertController, LoadingController, PopoverController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContainerRef, ComponentFactoryResolver } from '@angular/core';
 
@@ -31,6 +31,7 @@ import { SegmentationComponent } from '../components/segmentation/segmentation.c
 import { BrushComponent } from '../components/brush/brush.component';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
 import { UserQuestionsService } from '../services/user-questions.service';
+import { AnnotationLabel } from '../models/segmentation-data';
 
 
 const { Storage } = Plugins;
@@ -448,7 +449,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         let srscPipeline: Observable<GlobalSegmentationOMEROStorageConnector>;
 
         if (content.segm === null) {
-          srscPipeline = this.omeroImport(imageSetId, false).pipe(
+          srscPipeline = this.omeroImport(false).pipe(
             //map((srsc: GlobalSegmentationOMEROStorageConnector) => 'hello'),
             catchError(e => {
               // loading from OMERO failed or has been rejected
@@ -984,76 +985,112 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     );
   }*/
 
-  omeroImport(imageSetId, reload=true): Observable<GlobalSegmentationOMEROStorageConnector> {
+  omeroImport(reload=true): Observable<GlobalSegmentationOMEROStorageConnector> {
     // 1. Check whether OMERO has ROI data available
     return this.imageSetId.pipe(
-      switchMap(id => this.omeroAPI.getPagedRoIData(id)),
       take(1),
-      map(roiData => {
-        if (roiData.length == 0) {
-          throw new Error("No omero data available");
-        }
-        return roiData;
-      }),
-      switchMap(roiData => {
-        // 2. Let the user decide whether he  wants to import it
-        return from(this.alertController.create({
-          cssClass: 'over-loading',
-          header: 'Import Segmentation?',
-          message: `Do you want to import existing segmentation data (${roiData.length} cells) from OMERO?`,
-          buttons: [
-            {
-              text: 'No',
-              role: 'cancel',
-              cssClass: 'secondary',
-            }, {
-              text: 'Yes',
-              role: 'confirm',
+      switchMap((imageSetId: number) => {
+        return this.omeroAPI.getPagedRoIData(imageSetId).pipe(
+          take(1),
+          map(roiData => {
+            if (roiData.length == 0) {
+              throw new Error("No omero data available");
             }
-          ]
-        })).pipe(
-          tap(alert => alert.present()),
-          switchMap(alert => alert.onDidDismiss()),
-          map(alertResult => {
-            if(alertResult.role != 'confirm')  {
-              throw new Error("User canceled import!");
+            return roiData;
+          }),
+          switchMap(roiData => {
+            // 2. Let the user decide whether he  wants to import it
+            return from(this.alertController.create({
+              cssClass: 'over-loading',
+              header: 'Import Segmentation?',
+              message: `Do you want to import existing segmentation data (${roiData.length} cells) from OMERO?`,
+              buttons: [
+                {
+                  text: 'No',
+                  role: 'cancel',
+                  cssClass: 'secondary',
+                }, {
+                  text: 'Yes',
+                  role: 'confirm',
+                }
+              ]
+            })).pipe(
+              tap(alert => alert.present()),
+              switchMap(alert => alert.onDidDismiss()),
+              map(alertResult => {
+                if(alertResult.role != 'confirm')  {
+                  throw new Error("User canceled import!");
+                }
+    
+                return roiData.map(r => r.shapes).reduce((a,b) => a.concat(b), []);
+              })
+            )
+          }),
+          // deactivate data synchronization
+          tap(() => this.ngUnsubscribe.next()),
+          switchMap(roiData => this.omeroAPI.getImageUrls(imageSetId).pipe(map(urls => {return {roiData, urls}}))),
+          map(combined => {
+            const {roiData, urls} = combined;
+            // try to load the data
+            const srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
+
+            // add every polygon that already exists in omero
+            const additionalLabels: string[] = [];
+            const actions: Action<SegCollData>[] = [];
+            const currentModel = srsc.getModel()//.segmentations[poly.t]
+            const existingLabels = currentModel.labels;
+            const firstFreeLabelId = currentModel.nextLabelId(); //Math.max(...currentModel.labels.map(l => l.id));
+            for (const poly of roiData) {
+
+              // get the label name from text
+              const labelName = poly.text;
+
+              let labelId = -1;
+              if (existingLabels.map(l => l.name).includes(labelName)) {
+                // we can take an existing label
+                labelId = existingLabels.filter(l => l.name == labelName)[0].id;
+              } else {
+                if (additionalLabels.includes(labelName)) {
+                  labelId = firstFreeLabelId + additionalLabels.indexOf(labelName);
+                } else {
+                  // add the new label and give a new id
+                  labelId = additionalLabels.length;
+                  additionalLabels.push(labelName);
+                }
+              }
+
+              // create polygon add action
+              // TODO: Deal with z-coordinate?
+              const action = new LocalAction(new AddPolygon(new Polygon(...poly.points), labelId), poly.t);
+
+              actions.push(action);
             }
 
-            return roiData.map(r => r.shapes).reduce((a,b) => a.concat(b), []);
-          })
+            // Add labels
+            for (const [index, label] of additionalLabels.entries()) {
+              srsc.getModel().addAction(new AddLabelAction(new AnnotationLabel(firstFreeLabelId + index, label, true, 'random', true)));
+            }
+
+            // add all the polygons
+            for(const action of actions) {
+              srsc.getModel().addAction(action);
+            }
+
+
+            
+            return srsc;
+          }),
+          switchMap((srsc: GlobalSegmentationOMEROStorageConnector) => {
+            return srsc.update().pipe(
+              map(() => srsc)
+            );
+          }),
+          tap(() => {
+            if (reload) {
+              this.imageSetId.next(imageSetId)
+            }
+          })          
         )
-      }),
-      // deactivate data synchronization
-      tap(() => this.ngUnsubscribe.next()),
-      switchMap(roiData => this.omeroAPI.getImageUrls(imageSetId).pipe(map(urls => {return {roiData, urls}}))),
-      map(combined => {
-        const {roiData, urls} = combined;
-        // try to load the data
-        const srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
-
-        // add every polygon that already exists in omero
-        for (const poly of roiData) {
-          const currentModel = srsc.getModel()//.segmentations[poly.t]
-
-          // create polygon add action
-          // TODO: How to deal with omero imports & labels?
-          const action = new AddPolygon(new Polygon(...poly.points), 0);
-
-          // execute the action
-          currentModel.addAction(new LocalAction(action, poly.t));
-        }
-        
-        return srsc;
-      }),
-      switchMap((srsc: GlobalSegmentationOMEROStorageConnector) => {
-        return srsc.update().pipe(
-          map(() => srsc)
-        );
-      }),
-      tap(() => {
-        if (reload) {
-          this.imageSetId.next(imageSetId)
-        }
       }),
     );
   }

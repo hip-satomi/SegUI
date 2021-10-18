@@ -7,7 +7,7 @@
     </ion-select>
     <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
     <ion-buttons slot="end">
-      <ion-button (click)="omeroImport(this.stateService.imageSetId).subscribe()" #tooltip="matTooltip"
+      <ion-button (click)="omeroImport().subscribe()" #tooltip="matTooltip"
         matTooltip="Import segmentation from OMERO"><ion-icon name="download-outline"></ion-icon> Import</ion-button>
       <ion-button (click)="omeroExport()" #tooltip="matTooltip"
         matTooltip="Export segmentation to OMERO"><ion-icon name="share-outline"></ion-icon> Export</ion-button>
