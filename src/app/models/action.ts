@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
 import { SegCollData } from './segmentation-model';
 import { LabelOptions } from '@angular/material/core';
+import * as dayjs from 'dayjs';
 
 enum ActionTypes {
     AddEmptyPolygon,
@@ -40,20 +41,29 @@ enum ActionTypes {
     ChangeLabelColorAction
 }
 
+const stringToDate = (stamp: string): dayjs.Dayjs => {
+    return dayjs(stamp);
+}
+
+const dateToString = (stamp: dayjs.Dayjs): string => {
+   return stamp.format('YYYY-MM-DDTHH:mm:ssZ[Z]') 
+}
+
 @Serializable()
 export abstract class Action<T> {
 
     @JsonProperty()
     type: ActionTypes;
 
-    @JsonProperty()
-    utcStamp: number;
-
+    @JsonProperty({
+        onDeserialize: stringToDate, onSerialize: dateToString, predicate: () => dayjs.Dayjs
+    })
+    timeStamp;
     abstract perform(data: T): void;
 
     constructor(type: ActionTypes) {
         this.type = type;
-        this.utcStamp = dayjs().utcOffset();
+        this.timeStamp = dayjs();
     }
 
     join(action: Action<T>): boolean {
