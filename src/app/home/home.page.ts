@@ -1003,7 +1003,16 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             return from(this.alertController.create({
               cssClass: 'over-loading',
               header: 'Import Segmentation?',
-              message: `Do you want to import existing segmentation data (${roiData.length} cells) from OMERO?`,
+              message: `Do you want to import existing segmentation data (${roiData.length} cells) from OMERO? <br /><br />Warning: This action cannot be reverted!`,
+              inputs: [
+                {
+                  name: 'labels',
+                  label: 'Import labels?',
+                  type: 'checkbox',
+                  checked: true,
+                  value: 'labels',
+                },
+              ],        
               buttons: [
                 {
                   text: 'No',
@@ -1021,16 +1030,18 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                 if(alertResult.role != 'confirm')  {
                   throw new Error("User canceled import!");
                 }
+
+                const importLabels = alertResult.data.values.includes('labels');
     
-                return roiData.map(r => r.shapes).reduce((a,b) => a.concat(b), []);
+                return {importLabels, roiData: roiData.map(r => r.shapes).reduce((a,b) => a.concat(b), [])};
               })
             )
           }),
           // deactivate data synchronization
           tap(() => this.ngUnsubscribe.next()),
-          switchMap(roiData => this.omeroAPI.getImageUrls(imageSetId).pipe(map(urls => {return {roiData, urls}}))),
+          switchMap(({importLabels, roiData}) => this.omeroAPI.getImageUrls(imageSetId).pipe(map(urls => {return {importLabels, roiData, urls}}))),
           map(combined => {
-            const {roiData, urls} = combined;
+            const {importLabels, roiData, urls} = combined;
             // try to load the data
             const srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
 
@@ -1046,17 +1057,23 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               const labelName = poly.text;
 
               let labelId = -1;
-              if (existingLabels.map(l => l.name).includes(labelName)) {
-                // we can take an existing label
-                labelId = existingLabels.filter(l => l.name == labelName)[0].id;
-              } else {
-                if (additionalLabels.includes(labelName)) {
-                  labelId = firstFreeLabelId + additionalLabels.indexOf(labelName);
+              if (importLabels) {
+                // if we want to import labels
+                if (existingLabels.map(l => l.name).includes(labelName)) {
+                  // we can take an existing label
+                  labelId = existingLabels.filter(l => l.name == labelName)[0].id;
                 } else {
-                  // add the new label and give a new id
-                  labelId = additionalLabels.length;
-                  additionalLabels.push(labelName);
+                  if (additionalLabels.includes(labelName)) {
+                    labelId = firstFreeLabelId + additionalLabels.indexOf(labelName);
+                  } else {
+                    // add the new label and give a new id
+                    labelId = additionalLabels.length;
+                    additionalLabels.push(labelName);
+                  }
                 }
+              } else {
+                // if we do not want to import labels we will put everything into the initial label class
+                labelId = 0;
               }
 
               // create polygon add action
