@@ -409,22 +409,6 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
       ).subscribe();
   }
 
-  changedLabelName(name: string, id: number) {
-    // does the new name already exist?
-    const candidates = this.localSegModel.labels.filter(l => l.name == name);
-    if (candidates.length > 0) {
-        this.userQuestions.mergeLabels(this.globalSegModel.segmentationData.getLabelById(id).name, candidates[0].name).pipe(
-            tap((result: boolean) => {
-                if(result) {
-                    this.globalSegModel.addAction(new MergeLabelAction(id, candidates[0].id));
-                }
-            })
-        ).subscribe();
-    } else {
-        this.globalSegModel.addAction(new RenameLabelAction(id, name));
-    }
-  }
-
   get canSave() {
       return true;
   }
