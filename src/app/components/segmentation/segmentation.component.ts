@@ -4,9 +4,10 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
-import { AddPolygon, JointAction, RemovePolygon } from 'src/app/models/action';
+import { AddLabelAction, AddPolygon, JointAction, LocalAction, RemovePolygon } from 'src/app/models/action';
 import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { Point, Polygon } from 'src/app/models/geometry';
+import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { UIUtils, Utils } from 'src/app/models/utils';
@@ -72,6 +73,7 @@ export class SegmentationComponent extends Tool implements Drawer {
   scoreThreshold = 0.4;
   simplifyError = 0.1;
   filterOverlaps = true;
+  useLabels = true;
 
   // cache for filtering detections
   _cachedFilterDets: Array<[string, Polygon]> = null;
@@ -293,7 +295,7 @@ export class SegmentationComponent extends Tool implements Drawer {
         actions.push(addAction);
 
         // save the detection score
-        this.polyMeta[addAction.uuid] = {score: det.score};
+        this.polyMeta[addAction.uuid] = {score: det.score, label: det.label};
       }
     }
 
@@ -329,6 +331,7 @@ export class SegmentationComponent extends Tool implements Drawer {
     // collect actions
     const deleteActions = [];
     const addActions = [];
+    const addLabelActions = [];
 
     if (!this.showOverlay) {
       // we need to delete all existing polyongs
@@ -337,17 +340,54 @@ export class SegmentationComponent extends Tool implements Drawer {
       }
     }
 
-    if (this.showNewOverlay) {
+    /*if (this.showNewOverlay) {
       // add all the polygons here
       for (const [uuid, poly] of this.filteredDets) {
         // TODO: automated prediction labels?
         addActions.push(new AddPolygon(poly, 0));
       }
+    }*/
+
+    if (this.showNewOverlay) {
+      const nextFreeLabelId = this.globalSegModel.nextLabelId();
+      const labels: string[] = [];
+
+      // loop over every detection
+      for (const [uuid, poly] of this.filteredDets) {
+        let labelId = 0;
+        const label = this.polyMeta[uuid]['label'];
+
+        // determine the label
+        if (this.useLabels) {
+          if (this.globalSegModel.labels.map(l => l.name).filter(name => name == label).length > 0) {
+            labelId = this.globalSegModel.labels.filter(l => l.name == label)[0].id
+          } else {
+            if (labels.includes(label)) {
+              labelId = nextFreeLabelId + labels.indexOf(label);
+            } else {
+              // new label
+              labelId = labels.length;
+              labels.push(label);
+            }
+          }
+        }
+
+        // collection new polygon actions
+        const addAction = new AddPolygon(poly, labelId);
+
+        addActions.push(addAction);
+      }
+    
+      for (const [index, label] of labels.entries()) {
+        addLabelActions.push(new AddLabelAction(new AnnotationLabel(nextFreeLabelId + index, label)))
+      }
     }
 
     // join actions
     const jointAction = new JointAction(...deleteActions, ...addActions);
-    this.localSegModel.addAction(jointAction);
+    const jointLocalActions = this.localSegModel.wrapAction(jointAction);
+    this.globalSegModel.addAction(new JointAction(...addLabelActions, jointLocalActions));
+    //this.localSegModel.addAction(jointAction);
 
     // close the window
     this.close();
