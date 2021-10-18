@@ -13,33 +13,35 @@ import { LabelOptions } from '@angular/material/core';
 import * as dayjs from 'dayjs';
 
 enum ActionTypes {
-    AddEmptyPolygon,
-    AddPolygon,
-    RemovePolygon,
-    AddPointAction,
-    RemovePointAction,
-    SelectPolygon,
-    MovePointAction,
-    ChangePolygonPoints,
+    AddEmptyPolygon = "AddEmptyPolygon",
+    AddPolygon = "AddPolygon",
+    RemovePolygon = "RemovePolygon",
+    AddPointAction = "AddPointAction",
+    RemovePointAction = "AddPointAction",
+    SelectPolygon = "AddPointAction",
+    MovePointAction = "MovePointAction",
+    ChangePolygonPoints = "MovePointAction",
 
     // Actions for tracking
-    SelectSegmentAction,
-    AddLinkAction,
-    UnselectSegmentAction,
+    SelectSegmentAction = "SelectSegmentAction",
+    AddLinkAction = "AddLinkAction",
+    UnselectSegmentAction = "UnselectSegmentAction",
 
-    JointAction,
-    PreventUndoActionWrapper,
+    JointAction = "JointAction",
+    PreventUndoActionWrapper = "PreventUndoActionWrapper",
 
-    LocalAction,
-    CreateSegmentationLayersAction,
 
-    AddLabelAction,
-    RenameLabelAction,
-    MergeLabelAction,
-    ChangeLabelActivityAction,
-    ChangeLabelVisibilityAction,
-    ChangeLabelColorAction,
-    DeleteLabelAction
+    // end
+    LocalAction = "LocalAction",
+    CreateSegmentationLayersAction = "CreateSegmentationLayersAction",
+
+    AddLabelAction = "AddLabelAction",
+    RenameLabelAction = "RenameLabelAction",
+    MergeLabelAction = "MergeLabelAction",
+    ChangeLabelActivityAction = "ChangeLabelActivityAction",
+    ChangeLabelVisibilityAction = "ChangeLabelVisibilityAction",
+    ChangeLabelColorAction = "ChangeLabelColorAction",
+    DeleteLabelAction = "DeleteLabelAction"
 }
 
 /**
