@@ -46,10 +46,14 @@ export abstract class Action<T> {
     @JsonProperty()
     type: ActionTypes;
 
+    @JsonProperty()
+    utcStamp: number;
+
     abstract perform(data: T): void;
 
     constructor(type: ActionTypes) {
         this.type = type;
+        this.utcStamp = dayjs().utcOffset();
     }
 
     join(action: Action<T>): boolean {
