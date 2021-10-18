@@ -41,12 +41,28 @@ enum ActionTypes {
     ChangeLabelColorAction
 }
 
+/**
+ * 
+ * @param stamp in string format YYYY-MM-DDTHH:mm:ss.SSS Z[Z]
+ * @returns the dayjs object
+ */
 const stringToDate = (stamp: string): dayjs.Dayjs => {
-    return dayjs(stamp);
+    const parsed = dayjs(stamp, 'YYYY-MM-DDTHH:mm:ss.SSS Z[Z]');
+    if (parsed.isValid()) {
+        return parsed;
+    } else {
+        console.warn('Need to create new date');
+        return dayjs();
+    }
 }
 
+/**
+ * 
+ * @param stamp dayjs object
+ * @returns string format "YYYY-MM-DDTHH:mm:ss.SSS Z[Z]"
+ */
 const dateToString = (stamp: dayjs.Dayjs): string => {
-   return stamp.format('YYYY-MM-DDTHH:mm:ssZ[Z]') 
+   return stamp.format('YYYY-MM-DDTHH:mm:ss.SSS Z[Z]');
 }
 
 @Serializable()
