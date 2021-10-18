@@ -651,6 +651,7 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
 
         [ActionTypes.AddLabelAction, AddLabelAction],
         [ActionTypes.RenameLabelAction, RenameLabelAction],
+        [ActionTypes.MergeLabelAction, MergeLabelAction],
         [ActionTypes.ChangeLabelActivityAction, ChangeLabelActivityAction],
         [ActionTypes.ChangeLabelVisibilityAction, ChangeLabelVisibilityAction],
         [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction]
