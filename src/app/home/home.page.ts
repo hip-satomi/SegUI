@@ -90,13 +90,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   // this can be used to end other pipelines using takeUntil(ngUnsubscribe)
   protected ngUnsubscribe: Subject<void> = new Subject<void>();
 
-  urls = ['../assets/sequence/image0.png',
-          '../assets/sequence/image1.png',
-          '../assets/sequence/image2.png',
-          '../assets/sequence/image3.png',
-          '../assets/sequence/image4.png',
-          '../assets/sequence/image5.png',
-          '../assets/sequence/image6.png'];
 
   _editMode: EditMode = EditMode.Segmentation;
 
@@ -323,6 +316,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       tap(() => {
 
         const handleError = catchError(err => {
+          console.error("Error while loading image");
           console.log(err)
           this.showError(err.message);
           return of();
