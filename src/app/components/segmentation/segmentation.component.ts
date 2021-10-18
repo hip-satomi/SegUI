@@ -33,16 +33,15 @@ export class SegmentationComponent extends Tool implements Drawer {
 
   @Input() set localSegModel(lsg: LocalSegmentationModel) {
     this._localSegModel = lsg;
-    this.createLocalSegModel();
   }
 
   @Input() set globalSegModel(gsm: GlobalSegmentationModel) {
     this._globalSegModel = gsm;
-    this.createLocalSegModel();
   }
 
   @Input() set segUI(sUI: SegmentationUI) {
-    this._segUI = this.segUI;
+    this._segUI = sUI;
+    // notify frame change
     this.createLocalSegModel();
   }
 
