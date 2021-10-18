@@ -64,7 +64,7 @@ export class AnnLabelChipComponent implements OnInit {
     if (this.edit) {
       setTimeout(() => {
         this.nameInput.setFocus();
-      }, 1000);
+      }, 100);
     } else {
       this.tempName = this.name;
     }
