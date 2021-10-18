@@ -46,7 +46,7 @@ export class SegmentationComponent extends Tool implements Drawer {
     this.createLocalSegModel();
   }
 
-  get localeSegModel() {
+  get localSegModel() {
     return this._localSegModel;
   }
 
