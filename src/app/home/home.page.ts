@@ -1106,7 +1106,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       // 3. compose request (delete all existing, add all new) & send
       tap(() => console.log("Start deleting/adding ...")),
       switchMap((data) => {
-        return of(this.omeroAPI.deleteRois(data.imageSetId, OmeroUtils.createRoIDeletionList(data)), this.omeroAPI.createRois(data.imageSetId, OmeroUtils.createNewRoIList(this.globalSegModel.segmentationData.segData))).pipe(combineAll());
+        return of(this.omeroAPI.deleteRois(data.imageSetId, OmeroUtils.createRoIDeletionList(data)), this.omeroAPI.createRois(data.imageSetId, OmeroUtils.createNewRoIList(this.globalSegModel.segmentationData))).pipe(combineAll());
       }),
       tap(() => console.log('Finished deleting/adding!')),
       tap(x => console.log(x)),

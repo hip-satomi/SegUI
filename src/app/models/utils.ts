@@ -1,9 +1,10 @@
 import { Point } from './geometry';
 import { multiply, inv } from 'mathjs';
 import * as simplify from 'simplify-js';
-import { SegmentationHolder } from './segmentation-model';
+import { SegCollData, SegmentationHolder } from './segmentation-model';
 import { pointsToString } from '../services/omero-api.service';
 import { SegmentationData } from './segmentation-data';
+import { AddLabelAction } from './action';
 
 export interface Position {
     x: number;
@@ -290,13 +291,15 @@ export class OmeroUtils {
     return empty_rois;
   }
 
-  static createNewRoIList(segHolder: SegmentationData[]) {
+  static createNewRoIList(segHolder: SegCollData) {
     const new_list = [];
-    for (const [index, element] of segHolder.entries()) {
+    // loop over all image slices
+    for (const [index, slice] of segHolder.segData.entries()) {
       const z = 0;
       const t = index;
-      for (const roi of element.getPolygons()) {
-        if(roi[1].numPoints == 0) {
+      // loop over all annotated polygons in the slice
+      for (const [id, poly] of slice.getPolygons()) {
+        if(poly.numPoints == 0) {
           continue;
         }
         const roi_data = {
@@ -305,7 +308,7 @@ export class OmeroUtils {
           FillColor:	-256,
           Length: -1,
           oldId: "-6:-850",
-          Points: pointsToString(roi[1].points),
+          Points: pointsToString(poly.points),
           StrokeColor: -65281,
           StrokeWidth: {
             "@type":	"TBD#LengthI",
@@ -313,6 +316,8 @@ export class OmeroUtils {
             Unit:	"PIXEL",
             Value:	1
           },
+          // set the label name as a comment
+          Text: segHolder.getLabelById(slice.getPolygonLabel(id)).name,
           TheT:	t,
           TheZ:	z,
         }
