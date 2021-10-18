@@ -38,7 +38,8 @@ enum ActionTypes {
     MergeLabelAction,
     ChangeLabelActivityAction,
     ChangeLabelVisibilityAction,
-    ChangeLabelColorAction
+    ChangeLabelColorAction,
+    DeleteLabelAction
 }
 
 /**
@@ -562,6 +563,48 @@ export class MergeLabelAction extends Action<SegCollData> {
                 //segData.labels[pId] = this.dstId;
             }
         }
+
+        // delete source label
+        new DeleteLabelAction(this.srcId).perform(data);
+
+        // activate target label
+        new ChangeLabelActivityAction(this.dstId, true);
+    }
+}
+
+@Serializable()
+export class DeleteLabelAction extends Action<SegCollData> {
+    @JsonProperty()
+    labelId: number;
+
+    constructor(labelId: number) {
+        super(ActionTypes.DeleteLabelAction);
+        this.labelId = labelId;
+    }
+
+    perform(data: SegCollData): void {
+        // delete label
+        data.labels.splice(data.labels.indexOf(data.getLabelById(this.labelId)), 1);
+
+        // delete all associated polygons
+
+        // loop over image slices
+        for(const [index, segData] of data.segData.entries()) {
+            // determine the polygons with that labels
+            const polyIds = [...segData.labels.entries()].filter(([polyId, labelId]) => {
+                return labelId == this.labelId;
+            }).map(([polyId, labelId]) => polyId);
+
+            // delete them
+            for (const pId of polyIds) {
+                new LocalAction(new RemovePolygon(pId), index).perform(data);
+            }
+        }
+
+        // if no label is active, activate first
+        if (data.labels.filter(l => l.active).length == 0) {
+            data.labels[0].active = true;
+        }
     }
 }
 
@@ -654,7 +697,8 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
         [ActionTypes.MergeLabelAction, MergeLabelAction],
         [ActionTypes.ChangeLabelActivityAction, ChangeLabelActivityAction],
         [ActionTypes.ChangeLabelVisibilityAction, ChangeLabelVisibilityAction],
-        [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction]
+        [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction],
+        [ActionTypes.DeleteLabelAction, DeleteLabelAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();
