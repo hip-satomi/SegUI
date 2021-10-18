@@ -1,12 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { LoadingController, ToastController } from '@ionic/angular';
+import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
-import { ChangePolygonPoints, JointAction } from 'src/app/models/action';
+import { AddLabelAction, ChangePolygonPoints, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
 import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
-import { SegmentationModel } from 'src/app/models/segmentation-model';
+import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { Position, Utils } from 'src/app/models/utils';
 import { SegmentationService } from 'src/app/services/segmentation.service';
@@ -20,6 +20,9 @@ const tree = require( 'tree-kit' ) ;
 
 // as a ES module
 import RBush from 'rbush';
+import { AnnotationLabel } from 'src/app/models/segmentation-data';
+import { stringify } from 'querystring';
+import { UserQuestionsService } from 'src/app/services/user-questions.service';
 
 @Component({
   selector: 'app-brush',
@@ -29,7 +32,8 @@ import RBush from 'rbush';
 export class BrushComponent extends Tool implements Drawer, OnInit {
 
   // input the current segmentation model and ui
-  @Input() segModel: SegmentationModel;
+  @Input() localSegModel: LocalSegmentationModel;
+  @Input() globalSegModel: GlobalSegmentationModel;
   _segUI: SegmentationUI;
 
   @Input() set segUI(value: SegmentationUI) {
@@ -71,7 +75,9 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   constructor(private loadingCtrl: LoadingController,
     private httpClient: HttpClient,
     private segmentationService: SegmentationService,
-    private toastController: ToastController) {
+    private toastController: ToastController,
+    private userQuestions: UserQuestionsService,
+    private actionSheetController: ActionSheetController) {
       super();
 
       //this.changedEvent.subscribe(() => console.log('Render'));
@@ -89,7 +95,11 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   }
 
   get currentPolygon(): Polygon {
-    return this.segModel.activePolygon;
+    return this.localSegModel.activePolygon;
+  }
+
+  get labels(): AnnotationLabel[] {
+    return this.globalSegModel?.segmentationData.labels;
   }
   
   /**
@@ -130,7 +140,24 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
       // 1. Draw all other detections
       if (this.showOverlay) {
-        this.segModel.drawPolygons(ctx, false);
+        this.segUI.drawPolygonsAdv(ctx, false,
+            // filter only polygons with visible label
+            (p: [string, Polygon]) => {
+                return this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(p[0])].visible
+            },
+            ({uuid, poly}) => {
+                const label = this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(uuid)]
+                const mode = label.color;
+
+                if (mode == 'random') {
+                    return poly.color;
+                } else {
+                    return label.color;
+                }
+            }
+
+        );
+        //this.segModel.drawPolygons(ctx, false);
       }
       // 2. draw the backgound image
       this.segUI.drawImage(ctx);
@@ -183,7 +210,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
       if (this.currentPolygon === null) {
           // add a new polygon if there is none selected
-          this.segModel.addNewPolygon();
+          // TODO: Default label?
+          this.localSegModel.addNewPolygon(0);
       }
 
       this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
@@ -268,7 +296,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
     if (this.brushActivated) {
         this.dirty = true;
-        this.changedPolygons.set(this.segModel.activePolygonId, this.currentPolygon);
+        this.changedPolygons.set(this.localSegModel.activePolygonId, this.currentPolygon);
         const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
 
         // Increase/Decrease depending on selected mode
@@ -294,7 +322,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             // check on other polygons
             const tree = new RBush();
 
-            for (const [uuid, poly] of this.segModel.segmentationData.getPolygons()){
+            // only do collision checks with active polygons (polygons whoose labels are active)
+            for (const [uuid, poly] of this.localSegModel.getActivePolygons()){
                 if (poly == this.currentPolygon) {
                     continue;
                 }
@@ -316,7 +345,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
                 maxY: curBbox.y + curBbox.h
             });
             for(const {uuid} of result) {
-                const conflictPolygon = this.segModel.segmentationData.getPolygon(uuid);
+                const conflictPolygon = this.localSegModel.segmentationData.getPolygon(uuid);
                 // detailed intersection test (slow)
                 if(this.currentPolygon.isIntersecting(conflictPolygon)) {
                     conflictPolygon.subtract(this.currentPolygon);
@@ -355,7 +384,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
         }
 
         if (actions.length > 0) {
-            this.segModel.addAction(new JointAction(...actions), false);
+            this.localSegModel.addAction(new JointAction(...actions), false);
         }
 
         this.changedEvent.emit();
@@ -373,7 +402,11 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
    * Creates a new polygon
    */
   save() {
-      this.segModel.addNewPolygon();
+      this.userQuestions.activeLabel(this.localSegModel).pipe(
+          tap((label: AnnotationLabel) => {
+              this.localSegModel.addNewPolygon(label.id)
+          })
+      ).subscribe();
   }
 
   get canSave() {
@@ -381,18 +414,18 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   }
 
   get canUndo() {
-      return this.segModel.canUndo;
+      return this.globalSegModel.canUndo;
   }
 
   get canRedo() {
-      return this.segModel.canRedo;
+      return this.globalSegModel.canRedo;
   }
 
   undo() {
-      return this.segModel.undo();
+      return this.globalSegModel.undo();
   }
 
   redo() {
-      return this.segModel.redo();
+      return this.globalSegModel.redo();
   }
 }

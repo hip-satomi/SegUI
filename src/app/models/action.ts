@@ -3,11 +3,14 @@ import { Point } from './geometry';
 import 'reflect-metadata';
 import { EventEmitter } from '@angular/core';
 import { SelectedSegment, TrackingData, TrackingLink } from './tracking-data';
-import { SegmentationData } from './segmentation-data';
+import { AnnotationLabel, SegmentationData } from './segmentation-data';
 import { Polygon } from 'src/app/models/geometry';
 import { v4 as uuidv4 } from 'uuid';
 
 import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
+import { SegCollData } from './segmentation-model';
+import { LabelOptions } from '@angular/material/core';
+import * as dayjs from 'dayjs';
 
 enum ActionTypes {
     AddEmptyPolygon,
@@ -25,7 +28,42 @@ enum ActionTypes {
     UnselectSegmentAction,
 
     JointAction,
-    PreventUndoActionWrapper
+    PreventUndoActionWrapper,
+
+    LocalAction,
+    CreateSegmentationLayersAction,
+
+    AddLabelAction,
+    RenameLabelAction,
+    MergeLabelAction,
+    ChangeLabelActivityAction,
+    ChangeLabelVisibilityAction,
+    ChangeLabelColorAction,
+    DeleteLabelAction
+}
+
+/**
+ * 
+ * @param stamp in string format YYYY-MM-DDTHH:mm:ss.SSS Z[Z]
+ * @returns the dayjs object
+ */
+const stringToDate = (stamp: string): dayjs.Dayjs => {
+    const parsed = dayjs(stamp, 'YYYY-MM-DDTHH:mm:ss.SSS Z[Z]');
+    if (parsed.isValid()) {
+        return parsed;
+    } else {
+        console.warn('Need to create new date');
+        return dayjs();
+    }
+}
+
+/**
+ * 
+ * @param stamp dayjs object
+ * @returns string format "YYYY-MM-DDTHH:mm:ss.SSS Z[Z]"
+ */
+const dateToString = (stamp: dayjs.Dayjs): string => {
+   return stamp.format('YYYY-MM-DDTHH:mm:ss.SSS Z[Z]');
 }
 
 @Serializable()
@@ -34,10 +72,15 @@ export abstract class Action<T> {
     @JsonProperty()
     type: ActionTypes;
 
+    @JsonProperty({
+        onDeserialize: stringToDate, onSerialize: dateToString, predicate: () => dayjs.Dayjs
+    })
+    timeStamp;
     abstract perform(data: T): void;
 
     constructor(type: ActionTypes) {
         this.type = type;
+        this.timeStamp = dayjs();
     }
 
     join(action: Action<T>): boolean {
@@ -88,6 +131,25 @@ export abstract class SegmentationAction extends Action<SegmentationData> {
 }*/
 
 @Serializable()
+
+export class CreateSegmentationLayersAction extends Action<SegCollData> {
+    @JsonProperty() numSegLayers: number;
+
+    constructor(numSegLayers: number) {
+        super(ActionTypes.CreateSegmentationLayersAction);
+        this.numSegLayers = numSegLayers;
+    }
+
+    perform(data: SegCollData): void {
+        data.clear();
+        for(let i = 0; i < this.numSegLayers; i++) {
+            data.addSegmentationData(new SegmentationData());
+        }
+        //data.segData = new SegmentationData[this.numSegLayers];
+    }
+}
+
+@Serializable()
 export class AddEmptyPolygon extends Action<SegmentationData> {
 
     @JsonProperty()
@@ -96,17 +158,22 @@ export class AddEmptyPolygon extends Action<SegmentationData> {
     @JsonProperty()
     uuid: string;
 
-    constructor(color: string) {
+    @JsonProperty()
+    labelId: number;
+
+    constructor(labelId: number, color: string) {
         super(ActionTypes.AddEmptyPolygon);
 
         this.color = color;
+        this.labelId = labelId;
         this.uuid = uuidv4();
     }
 
     perform(segmentationData: SegmentationData) {
         const poly = new Polygon();
         poly.setColor(this.color);
-        segmentationData.addPolygon(this.uuid, poly);
+        // create the polygon
+        segmentationData.addPolygon(this.uuid, poly, this.labelId);
     }
 
 }
@@ -123,15 +190,19 @@ export class AddPolygon extends Action<SegmentationData> {
     @JsonProperty()
     poly: Polygon;
 
-    constructor(poly: Polygon) {
+    @JsonProperty()
+    labelId: number;
+
+    constructor(poly: Polygon, labelId: number) {
         super(ActionTypes.AddPolygon);
 
+        this.labelId = labelId;
         this.uuid = uuidv4();
         this.poly = poly;
     }
 
     perform(segmentationData: SegmentationData) {
-        segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly));
+        segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly), this.labelId);
     }
 
 }
@@ -427,28 +498,177 @@ export class AddLinkAction extends Action<TrackingData> {
     }
 }
 
+@Serializable()
+export class AddLabelAction extends Action<SegCollData> {
+
+    @JsonProperty()
+    label: AnnotationLabel;
+
+    constructor(label: AnnotationLabel) {
+        super(ActionTypes.AddLabelAction);
+        this.label = label;
+    }
+
+    perform(data: SegCollData): void {
+        data.addLabel(this.label);
+    }
+}
+
+@Serializable()
+export class RenameLabelAction extends Action<SegCollData> {
+    @JsonProperty()
+    id: number;
+    @JsonProperty()
+    labelName: string;
+
+    constructor(id: number, name: string) {
+        super(ActionTypes.RenameLabelAction);
+        this.id = id;
+        this.labelName = name;
+    }
+
+    perform(data: SegCollData): void {
+        data.getLabelById(this.id).name = this.labelName;
+    }
+    
+}
+
+@Serializable()
+export class MergeLabelAction extends Action<SegCollData> {
+    @JsonProperty()
+    srcId: number;
+    @JsonProperty()
+    dstId: number;
+
+    constructor(srcId: number, dstId: number) {
+        super(ActionTypes.MergeLabelAction);
+        this.srcId = srcId;
+        this.dstId = dstId;
+    }
+
+    perform(data: SegCollData): void {
+        // assign objects from source to destiation label
+        for(const segData of data.segData) {
+            // determine the polygons that need to switch labels
+            const polyIds = [...segData.labels.entries()].filter(([polyId, labelId]) => {
+                return labelId == this.srcId;
+            }).map(([polyId, labelId]) => polyId);
+
+            // switch labels
+            for (const pId of polyIds) {
+                segData.labels.set(pId, this.dstId);
+                //segData.labels[pId] = this.dstId;
+            }
+        }
+
+        // delete source label
+        new DeleteLabelAction(this.srcId).perform(data);
+
+        // activate target label
+        new ChangeLabelActivityAction(this.dstId, true);
+    }
+}
+
+@Serializable()
+export class DeleteLabelAction extends Action<SegCollData> {
+    @JsonProperty()
+    labelId: number;
+
+    constructor(labelId: number) {
+        super(ActionTypes.DeleteLabelAction);
+        this.labelId = labelId;
+    }
+
+    perform(data: SegCollData): void {
+        // delete label
+        data.labels.splice(data.labels.indexOf(data.getLabelById(this.labelId)), 1);
+
+        // delete all associated polygons
+
+        // loop over image slices
+        for(const [index, segData] of data.segData.entries()) {
+            // determine the polygons with that labels
+            const polyIds = [...segData.labels.entries()].filter(([polyId, labelId]) => {
+                return labelId == this.labelId;
+            }).map(([polyId, labelId]) => polyId);
+
+            // delete them
+            for (const pId of polyIds) {
+                new LocalAction(new RemovePolygon(pId), index).perform(data);
+            }
+        }
+
+        // if no label is active, activate first
+        if (data.labels.filter(l => l.active).length == 0) {
+            data.labels[0].active = true;
+        }
+    }
+}
+
+@Serializable()
+export class ChangeLabelActivityAction extends Action<SegCollData> {
+
+    @JsonProperty() labelId: number;
+    @JsonProperty() active: boolean;
+
+    constructor(labelId: number, active: boolean) {
+        super(ActionTypes.ChangeLabelActivityAction)
+        this.labelId = labelId;
+        this.active = active;
+    }
+
+    perform(data: SegCollData): void {
+        if (this.active) {
+            // disable all others
+            for(const label of data.labels) {
+                label.active = false;
+            }
+        }
+        data.getLabelById(this.labelId).active = this.active;
+    }
+
+}
+
+@Serializable()
+export class ChangeLabelVisibilityAction extends Action<SegCollData> {
+    @JsonProperty() labelId: number;
+    @JsonProperty() visible: boolean;
+
+    constructor(labelId: number, visible: boolean) {
+        super(ActionTypes.ChangeLabelVisibilityAction);
+        this.labelId = labelId;
+        this.visible = visible;
+    }
+
+    perform(data: SegCollData): void {
+        data.getLabelById(this.labelId).visible = this.visible;
+    }
+}
+
+@Serializable()
+export class ChangeLabelColorAction extends Action<SegCollData> {
+    @JsonProperty() labelId: number;
+    @JsonProperty() color: string;
+
+    constructor(labelId: number, color: string) {
+        super(ActionTypes.ChangeLabelColorAction);
+        this.labelId = labelId;
+        this.color = color;
+    }
+
+    perform(data: SegCollData): void {
+        data.getLabelById(this.labelId).color = this.color;
+    }
+}
+
 /**
- * Handles actions with do and undo operations
+ * Restores action with their corresponding types
+ * 
+ * Useful for json deserialization
  * 
  * The known types field is used for polymorphical behavior of actions and must contain a list of all possible actions (https://github.com/JohnWeisz/TypedJSON/blob/master/spec/polymorphism-abstract-class.spec.ts)
  */
-const knownTypes = [Action,
-                    AddEmptyPolygon,
-                    AddPolygon,
-                    RemovePolygon,
-                    AddPointAction,
-                    RemovePointAction,
-                    SelectPolygon,
-                    MovePointAction,
-                    ChangePolygonPoints,
-
-                    // Actions for tracking
-                    SelectSegmentAction,
-                    AddLinkAction,
-                    UnselectSegmentAction];
-
-
-const actionRestorer = action => {
+ const actionRestorer = action => {
 
     const lookupList: Array<[ActionTypes, any]> = [
         [ActionTypes.AddEmptyPolygon, AddEmptyPolygon],
@@ -464,7 +684,18 @@ const actionRestorer = action => {
         [ActionTypes.UnselectSegmentAction, UnselectSegmentAction],
 
         [ActionTypes.JointAction, JointAction],
-        [ActionTypes.PreventUndoActionWrapper, PreventUndoActionWrapper]
+        [ActionTypes.PreventUndoActionWrapper, PreventUndoActionWrapper],
+
+        [ActionTypes.LocalAction, LocalAction],
+        [ActionTypes.CreateSegmentationLayersAction, CreateSegmentationLayersAction],
+
+        [ActionTypes.AddLabelAction, AddLabelAction],
+        [ActionTypes.RenameLabelAction, RenameLabelAction],
+        [ActionTypes.MergeLabelAction, MergeLabelAction],
+        [ActionTypes.ChangeLabelActivityAction, ChangeLabelActivityAction],
+        [ActionTypes.ChangeLabelVisibilityAction, ChangeLabelVisibilityAction],
+        [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction],
+        [ActionTypes.DeleteLabelAction, DeleteLabelAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();
@@ -481,6 +712,28 @@ const actionRestorer = action => {
         throw new Error(`Unknown action type: ${type}`);
     }
 };
+
+@Serializable()
+export class LocalAction extends Action<SegCollData> {
+
+    @JsonProperty({predicate: actionRestorer})
+    action: Action<SegmentationData>;
+
+    @JsonProperty()
+    t: number;
+
+    constructor(action: Action<SegmentationData>, t: number) {
+        super(ActionTypes.LocalAction);
+
+        this.action = action;
+        this.t = t;
+    }
+
+    perform(data: SegCollData): void {
+        this.action.perform(data.get(this.t));
+    }
+    
+}
 
 @Serializable()
 export class JointAction<T> extends Action<T>{
@@ -551,7 +804,6 @@ export class ActionManager<T extends ClearableStorage> {
 
     @JsonProperty({predicate: actionRestorer})
     actions: Action<T>[] = [];
-    @JsonProperty() actionTimeSplitThreshold: number;
     @JsonProperty()
     currentActionPointer: number;
 
@@ -562,8 +814,7 @@ export class ActionManager<T extends ClearableStorage> {
 
     data: T;
 
-    constructor(actionTimeSplitThreshold: number, data: T) {
-        this.actionTimeSplitThreshold = actionTimeSplitThreshold;
+    constructor(data: T) {
         this.currentActionPointer = 0;
         this.data = data;
     }
@@ -597,10 +848,10 @@ export class ActionManager<T extends ClearableStorage> {
             this.actions.splice(this.currentActionPointer - 1, this.actions.length, action);
         } else*/
 
-        this.notifyDataChanged();
+        this.notifyDataChanged(action);
     }
 
-    notifyDataChanged() {
+    notifyDataChanged(action: Action<T> = null) {
         this.onDataChanged.emit(this);
     }
 

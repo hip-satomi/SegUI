@@ -348,6 +348,9 @@ export class RoIShape {
   @JsonProperty({name: 'TheZ'})
   z: number;
 
+  @JsonProperty({name: 'Text'})
+  text: string;
+
   @JsonProperty({name: 'Points', onDeserialize: stringToPoints, onSerialize: pointsToString})
   points: Array<Point>;
 }

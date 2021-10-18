@@ -1,0 +1,8 @@
+.active {
+    border-width: medium;
+}
+
+.colorful {
+    border-color: green;
+    border-image:   linear-gradient(to right, #FF0000, #00FF00,#0000FF) 5;
+}

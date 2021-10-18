@@ -5,11 +5,11 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { OmeroUtils, UIUtils, Utils } from './../models/utils';
 import { Polygon, Point, BoundingBox } from './../models/geometry';
-import { AddPolygon, JointAction, AddLinkAction } from './../models/action';
+import { AddPolygon, JointAction, AddLinkAction, LocalAction, AddLabelAction, Action } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged, ChangeType } from './../models/change';
 import { StateService } from './../services/state.service';
-import { SegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
+import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
 import { GUISegmentation } from './../services/seg-rest.service';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, concatMap, concatAll, mergeAll, combineAll, switchMapTo, mapTo, throttle, throttleTime, catchError } from 'rxjs/operators';
 import { BehaviorSubject, EMPTY, from, Observable, of, pipe, ReplaySubject, Subject, Subscription, throwError, zip } from 'rxjs';
@@ -19,17 +19,19 @@ import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder as SimpleSegmentationHolder, SimpleSegmentation } from './../models/segmentation-model';
+import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder as SimpleSegmentationHolder, SimpleSegmentation, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
 import { ActionSheetController, AlertController, LoadingController, PopoverController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContainerRef, ComponentFactoryResolver } from '@angular/core';
 
-import { Plugins } from '@capacitor/core';
+import { LocalNotifications, Plugins } from '@capacitor/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
 import { SegmentationComponent } from '../components/segmentation/segmentation.component';
 import { BrushComponent } from '../components/brush/brush.component';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
+import { UserQuestionsService } from '../services/user-questions.service';
+import { AnnotationLabel } from '../models/segmentation-data';
 
 
 const { Storage } = Plugins;
@@ -70,6 +72,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   trackingUI: TrackingUI;
 
   simpleSegHolder: SimpleSegmentationHolder;
+  globalSegModel: GlobalSegmentationModel;
 
   /** Key where the segmentation data is stored */
   segKey = 'segmentations';
@@ -88,19 +91,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   // this can be used to end other pipelines using takeUntil(ngUnsubscribe)
   protected ngUnsubscribe: Subject<void> = new Subject<void>();
 
-  urls = ['../assets/sequence/image0.png',
-          '../assets/sequence/image1.png',
-          '../assets/sequence/image2.png',
-          '../assets/sequence/image3.png',
-          '../assets/sequence/image4.png',
-          '../assets/sequence/image5.png',
-          '../assets/sequence/image6.png'];
 
   _editMode: EditMode = EditMode.Segmentation;
 
   tool = null;
 
-  showErrorPipe = catchError(e => {this.showError(e); throw e;});
+  showErrorPipe = catchError(e => {this.showError(e); return throwError(e);});
 
   get editMode(): EditMode {
     return this._editMode;
@@ -128,7 +124,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private route: ActivatedRoute,
               private router: Router,
               private segService: SegRestService,
-              public stateService: StateService,
               private segmentationService: SegmentationService,
               private omeroAPI: OmeroAPIService,
               private loadingCtrl: LoadingController,
@@ -137,7 +132,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private trackingService: TrackingService,
               private popoverController: PopoverController,
               private resolver: ComponentFactoryResolver,
-              private alertController: AlertController) {
+              private alertController: AlertController,
+              private userQuestions: UserQuestionsService) {
   }
 
   // Redirect Mouse & Touch interactions
@@ -294,8 +290,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    */
   async ionViewWillEnter() {
     console.log('Init test');
-    console.log(this.stateService.navImageSetId);
-    console.log(this.stateService.imageSetId);
+    //console.log(this.stateService.navImageSetId);
+    //console.log(this.stateService.imageSetId);
 
     // create progress loader
     const loading = this.loadingCtrl.create({
@@ -321,6 +317,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       tap(() => {
 
         const handleError = catchError(err => {
+          console.error("Error while loading image");
           console.log(err)
           this.showError(err.message);
           return of();
@@ -408,7 +405,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       map(params => {
         return Number(params.get('imageSetId'));
       }),
-      tap(imageSetId => this.stateService.imageSetId = imageSetId),
+      //tap(imageSetId => this.stateService.imageSetId = imageSetId),
       tap((imageSetId) => this.imageSetId.next(imageSetId)),
       take(1), // take only once --> pipe is closed immediately and finalize stuff is called
     ).subscribe(
@@ -445,86 +442,44 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       }),
       takeUntil(this.ngUnsubscribe),
       // create the segmentation connector
-      switchMap(async (content) => {
-        let srsc: SegmentationOMEROStorageConnector;
+      switchMap((content) => {
+        let srsc: GlobalSegmentationOMEROStorageConnector;
         let created = false;
 
+        let srscPipeline: Observable<GlobalSegmentationOMEROStorageConnector>;
+
         if (content.segm === null) {
-          // there is no existing segmentation file
-          // TODO First try to import from omero
-          
-          srsc = null;
-
-          // 1. Check whether OMERO has ROI data available
-          const roiData = await this.omeroAPI.getPagedRoIData(imageSetId).pipe(
-            take(1),
-            map(rois => rois.map(roi => roi.shapes).reduce((a,b) => a.concat(b), []))
-          ).toPromise();
-          if (roiData.length > 0)
-          {
-            // 2. Let the user decide whether he  wants to import it
-            const alert = await this.alertController.create({
-              cssClass: 'over-loading',
-              header: 'Import Segmentation?',
-              message: 'Do you want to import existing segmentation data from OMERO?',
-              buttons: [
-                {
-                  text: 'No',
-                  role: 'cancel',
-                  cssClass: 'secondary',
-                }, {
-                  text: 'Yes',
-                  role: 'confirm',
-                }
-              ]
-            });
-        
-            await alert.present();
-            const { role } = await alert.onDidDismiss();
-            console.log('onDidDismiss resolved with role', role);
-
-            // 3. Import the data
-            if (role == 'confirm') {
-              // try to load the data
-              srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
-              created = true;
-
-              // add every polygon that already exists in omero
-              for (const poly of roiData) {
-                const currentModel = srsc.getModel().segmentations[poly.t]
-
-                // create polygon add action
-                const action = new AddPolygon(new Polygon(...poly.points));
-
-                // execute the action
-                currentModel.addAction(action);
-              }
-            }
-          }
-
-          if (srsc == null) {
-            // loading from OMERO failed or has been rejected
-            srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
-            created = true;
-          }
+          srscPipeline = this.omeroImport(false).pipe(
+            //map((srsc: GlobalSegmentationOMEROStorageConnector) => 'hello'),
+            catchError(e => {
+              // loading from OMERO failed or has been rejected
+              srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
+              return of(srsc);
+            })
+          )
         } else {
           // load the existing model file
-          srsc = SegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId, this.ngUnsubscribe);
+          srsc = GlobalSegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId, this.ngUnsubscribe);
+          srscPipeline = of(srsc);
         }
-
+        return srscPipeline.pipe(
+          map (srsc => {return {srsc, tracking: content.tracking, urls: content.urls}})
+        );
+      }),
+      map((content) => {
         // add the simple model
         // TODO the construction here is a little bit weird
-        const derived = new SimpleSegmentationHolder(srsc.getModel());
-        const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, srsc);
+        const derived = new SimpleSegmentationHolder(content.srsc.getModel());
+        const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, content.srsc);
         // if we create a new segmentation -> update also the simple storage
-        if (created) {
-          derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'));
-        }
+        //if (created) {
+        derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'));
+        //}
 
-        return {srsc, tracking: content.tracking, derived, urls: content.urls};
+        return {...content, derived};
       }),
       // create the tracking connector
-      map((content) => {
+      /*map((content) => {
         let trsc: TrackingOMEROStorageConnector;
         if (content.tracking === null) {
           // create a tracking
@@ -535,32 +490,49 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         }
 
         return {srsc: content.srsc, trsc, derived: content.derived, urls: content.urls};
-      }),
+      }),*/
       tap(async (content) => {
         this.pencil = new Pencil(this.imageDisplay.ctx, this.imageDisplay.canvasElement);
 
-        this.stateService.imageSetId = imageSetId;
+        //this.stateService.imageSetId = imageSetId;
         await this.importSegmentation(content.srsc.getModel(), content.derived, content.urls);
-        await this.importTracking(content.trsc.getModel());
+        //await this.importTracking(content.trsc.getModel());
+      }),
+      switchMap(() => this.route.paramMap.pipe(take(1))),
+      switchMap(params => {
+        return this.curSegUI.loadImage().pipe(
+          take(1),
+          map(img =>  {return {img, params}})
+        )
+      }),
+      tap(({img, params}) => {
+        // center a rectangle
+        const xOffset = Number(params.get('x') || 0);
+        const yOffset = Number(params.get('y') || 0);
+        const width = Number(params.get('width') || img.width);
+        const height = Number(params.get('height') || img.height);
+
+        this.imageDisplay.centerFixedBox(new BoundingBox(xOffset, yOffset, width, height));
       }),
       tap(() => {
         console.log('Draw');
-        this.centerAndDraw();
-      })
+        this.draw();
+      },
+      take(1))
     );
 
   }
 
   /**
    * Import Segmentation Data into the current UI
-   * @param segHolder holder of all segmentation data
+   * @param globalSegModel holder of all segmentation data
    * @param simpleSegHolder holder of simple segmentation 
    * @param imageUrls omero urls of the images
    */
-  async importSegmentation(segHolder: SegmentationHolder, simpleSegHolder: SimpleSegmentationHolder, imageUrls: string[]) {
+  async importSegmentation(globalSegModel: GlobalSegmentationModel, simpleSegHolder: SimpleSegmentationHolder, imageUrls: string[]) {
     // now that we have a holder we can start using it
-    this.segHolder = segHolder;
-    this.segHolder.modelChanged.subscribe((event: ModelChanged<SegmentationModel>) => {
+    this.globalSegModel = globalSegModel;
+    this.globalSegModel.modelChanged.subscribe((event: ModelChanged<GlobalSegmentationModel>) => {
       this.segModelChanged(event);
     });
 
@@ -568,8 +540,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
     // generate segmentation uis
     this.segmentationUIs = [];
-    for (const [index, model] of this.segHolder.segmentations.entries()) {
-      this.segmentationUIs.push(new SegmentationUI(model, imageUrls[index], this.imageDisplay.canvasElement, this.actionSheetController));
+    for (const [index, segModel] of this.globalSegModel.segmentationModels.entries()) {
+      this.segmentationUIs.push(new SegmentationUI(segModel, imageUrls[index], this.imageDisplay.canvasElement, this.actionSheetController, this.userQuestions));
     }
   }
 
@@ -577,7 +549,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    * Import {@link TrackingModel} into the current UI
    * @param trackingModel the tracking model to import
    */
-  async importTracking(trackingModel: TrackingModel) {
+  /*async importTracking(trackingModel: TrackingModel) {
     if (trackingModel === null) {
       // There was an error while loading the tracking
       const toast = await this.toastController.create({
@@ -600,31 +572,31 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           this.draw();
       });
     }
-  }
+  }*/
 
-  get segHolder() {
+  /*get segHolder() {
     return this.stateService.holder;
   }
 
   set segHolder(segHolder: SegmentationHolder) {
     this.stateService.holder = segHolder;
-  }
+  }*/
 
   get segmentationModels() {
-    if (this.segHolder) {
-      return this.segHolder.segmentations;
+    if (this.globalSegModel) {
+      return this.globalSegModel.segmentationModels;
     } else {
       return [];
     }
   }
 
-  get trackingModel() {
+  /*get trackingModel() {
     return this.stateService.tracking;
   }
 
   set trackingModel(trackingModel: TrackingModel) {
     this.stateService.tracking = trackingModel;
-  }
+  }*/
 
   get isSegmentation() {
     return this.editMode === EditMode.Segmentation;
@@ -638,21 +610,25 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     return this.segmentationUIs[this.activeView];
   }
 
-  get curSegModel(): SegmentationModel {
-    return this.segmentationModels[this.activeView];
+  get curSegModel(): LocalSegmentationModel {
+    if (this.globalSegModel) {
+      return this.globalSegModel.getLocalModel(this.activeView);//segmentationModels[this.activeView];
+    } else {
+      return null;
+    }
   }
 
-  segModelChanged(segModelChangedEvent: ModelChanged<SegmentationModel>) {
-    if (this.curSegModel === segModelChangedEvent.model) {
+  segModelChanged(segModelChangedEvent: ModelChanged<GlobalSegmentationModel>) {
+    //if (this.curSegModel === segModelChangedEvent.model) {
       this.draw();
-    }
+    //}
   }
 
   @HostListener('document:keydown.control.z')
   async undo() {
     if (this.canUndo) {
       if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-        this.curSegModel.undo();
+        this.globalSegModel.undo();
       } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
         this.trackingUI.undo();
       }
@@ -663,7 +639,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   async redo() {
     if (this.canRedo) {
       if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-        this.curSegModel.redo();
+        this.globalSegModel.redo();
       } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
         this.trackingUI.redo();
       }
@@ -688,7 +664,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       if (this.tool) {
         this.tool.save();
       }
-      if (this.editMode === EditMode.Segmentation && this.curSegUI) {
+      else if (this.editMode === EditMode.Segmentation && this.curSegUI) {
         this.curSegUI.save();
         return;
       } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
@@ -703,7 +679,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   get canRedo() {
     if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-      return this.curSegModel.canRedo;
+      //return this.curSegModel.canRedo;
+      return this.globalSegModel.canRedo;
     } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
       return this.trackingUI.canRedo;
     }
@@ -713,7 +690,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   get canUndo() {
     if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-      return this.curSegModel.canUndo;
+      //return this.curSegModel.canUndo;
+      return this.globalSegModel.canUndo;
     } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
       return this.trackingUI.canUndo;
     }
@@ -756,11 +734,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.trackingUI.currentFrame = this.activeView;
     }
 
-    if (this.isSegmentation && this.tool) {
+    /*if (this.isSegmentation && this.tool) {
       if (this.tool.setModel == 'function') {
         this.tool.setModel(this.curSegModel, this.curSegUI);
       }
-    }
+    }*/
 
     this.draw();
   }
@@ -778,11 +756,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   /**
    * Center the image and draw segmentation model
    */
-  centerAndDraw() {
+  centerImage() {
     this.curSegUI.loadImage().pipe(
       take(1),
       map(img => this.imageDisplay.showFixedBox(new BoundingBox(0, 0, img.width, img.height))),
-      map(() => this.draw())
     ).subscribe();
   }
 
@@ -819,7 +796,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         }
       })
     ).subscribe(
-      () => {console.log('Home: Successful draw'); },
+      () => {
+        //console.log('Home: Successful draw');
+      },
       (e) => {console.log('Error during drawing process!'); console.error(e)},
       () => this.drawingSubscription = null      
     );
@@ -829,6 +808,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     return this.imageDisplay.ctx;
   }
 
+  // TODO: Removable code? Should not be used anymore!
   /**
    * Get and apply proposal segmentations
    */
@@ -903,7 +883,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                 poly.setColor(UIUtils.randomColor());
     
                 // collection new polygon actions
-                actions.push(new AddPolygon(poly));
+                // TODO: Default label id?
+                actions.push(new AddPolygon(poly, 0));
               }
             }
     
@@ -954,7 +935,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   /**
    * Request tracking proposals and add them to the tracking model
    */
-  track() {
+  /*track() {
     // we need to access derived segmentation holder
     this.simpleSegHolder.update();
     const segContent = this.simpleSegHolder.content;
@@ -1002,75 +983,132 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       }),
       () => this.showError('Error while tracking!')
     );
-  }
+  }*/
 
-  omeroImport(imageSetId) {
+  omeroImport(reload=true): Observable<GlobalSegmentationOMEROStorageConnector> {
     // 1. Check whether OMERO has ROI data available
     return this.imageSetId.pipe(
-      switchMap(id => this.omeroAPI.getPagedRoIData(id)),
       take(1),
-      map(roiData => {
-        if (roiData.length == 0) {
-          throw new Error("No omero data available");
-        }
-        return roiData;
-      }),
-      switchMap(roiData => {
-        // 2. Let the user decide whether he  wants to import it
-        return from(this.alertController.create({
-          cssClass: 'over-loading',
-          header: 'Import Segmentation?',
-          message: `Do you want to import existing segmentation data (${roiData.length} cells) from OMERO?`,
-          buttons: [
-            {
-              text: 'No',
-              role: 'cancel',
-              cssClass: 'secondary',
-            }, {
-              text: 'Yes',
-              role: 'confirm',
+      switchMap((imageSetId: number) => {
+        return this.omeroAPI.getPagedRoIData(imageSetId).pipe(
+          take(1),
+          map(roiData => {
+            if (roiData.length == 0) {
+              throw new Error("No omero data available");
             }
-          ]
-        })).pipe(
-          tap(alert => alert.present()),
-          switchMap(alert => alert.onDidDismiss()),
-          map(alertResult => {
-            if(alertResult.role != 'confirm')  {
-              throw new Error("User canceled import!");
+            return roiData;
+          }),
+          switchMap(roiData => {
+            // 2. Let the user decide whether he  wants to import it
+            return from(this.alertController.create({
+              cssClass: 'over-loading',
+              header: 'Import Segmentation?',
+              message: `Do you want to import existing segmentation data (${roiData.length} cells) from OMERO? <br /><br />Warning: This action cannot be reverted!`,
+              inputs: [
+                {
+                  name: 'labels',
+                  label: 'Import labels?',
+                  type: 'checkbox',
+                  checked: true,
+                  value: 'labels',
+                },
+              ],        
+              buttons: [
+                {
+                  text: 'No',
+                  role: 'cancel',
+                  cssClass: 'secondary',
+                }, {
+                  text: 'Yes',
+                  role: 'confirm',
+                }
+              ]
+            })).pipe(
+              tap(alert => alert.present()),
+              switchMap(alert => alert.onDidDismiss()),
+              map(alertResult => {
+                if(alertResult.role != 'confirm')  {
+                  throw new Error("User canceled import!");
+                }
+
+                const importLabels = alertResult.data.values.includes('labels');
+    
+                return {importLabels, roiData: roiData.map(r => r.shapes).reduce((a,b) => a.concat(b), [])};
+              })
+            )
+          }),
+          // deactivate data synchronization
+          tap(() => this.ngUnsubscribe.next()),
+          switchMap(({importLabels, roiData}) => this.omeroAPI.getImageUrls(imageSetId).pipe(map(urls => {return {importLabels, roiData, urls}}))),
+          map(combined => {
+            const {importLabels, roiData, urls} = combined;
+            // try to load the data
+            const srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
+
+            // add every polygon that already exists in omero
+            const additionalLabels: string[] = [];
+            const actions: Action<SegCollData>[] = [];
+            const currentModel = srsc.getModel()//.segmentations[poly.t]
+            const existingLabels = currentModel.labels;
+            const firstFreeLabelId = currentModel.nextLabelId(); //Math.max(...currentModel.labels.map(l => l.id));
+            for (const poly of roiData) {
+
+              // get the label name from text
+              const labelName = poly.text;
+
+              let labelId = -1;
+              if (importLabels) {
+                // if we want to import labels
+                if (existingLabels.map(l => l.name).includes(labelName)) {
+                  // we can take an existing label
+                  labelId = existingLabels.filter(l => l.name == labelName)[0].id;
+                } else {
+                  if (additionalLabels.includes(labelName)) {
+                    labelId = firstFreeLabelId + additionalLabels.indexOf(labelName);
+                  } else {
+                    // add the new label and give a new id
+                    labelId = additionalLabels.length;
+                    additionalLabels.push(labelName);
+                  }
+                }
+              } else {
+                // if we do not want to import labels we will put everything into the initial label class
+                labelId = 0;
+              }
+
+              // create polygon add action
+              // TODO: Deal with z-coordinate?
+              const action = new LocalAction(new AddPolygon(new Polygon(...poly.points), labelId), poly.t);
+
+              actions.push(action);
             }
 
-            return roiData.map(r => r.shapes).reduce((a,b) => a.concat(b), []);
-          })
+            // Add labels
+            for (const [index, label] of additionalLabels.entries()) {
+              srsc.getModel().addAction(new AddLabelAction(new AnnotationLabel(firstFreeLabelId + index, label, true, 'random', true)));
+            }
+
+            // add all the polygons
+            for(const action of actions) {
+              srsc.getModel().addAction(action);
+            }
+
+
+            
+            return srsc;
+          }),
+          switchMap((srsc: GlobalSegmentationOMEROStorageConnector) => {
+            return srsc.update().pipe(
+              map(() => srsc)
+            );
+          }),
+          tap(() => {
+            if (reload) {
+              this.imageSetId.next(imageSetId)
+            }
+          })          
         )
       }),
-      // deactivate data synchronization
-      tap(() => this.ngUnsubscribe.next()),
-      switchMap(roiData => this.omeroAPI.getImageUrls(imageSetId).pipe(map(urls => {return {roiData, urls}}))),
-      map(combined => {
-        const {roiData, urls} = combined;
-        // try to load the data
-        const srsc = SegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
-
-        // add every polygon that already exists in omero
-        for (const poly of roiData) {
-          const currentModel = srsc.getModel().segmentations[poly.t]
-
-          // create polygon add action
-          const action = new AddPolygon(new Polygon(...poly.points));
-
-          // execute the action
-          currentModel.addAction(action);
-        }
-        
-        return srsc;
-      }),
-      switchMap(srsc => {
-        return srsc.update().pipe(
-          map(() => srsc)
-        );
-      }),
-      tap(() => this.imageSetId.next(imageSetId)),
-      this.showErrorPipe
     );
   }
 
@@ -1122,7 +1160,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       // 3. compose request (delete all existing, add all new) & send
       tap(() => console.log("Start deleting/adding ...")),
       switchMap((data) => {
-        return of(this.omeroAPI.deleteRois(data.imageSetId, OmeroUtils.createRoIDeletionList(data)), this.omeroAPI.createRois(data.imageSetId, OmeroUtils.createNewRoIList(this.segHolder))).pipe(combineAll());
+        return of(this.omeroAPI.deleteRois(data.imageSetId, OmeroUtils.createRoIDeletionList(data)), this.omeroAPI.createRois(data.imageSetId, OmeroUtils.createNewRoIList(this.globalSegModel.segmentationData))).pipe(combineAll());
       }),
       tap(() => console.log('Finished deleting/adding!')),
       tap(x => console.log(x)),

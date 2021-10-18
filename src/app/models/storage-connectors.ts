@@ -9,7 +9,7 @@ import { ModelChanged, ChangeType } from './change';
 import { debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/operators';
 import { GUISegmentation, GUITracking, SimpleSegmentationREST } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
-import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder } from './segmentation-model';
+import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder, GlobalSegmentationModel } from './segmentation-model';
 import { TrackingModel } from './tracking';
 import { Observable, of, zip, empty, Subject } from 'rxjs';
 import { StorageConnector } from './storage';
@@ -19,13 +19,13 @@ import { StorageConnector } from './storage';
 /**
  * Stores segmentation for every frame in an Omero File Attachment for the specific image sequence
  */
-export class SegmentationOMEROStorageConnector extends StorageConnector<SegmentationHolder> {
+export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<GlobalSegmentationModel> {
 
     /** Image Sequence id */
     imageSetId: number;
     /** omero api */
     omeroAPI: OmeroAPIService;
-    updateEvent: EventEmitter<SegmentationOMEROStorageConnector> = new EventEmitter();
+    updateEvent: EventEmitter<GlobalSegmentationOMEROStorageConnector> = new EventEmitter();
 
     /**
      * Creates the segmentation holder from an existing json entry in db
@@ -33,14 +33,14 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
      * @param segService segmentation service
      * @param segmentation the segmentation file as a json string
      */
-    public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number, destroySignal: Subject<void>): SegmentationOMEROStorageConnector {
-        const model = deserialize<SegmentationHolder>(segmentation, SegmentationHolder);
+    public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number, destroySignal: Subject<void>): GlobalSegmentationOMEROStorageConnector {
+        const model = deserialize<GlobalSegmentationModel>(segmentation, GlobalSegmentationModel);
 
         // TODO: this should be implemented into the serializer
         model.onDeserialized(destroySignal);
 
         // create the omero storage connector and bind it to the model
-        const srsc = new SegmentationOMEROStorageConnector(omeroAPI, model, imageSetId);
+        const srsc = new GlobalSegmentationOMEROStorageConnector(omeroAPI, model, imageSetId);
 
         return srsc;
     }
@@ -53,15 +53,10 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
      */
     public static createNew(omeroAPI: OmeroAPIService, imageSetId: number, imageUrls: string[], destroySingal: Subject<void>) {
         // new holder
-        const holder = new SegmentationHolder(destroySingal);
-
-        // add a segmentation model for every frame
-        for (const url of imageUrls) {
-            holder.addSegmentation(new SegmentationModel());
-        }
+        const holder = new GlobalSegmentationModel(destroySingal, imageUrls.length);
 
         // create the omero storage connector and bind it to the model
-        const srsc = new SegmentationOMEROStorageConnector(omeroAPI, holder, imageSetId);
+        const srsc = new GlobalSegmentationOMEROStorageConnector(omeroAPI, holder, imageSetId);
 
         return srsc;
     }
@@ -73,7 +68,7 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
      * @param imageId optional image id (the image id can only be missing if we are using an existing REST record)
      */
     constructor(omeroAPI: OmeroAPIService,
-                holder: SegmentationHolder, imageId?: number) {
+                holder: GlobalSegmentationModel, imageId?: number) {
         super(holder);
 
         this.omeroAPI = omeroAPI;
@@ -86,11 +81,11 @@ export class SegmentationOMEROStorageConnector extends StorageConnector<Segmenta
 
         // register with the on change event
         this.model.modelChanged.pipe(
-            filter((changeEvent: ModelChanged<SegmentationModel>) => {
+            filter((changeEvent: ModelChanged<GlobalSegmentationModel>) => {
                 return changeEvent.changeType === ChangeType.HARD;
             }),
             debounceTime(5000),
-            switchMap((changeEvent: ModelChanged<SegmentationModel>) => {
+            switchMap((changeEvent: ModelChanged<GlobalSegmentationModel>) => {
                 return this.update().pipe(
                     catchError((err) => {
                         console.error('Failed updating GUI segmentation REST model;');
@@ -125,7 +120,7 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
 
     omeroAPI: OmeroAPIService;
     restRecord: SimpleSegmentationREST;
-    parentOMERO: SegmentationOMEROStorageConnector;
+    parentOMERO: GlobalSegmentationOMEROStorageConnector;
 
     updateEvent: EventEmitter<SimpleSegmentationOMEROStorageConnector> = new EventEmitter();
 
@@ -136,7 +131,7 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
      */
     constructor(omeroAPI: OmeroAPIService,
                 model: SimpleSegmentationHolder,
-                parentOMERO: SegmentationOMEROStorageConnector) {
+                parentOMERO: GlobalSegmentationOMEROStorageConnector) {
         super(model);
 
         this.omeroAPI = omeroAPI;
@@ -172,15 +167,15 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
 
 export class TrackingOMEROStorageConnector extends StorageConnector<TrackingModel> {
 
-    srsc: SegmentationOMEROStorageConnector;
+    srsc: GlobalSegmentationOMEROStorageConnector;
     restRecord: GUITracking;
     omeroApi: OmeroAPIService;
 
-    static createNew(omeroAPI: OmeroAPIService, srsc: SegmentationOMEROStorageConnector): TrackingOMEROStorageConnector {
+    static createNew(omeroAPI: OmeroAPIService, srsc: GlobalSegmentationOMEROStorageConnector): TrackingOMEROStorageConnector {
         return new TrackingOMEROStorageConnector(omeroAPI, new TrackingModel(), srsc);
     }
 
-    static createFromExisting(omeroAPI: OmeroAPIService, srsc: SegmentationOMEROStorageConnector, guiTracking: any) {
+    static createFromExisting(omeroAPI: OmeroAPIService, srsc: GlobalSegmentationOMEROStorageConnector, guiTracking: any) {
         try {
             const trackingModel: TrackingModel = deserialize<TrackingModel>(guiTracking, TrackingModel);
 
@@ -195,7 +190,7 @@ export class TrackingOMEROStorageConnector extends StorageConnector<TrackingMode
 
     constructor(omeroAPI: OmeroAPIService,
                 trackingModel: TrackingModel,
-                srsc: SegmentationOMEROStorageConnector,
+                srsc: GlobalSegmentationOMEROStorageConnector,
                 restRecord?: GUITracking) {
         super(trackingModel);
         this.omeroApi = omeroAPI;

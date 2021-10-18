@@ -70,6 +70,12 @@
         </ion-col>-->
       </ion-row>
       <ion-row>
+        <ion-item>
+          <ion-label>Predicted Labels</ion-label>
+          <ion-checkbox [(ngModel)]="useLabels" slot="end"></ion-checkbox>
+        </ion-item>
+      </ion-row>
+      <ion-row>
         <ion-col>
           <ion-button expand="block" (click)="commit()">Commit</ion-button>
         </ion-col>

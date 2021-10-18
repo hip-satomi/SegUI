@@ -12,8 +12,12 @@ import { RouterModule } from '@angular/router';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
 import { AnimatedPreviewComponent } from '../components/animated-preview/animated-preview.component';
 import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
+import { AnnLabelComponent } from '../components/ann-label/ann-label.component';
+import { ColorPickerComponent } from '../components/color-picker/color-picker.component';
 
-
+import { ColorPickerModule } from 'ngx-color-picker';
+import { AnnManagerComponent } from '../components/ann-manager/ann-manager.component';
+import { AnnLabelChipComponent } from '../components/ann-label-chip/ann-label-chip.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +28,11 @@ import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
     SimpleNavigationComponent,
     MultiSelectToolComponent,
     AnimatedPreviewComponent,
-    ThumbnailsPipe
+    ThumbnailsPipe,
+    AnnLabelComponent,
+    ColorPickerComponent,
+    AnnManagerComponent,
+    AnnLabelChipComponent
   ],
   exports: [
     ImageDisplayComponent,
@@ -34,14 +42,19 @@ import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
     SimpleNavigationComponent,
     MultiSelectToolComponent,
     AnimatedPreviewComponent,
-    ThumbnailsPipe
+    ThumbnailsPipe,
+    AnnLabelComponent,
+    ColorPickerComponent,
+    AnnManagerComponent,
+    AnnLabelChipComponent
   ],
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
     MatTooltipModule,
-    RouterModule
+    RouterModule,
+    ColorPickerModule
   ]
 })
 export class SharedComponentsModule { }

@@ -7,7 +7,7 @@
     </ion-select>
     <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
     <ion-buttons slot="end">
-      <ion-button (click)="omeroImport(this.stateService.imageSetId).subscribe()" #tooltip="matTooltip"
+      <ion-button (click)="omeroImport().subscribe()" #tooltip="matTooltip"
         matTooltip="Import segmentation from OMERO"><ion-icon name="download-outline"></ion-icon> Import</ion-button>
       <ion-button (click)="omeroExport()" #tooltip="matTooltip"
         matTooltip="Export segmentation to OMERO"><ion-icon name="share-outline"></ion-icon> Export</ion-button>
@@ -70,13 +70,13 @@
 <ion-content [fullscreen]="true" appMovableArea>
   <div #toolContainer>
   </div>
-  <app-segmentation #segTool class="popover" [appMovable]="true" [segModel]="curSegModel" [segUI]="curSegUI">
+  <app-segmentation #segTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-segmentation>
 
-  <app-brush #brushTool class="popover" [appMovable]="true" (changedEvent)="draw()"  [segModel]="curSegModel" [segUI]="curSegUI">
+  <app-brush #brushTool class="popover" [appMovable]="true" (changedEvent)="draw()" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-brush>
 
-  <app-multi-select-tool #multiSelectTool class="popover" [appMovable]="true" (changedEvent)="draw()" [segModel]="curSegModel" [segUI]="curSegUI">
+  <app-multi-select-tool #multiSelectTool class="popover" [appMovable]="true" (changedEvent)="draw()" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-multi-select-tool>
 
   <ion-header collapse="condense">
@@ -90,7 +90,9 @@
   <!--<app-image-view #imageView [imageUrl]="url" [enabled]="activeView === i" [segmentationModel]="segmentationModels[i]" [segmentationUI]="segmentationUIs[i]" *ngFor="let url of urls; let i = index"></app-image-view>-->
 </ion-content>
 
-<ion-footer *ngIf="urls.length > 1">
+<app-ann-manager *ngIf="globalSegModel" [globalSegModel]="globalSegModel" (redraw)="draw()"></app-ann-manager>
+
+<ion-footer *ngIf="segmentationModels.length > 1">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="navigateToPreviousImageSequence().pipe(showErrorPipe).subscribe()" style="padding-right:10px">

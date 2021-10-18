@@ -1,4 +1,5 @@
 import { Polygon } from 'src/app/models/geometry';
+import { JsonProperty, Serializable } from 'typescript-json-serializer';
 import { ClearableStorage } from './action';
 
 
@@ -6,6 +7,7 @@ export class SegmentationData implements ClearableStorage {
     private polygons: Map<string, Polygon>;
     activePolygonId: string;
     activePointIndex: number;
+    labels: Map<string, number>;
 
     constructor() {
         this.clear();
@@ -13,8 +15,9 @@ export class SegmentationData implements ClearableStorage {
 
     clear() {
         this.polygons = new Map<string, Polygon>();
-        this.activePolygonId = '';
+        this.activePolygonId = null;
         this.activePointIndex = 0;
+        this.labels = new Map<string, number>();
     }
 
     getPolygon(polygonId: string): Polygon {
@@ -25,8 +28,26 @@ export class SegmentationData implements ClearableStorage {
         }
     }
 
-    addPolygon(uuid: string, polygon: Polygon) {
+    /**
+     * Query the label of a polygon
+     * 
+     * @param polygonId uuid of the polygon
+     * @returns the corresponding label
+     */
+    getPolygonLabel(polygonId: string): number {
+        return this.labels.get(polygonId);
+    }
+
+    /**
+     * Add a new polygon
+     * 
+     * @param uuid id of the polygon
+     * @param polygon the polygon itself
+     * @param labelId the label id of the polygon
+     */
+    addPolygon(uuid: string, polygon: Polygon, labelId: number) {
         this.polygons.set(uuid, polygon);
+        this.labels.set(uuid, labelId);
     }
 
     /**
@@ -39,6 +60,7 @@ export class SegmentationData implements ClearableStorage {
 
         // delete polygon
         this.polygons.delete(uuid);
+        this.labels.delete(uuid);
 
         // return the old one
         return poly;
@@ -52,6 +74,12 @@ export class SegmentationData implements ClearableStorage {
         }
 
         return null;
+    }
+
+    getEmptyPolygons() {
+        return [...this.polygons.entries()].filter(([id, poly]) => {
+            return poly.numPoints == 0;
+        });
     }
 
     getPolygonEntries() {
@@ -68,5 +96,23 @@ export class SegmentationData implements ClearableStorage {
 
     get numPolygons(): number {
         return this.polygons.size;
+    }
+}
+
+
+@Serializable()
+export class AnnotationLabel {
+    @JsonProperty() id: number;
+    @JsonProperty() name: string;
+    @JsonProperty() visible: boolean;
+    @JsonProperty() color: string;
+    @JsonProperty() active: boolean;
+
+    constructor(id: number, name: string, visibile = true, color = 'random', active = true) {
+        this.id = id;
+        this.name = name;
+        this.visible = visibile;
+        this.color = color;
+        this.active = true;
     }
 }

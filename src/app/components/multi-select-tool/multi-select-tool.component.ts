@@ -5,7 +5,7 @@ import { JointAction, RemovePolygon, Action, ChangePolygonPoints } from 'src/app
 import { Pencil, Tool } from 'src/app/models/drawing';
 import { Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { SegmentationData } from 'src/app/models/segmentation-data';
-import { SegmentationModel } from 'src/app/models/segmentation-model';
+import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { Position, Utils } from 'src/app/models/utils';
 
@@ -23,7 +23,9 @@ export class MultiSelectToolComponent extends Tool {
   @Output() changedEvent = new EventEmitter<void>();
 
   @Input()
-  segModel: SegmentationModel;
+  localSegModel: LocalSegmentationModel;
+  @Input()
+  globalSegModel: GlobalSegmentationModel;
   _segUI: SegmentationUI;
   ctx;
   canvasElement;
@@ -61,27 +63,27 @@ export class MultiSelectToolComponent extends Tool {
 
       const actions: Action<SegmentationData>[] = [];
       // TODO more efficient with rtree
-      for (const [uuid, poly] of this.segModel.segmentationData.getPolygonEntries()) {
+      for (const [uuid, poly] of this.localSegModel.segmentationData.getPolygonEntries()) {
           if (this.rectangle.isInside(poly.center)) {
               actions.push(new RemovePolygon(uuid));
           }
       }
 
-      this.segModel.addAction(new JointAction(...actions));
+      this.localSegModel.addAction(new JointAction(...actions));
 
       return true;
   }
 
   get currentPolygon(): Polygon {
-      return this.segModel.activePolygon;
+      return this.localSegModel.activePolygon;
   }
 
   /**
    * Updates segmentation model and resets the brush tool
    * @param segModel the new segmentation model
    */
-  setModel(segModel: SegmentationModel, segUI: SegmentationUI) {
-      this.segModel = segModel;
+  setModel(segModel: LocalSegmentationModel, segUI: SegmentationUI) {
+      this.localSegModel = segModel;
       this.segUI = segUI;
   }
 
@@ -117,10 +119,10 @@ export class MultiSelectToolComponent extends Tool {
       }
 
       // 1. Draw all other detections
-      this.segModel.drawPolygons(ctx, false, ([uuid, poly]) => {
+      this.segUI.drawPolygons(ctx, false, ([uuid, poly]) => {
           return !this.rectangle?.isInside(poly.center);
       });
-      for (const [uuid, poly] of this.segModel.segmentationData.getPolygonEntries()) {
+      for (const [uuid, poly] of this.localSegModel.segmentationData.getPolygonEntries()) {
           if (this.rectangle?.isInside(poly.center)) {
               poly.draw(ctx, true);
           }
@@ -211,8 +213,8 @@ export class MultiSelectToolComponent extends Tool {
   commitChanges() {
       if (this.dirty) {
           // only add actions if we have changed something
-          this.segModel.addAction(new ChangePolygonPoints(this.currentPolygon.points,
-                                  this.segModel.activePolygonId));
+          this.localSegModel.addAction(new ChangePolygonPoints(this.currentPolygon.points,
+                                  this.localSegModel.activePolygonId));
       }
       this.dirty = false;
 
@@ -229,7 +231,8 @@ export class MultiSelectToolComponent extends Tool {
    * Creates a new polygon
    */
   save() {
-      this.segModel.addNewPolygon();
+      // TODO: Default label?
+      this.localSegModel.addNewPolygon(0);
   }
 
   get canSave() {
@@ -237,19 +240,19 @@ export class MultiSelectToolComponent extends Tool {
   }
 
   get canUndo() {
-      return this.segModel.canUndo;
+      return this.globalSegModel.canUndo;
   }
 
   get canRedo() {
-      return this.segModel.canRedo;
+      return this.globalSegModel.canRedo;
   }
 
   undo() {
-      return this.segModel.undo();
+      return this.globalSegModel.undo();
   }
 
   redo() {
-      return this.segModel.redo();
+      return this.globalSegModel.redo();
   }  
 
 }
