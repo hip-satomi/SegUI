@@ -300,11 +300,11 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
         const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
 
         // Increase/Decrease depending on selected mode
+        const tube = this.smoothBrush(oldPointerPos, this.pointerPos);
         if (this.increase) {
-            const increase = this.smoothBrush(oldPointerPos, this.pointerPos);
-            this.currentPolygon.join(increase);
+            this.currentPolygon.join(tube);
         } else {
-            this.currentPolygon.subtract(circle);
+            this.currentPolygon.subtract(tube);
         }
 
         // prevent segmentation outside of the image area
