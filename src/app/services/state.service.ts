@@ -1,4 +1,3 @@
-import { TrackingModel } from './../models/tracking';
 import { SegmentationHolder, SegmentationModel } from './../models/segmentation-model';
 import { Injectable } from '@angular/core';
 
@@ -11,7 +10,6 @@ export class StateService {
 
   imageSetId: number;
   holder: SegmentationHolder;
-  tracking: TrackingModel;
 
   constructor() { }
 }

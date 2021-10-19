@@ -10,7 +10,6 @@ import { debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/oper
 import { GUISegmentation, GUITracking, SimpleSegmentationREST } from './../services/seg-rest.service';
 import { SegRestService } from 'src/app/services/seg-rest.service';
 import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder, GlobalSegmentationModel } from './segmentation-model';
-import { TrackingModel } from './tracking';
 import { Observable, of, zip, empty, Subject } from 'rxjs';
 import { StorageConnector } from './storage';
 
@@ -162,64 +161,5 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
     public update() {
         const data: string = JSON.stringify(this.model.content);
         return this.omeroAPI.updateFile(this.parentOMERO.imageSetId, 'simpleSegmentation.json', data);
-    }
-}
-
-export class TrackingOMEROStorageConnector extends StorageConnector<TrackingModel> {
-
-    srsc: GlobalSegmentationOMEROStorageConnector;
-    restRecord: GUITracking;
-    omeroApi: OmeroAPIService;
-
-    static createNew(omeroAPI: OmeroAPIService, srsc: GlobalSegmentationOMEROStorageConnector): TrackingOMEROStorageConnector {
-        return new TrackingOMEROStorageConnector(omeroAPI, new TrackingModel(), srsc);
-    }
-
-    static createFromExisting(omeroAPI: OmeroAPIService, srsc: GlobalSegmentationOMEROStorageConnector, guiTracking: any) {
-        try {
-            const trackingModel: TrackingModel = deserialize<TrackingModel>(guiTracking, TrackingModel);
-
-            trackingModel.onDeserialized();
-
-            return new TrackingOMEROStorageConnector(omeroAPI, trackingModel, srsc, guiTracking);
-        } catch (e) {
-            console.error(e);
-            return null;
-        }
-    }
-
-    constructor(omeroAPI: OmeroAPIService,
-                trackingModel: TrackingModel,
-                srsc: GlobalSegmentationOMEROStorageConnector,
-                restRecord?: GUITracking) {
-        super(trackingModel);
-        this.omeroApi = omeroAPI;
-        this.srsc = srsc;
-        this.restRecord = restRecord;
-
-        // register with the on change event
-        this.model.onModelChanged.pipe(
-            filter((changeEvent: ModelChanged<TrackingModel>) => {
-                return changeEvent.changeType === ChangeType.HARD;
-            }),
-            debounceTime(5000),
-            switchMap(() => {
-                return this.update().pipe(
-                    catchError((err) => {
-                        console.error('Error while updating tracking REST backend!');
-                        console.error(err);
-                        return empty();
-                    })
-                );
-            })
-        ).subscribe((val) => {
-            console.log('Updated tracking REST model!');
-        });
-    }
-
-    public update() {
-        // update the tracking file
-        const trackModelJSON = JSON.stringify(serialize(this.model));
-        return this.omeroApi.updateFile(this.srsc.imageSetId, 'GUITracking.json', trackModelJSON);
     }
 }

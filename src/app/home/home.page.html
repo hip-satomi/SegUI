@@ -1,10 +1,5 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-select [(ngModel)]="editMode" interface="action-sheet" slot="start" #tooltip="matTooltip"
-    matTooltip="Change your working mode here">
-      <ion-select-option value="0">Segment</ion-select-option>
-      <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
-    </ion-select>
     <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
     <ion-buttons slot="end">
       <ion-button (click)="omeroImport().subscribe()" #tooltip="matTooltip"

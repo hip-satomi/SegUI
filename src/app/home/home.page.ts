@@ -1,29 +1,23 @@
-import { SelectedSegment } from './../models/tracking-data';
-import { TrackingService, Link } from './../services/tracking.service';
 import { Dataset, OmeroAPIService, Project, RoIData, RoIModData } from './../services/omero-api.service';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { OmeroUtils, UIUtils, Utils } from './../models/utils';
 import { Polygon, Point, BoundingBox } from './../models/geometry';
-import { AddPolygon, JointAction, AddLinkAction, LocalAction, AddLabelAction, Action } from './../models/action';
+import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './../models/action';
 import { SegmentationService } from './../services/segmentation.service';
-import { ModelChanged, ChangeType } from './../models/change';
-import { StateService } from './../services/state.service';
-import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector, TrackingOMEROStorageConnector } from './../models/storage-connectors';
-import { GUISegmentation } from './../services/seg-rest.service';
-import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, concatMap, concatAll, mergeAll, combineAll, switchMapTo, mapTo, throttle, throttleTime, catchError } from 'rxjs/operators';
-import { BehaviorSubject, EMPTY, from, Observable, of, pipe, ReplaySubject, Subject, Subscription, throwError, zip } from 'rxjs';
-import { TrackingUI } from './../models/tracking-ui';
-import { TrackingModel } from './../models/tracking';
+import { ModelChanged } from './../models/change';
+import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
+import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
+import { from, Observable, of, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
 import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder as SimpleSegmentationHolder, SimpleSegmentation, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
+import { SimpleSegmentationHolder as SimpleSegmentationHolder, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
 import { ActionSheetController, AlertController, LoadingController, PopoverController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContainerRef, ComponentFactoryResolver } from '@angular/core';
 
-import { LocalNotifications, Plugins } from '@capacitor/core';
+import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
@@ -35,14 +29,6 @@ import { AnnotationLabel } from '../models/segmentation-data';
 
 
 const { Storage } = Plugins;
-
-/**
- * Different edit modes
- */
-export enum EditMode {
-  Segmentation = '0',
-  Tracking = '1'
-}
 
 /**
  * Different data backend modes
@@ -69,8 +55,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   segmentationUIs: SegmentationUI[] = [];
 
-  trackingUI: TrackingUI;
-
   simpleSegHolder: SimpleSegmentationHolder;
   globalSegModel: GlobalSegmentationModel;
 
@@ -92,21 +76,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   protected ngUnsubscribe: Subject<void> = new Subject<void>();
 
 
-  _editMode: EditMode = EditMode.Segmentation;
-
   tool = null;
 
   showErrorPipe = catchError(e => {this.showError(e); return throwError(e);});
-
-  get editMode(): EditMode {
-    return this._editMode;
-  }
-
-  set editMode(value: EditMode) {
-    this._editMode = value;
-
-    this.draw();
-  }
 
   imageSetId = new ReplaySubject<number>(1);
 
@@ -129,7 +101,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private loadingCtrl: LoadingController,
               private authService: AuthService,
               private httpClient: HttpClient,
-              private trackingService: TrackingService,
               private popoverController: PopoverController,
               private resolver: ComponentFactoryResolver,
               private alertController: AlertController,
@@ -145,9 +116,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
     if (this.isSegmentation) {
       return this.curSegUI.onPointerDown(event);
-    } else {
-      return this.trackingUI.onPointerDown(event);
-    }
+    } 
+    
+    return false;
   }
 
   onPointerMove(event: any): boolean {
@@ -158,9 +129,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
     if (this.isSegmentation) {
       return this.curSegUI?.onPointerMove(event);
-    } else {
-      return this.trackingUI?.onPointerMove(event);
-    }
+    } 
+    
+    return false;
   }
 
   onPointerUp(event: any): boolean {
@@ -171,9 +142,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
     if (this.isSegmentation) {
       return this.curSegUI?.onPointerUp(event);
-    } else {
-      return this.trackingUI?.onPointerUp(event);
-    }
+    } 
+    
+    return false;
   }
 
   onTap(event: any): boolean {
@@ -186,9 +157,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
     if (this.isSegmentation) {
       return this.curSegUI?.onTap(event);
-    } else {
-      return this.trackingUI?.onTap(event);
     }
+
+    return false;
   }
 
   onPress(event: any): boolean {
@@ -200,6 +171,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     if (this.isSegmentation) {
       return this.curSegUI?.onPress(event);
     }
+
+    return false;
   }
   onPanStart(event: any): boolean {
     if (this.tool) {
@@ -210,6 +183,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     if (this.isSegmentation) {
       return this.curSegUI?.onPanStart(event);
     }
+
+    return false;
   }
   onPan(event: any): boolean {
     if (this.tool) {
@@ -220,6 +195,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     if (this.isSegmentation) {
       return this.curSegUI?.onPan(event);
     }
+
+    return false;
   }
   onPanEnd(event: any): boolean {
     if (this.tool) {
@@ -230,6 +207,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     if (this.isSegmentation) {
       return this.curSegUI?.onPanEnd(event);
     }
+
+    return false;
   }
 
   onMove(event: any): boolean {
@@ -242,10 +221,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       this.justTapped = false;
     } else {
       // redirect move action to child handlers if they are created w.r.t. mode
-      if (this.isSegmentation && this.curSegUI) {
+      if (this.curSegUI) {
         return this.curSegUI.onMove(event);
-      } else if (this.trackingUI && this.trackingUI) {
-        return this.trackingUI.onMove(event);
       }
     }
 
@@ -478,19 +455,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
         return {...content, derived};
       }),
-      // create the tracking connector
-      /*map((content) => {
-        let trsc: TrackingOMEROStorageConnector;
-        if (content.tracking === null) {
-          // create a tracking
-          trsc = TrackingOMEROStorageConnector.createNew(this.omeroAPI, content.srsc);
-        } else {
-          // load from existing
-          trsc = TrackingOMEROStorageConnector.createFromExisting(this.omeroAPI, content.srsc, content.tracking);
-        }
-
-        return {srsc: content.srsc, trsc, derived: content.derived, urls: content.urls};
-      }),*/
       tap(async (content) => {
         this.pencil = new Pencil(this.imageDisplay.ctx, this.imageDisplay.canvasElement);
 
@@ -545,34 +509,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
-  /**
-   * Import {@link TrackingModel} into the current UI
-   * @param trackingModel the tracking model to import
-   */
-  /*async importTracking(trackingModel: TrackingModel) {
-    if (trackingModel === null) {
-      // There was an error while loading the tracking
-      const toast = await this.toastController.create({
-        message: `Error while loading tracking data`,
-        duration: 2000
-      });
-      toast.present();
-    } else {
-      // set the tracking model
-      this.trackingModel = trackingModel;
-      // create the associated tracking UI
-      this.trackingUI = new TrackingUI(this.segmentationModels,
-        this.segmentationUIs,
-        this.trackingModel,
-        this.imageDisplay.canvasElement,
-        this.toastController,
-        this.activeView);
-      this.trackingModel.onModelChanged.subscribe((trackingChangedEvent: ModelChanged<TrackingModel>) => {
-          // redraw
-          this.draw();
-      });
-    }
-  }*/
 
   /*get segHolder() {
     return this.stateService.holder;
@@ -590,20 +526,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
-  /*get trackingModel() {
-    return this.stateService.tracking;
-  }
-
-  set trackingModel(trackingModel: TrackingModel) {
-    this.stateService.tracking = trackingModel;
-  }*/
-
   get isSegmentation() {
-    return this.editMode === EditMode.Segmentation;
-  }
-
-  get isTracking() {
-    return this.editMode === EditMode.Tracking;
+    return true;
   }
 
   get curSegUI(): SegmentationUI {
@@ -627,10 +551,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   @HostListener('document:keydown.control.z')
   async undo() {
     if (this.canUndo) {
-      if (this.editMode === EditMode.Segmentation && this.curSegModel) {
+      if (this.curSegModel) {
         this.globalSegModel.undo();
-      } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-        this.trackingUI.undo();
       }
     }
   }
@@ -638,10 +560,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   @HostListener('document:keydown.control.y')
   async redo() {
     if (this.canRedo) {
-      if (this.editMode === EditMode.Segmentation && this.curSegModel) {
+      if (this.curSegModel) {
         this.globalSegModel.redo();
-      } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-        this.trackingUI.redo();
       }
     }
   }
@@ -650,10 +570,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     if (this.tool) {
       return this.tool.canSave;
     }
-    if (this.editMode === EditMode.Segmentation && this.curSegUI) {
+    if (this.curSegUI) {
       return this.curSegUI.canSave;
-    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-      return this.trackingUI.canSave;
     }
 
     return false;
@@ -664,11 +582,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       if (this.tool) {
         this.tool.save();
       }
-      else if (this.editMode === EditMode.Segmentation && this.curSegUI) {
+      else if (this.curSegUI) {
         this.curSegUI.save();
-        return;
-      } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-        this.trackingUI.save();
         return;
       }
     } else {
@@ -678,22 +593,16 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   get canRedo() {
-    if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-      //return this.curSegModel.canRedo;
+    if (this.curSegModel) {
       return this.globalSegModel.canRedo;
-    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-      return this.trackingUI.canRedo;
     }
 
     return false;
   }
 
   get canUndo() {
-    if (this.editMode === EditMode.Segmentation && this.curSegModel) {
-      //return this.curSegModel.canUndo;
+    if (this.curSegModel) {
       return this.globalSegModel.canUndo;
-    } else if (this.editMode === EditMode.Tracking && this.trackingUI) {
-      return this.trackingUI.canUndo;
     }
 
     return false;
@@ -730,16 +639,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   set activeView(viewIndex: number) {
     this._activeView = viewIndex;
 
-    if (this.trackingUI) {
-      this.trackingUI.currentFrame = this.activeView;
-    }
-
-    /*if (this.isSegmentation && this.tool) {
-      if (this.tool.setModel == 'function') {
-        this.tool.setModel(this.curSegModel, this.curSegUI);
-      }
-    }*/
-
     this.draw();
   }
 
@@ -767,14 +666,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     if (this.activeTool) {
       return this.tool.prepareDraw();
     }
-    else if (this.editMode === EditMode.Segmentation) {
+    else {
       if (this.segmentationUIs.length == 0) {
         return null;
       }
       // draw the segmentation stuff
       return this.segmentationUIs[this.activeView]?.prepareDraw();
-    } else {
-      return this.trackingUI?.prepareDraw();
     }
   }
 
@@ -799,7 +696,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       () => {
         //console.log('Home: Successful draw');
       },
-      (e) => {console.log('Error during drawing process!'); console.error(e)},
+      (e) => {
+        console.log('Error during drawing process!');
+        console.error(e);
+        throwError(e);
+      },
       () => this.drawingSubscription = null      
     );
   }
@@ -932,59 +833,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }).then(toast => toast.present());
   }
 
-  /**
-   * Request tracking proposals and add them to the tracking model
-   */
-  /*track() {
-    // we need to access derived segmentation holder
-    this.simpleSegHolder.update();
-    const segContent = this.simpleSegHolder.content;
-
-    const currentFrame = this.activeView;
-    const nextFrame = this.activeView + 1;
-
-    if (nextFrame >= segContent.length) {
-      this.showError('There is now future frame for tracking!');
-      return;
-    }
-
-    const loading = this.loadingCtrl.create({
-      message: 'Please wait while tracking is computed...',
-      backdropDismiss: true,
-    });
-    loading.then(l => l.present());
-
-    const restrictedSimpleSeg: SimpleSegmentation[] = [segContent[currentFrame], segContent[nextFrame]];
-
-    this.trackingService.computeTracking(restrictedSimpleSeg).pipe(
-      finalize(() => loading.then(l => l.dismiss()))
-    ).subscribe(
-      ((links: Array<Link>) => {
-        console.log(links);
-
-        // filter links --> only meaningful links
-        const filteredLinks = links.filter((link) => !(link.sources.length === 0 || link.targets.length === 0));
-
-        if (filteredLinks.length === 0) {
-          // no link survived filtering
-          this.showError('No tracking link survived filtering! No tracking info added!');
-        }
-
-        const actions = [];
-        for (const link of filteredLinks) {
-          const targets = [];
-          for (const target of link.targets) {
-            targets.push(new SelectedSegment(target));
-          }
-          actions.push(new AddLinkAction(new SelectedSegment(link.sources[0]), targets));
-        }
-
-        this.trackingModel.actionManager.addAction(new JointAction(...actions));
-      }),
-      () => this.showError('Error while tracking!')
-    );
-  }*/
-
+  
   omeroImport(reload=true): Observable<GlobalSegmentationOMEROStorageConnector> {
     // 1. Check whether OMERO has ROI data available
     return this.imageSetId.pipe(

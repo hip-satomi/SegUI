@@ -2,7 +2,6 @@ import { Utils } from './utils';
 import { Point } from './geometry';
 import 'reflect-metadata';
 import { EventEmitter } from '@angular/core';
-import { SelectedSegment, TrackingData, TrackingLink } from './tracking-data';
 import { AnnotationLabel, SegmentationData } from './segmentation-data';
 import { Polygon } from 'src/app/models/geometry';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,11 +20,6 @@ enum ActionTypes {
     SelectPolygon = "AddPointAction",
     MovePointAction = "MovePointAction",
     ChangePolygonPoints = "MovePointAction",
-
-    // Actions for tracking
-    SelectSegmentAction = "SelectSegmentAction",
-    AddLinkAction = "AddLinkAction",
-    UnselectSegmentAction = "UnselectSegmentAction",
 
     JointAction = "JointAction",
     PreventUndoActionWrapper = "PreventUndoActionWrapper",
@@ -398,108 +392,6 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
     }
 }
 
-/**
- * Basic tracking action
- * 
- * works on tracking data
- */
-/*@Serializable()
-export abstract class TrackingAction extends Action<TrackingData> {
-
-    protected trackingData: TrackingData;
-
-    constructor(type: ActionTypes, trackingData: TrackingData) {
-        super(type);
-        this.trackingData = trackingData;
-    }
-
-    setData(info) {
-        if (!info.trackingData) {
-            throw new Error('Illegal relinking of tracking action! No tracking data available');
-        }
-
-        this.trackingData = info.trackingData;
-    }
-}*/
-
-/**
- * Select a segmentation during the tracking process
- */
-@Serializable()
-export class SelectSegmentAction extends Action<TrackingData> {
-    @JsonProperty()
-    selection: SelectedSegment;
-
-    constructor(selectedSegment: SelectedSegment) {
-        super(ActionTypes.SelectSegmentAction);
-        this.selection = selectedSegment;
-    }
-
-    perform(trackingData: TrackingData) {
-        trackingData.selectedSegments.push(this.selection);
-    }
-
-}
-
-@Serializable()
-export class UnselectSegmentAction extends Action<TrackingData> {
-    @JsonProperty()
-    selection: SelectedSegment;
-
-    constructor(selectedSegment: SelectedSegment) {
-        super(ActionTypes.UnselectSegmentAction);
-
-        this.selection = selectedSegment;
-    }
-
-    perform(trackingData: TrackingData) {
-        for (const [index, item] of trackingData.selectedSegments.entries()) {
-            if (item.polygonId === this.selection.polygonId) {
-                trackingData.selectedSegments.splice(index, 1);
-            }
-        }
-    }
-}
-
-/**
- * Add a link during the tracking process
- */
-@Serializable()
-export class AddLinkAction extends Action<TrackingData> {
-
-    @JsonProperty()
-    link: TrackingLink;
-
-    @JsonProperty({type: UnselectSegmentAction})
-    unselections: UnselectSegmentAction[] = [];
-
-    constructor(source: SelectedSegment, targets: SelectedSegment[]) {
-        super(ActionTypes.AddLinkAction);
-
-        if (!source) {
-            // restoring from json
-            return;
-        }
-
-        this.link = new TrackingLink(source, targets);
-
-    }
-
-    perform(trackingData: TrackingData) {
-        this.unselections = [];
-
-        for (const segment of trackingData.selectedSegments) {
-            this.unselections.push(new UnselectSegmentAction(segment));
-        }
-
-        trackingData.trackingLinks.push(this.link);
-
-        for (const unsel of this.unselections) {
-            unsel.perform(trackingData);
-        }
-    }
-}
-
 @Serializable()
 export class AddLabelAction extends Action<SegCollData> {
 
@@ -680,10 +572,6 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
         [ActionTypes.SelectPolygon, SelectPolygon],
         [ActionTypes.MovePointAction, MovePointAction],
         [ActionTypes.ChangePolygonPoints, ChangePolygonPoints],
-
-        [ActionTypes.SelectSegmentAction, SelectSegmentAction],
-        [ActionTypes.AddLinkAction, AddLinkAction],
-        [ActionTypes.UnselectSegmentAction, UnselectSegmentAction],
 
         [ActionTypes.JointAction, JointAction],
         [ActionTypes.PreventUndoActionWrapper, PreventUndoActionWrapper],
