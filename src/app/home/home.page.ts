@@ -433,11 +433,17 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                 }),
                 catchError((e, obs) => {
                   // there was an error importing the existing data
+
+                  // ask user to create new segmentation
                   return this.userQuestions.createNewData().pipe(
                     switchMap((createNewOne) => {
                       if(createNewOne) {
+                        // create new segmentation
                         srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
-                        return of(srsc);
+                        // and force an update on the server
+                        return of(srsc).pipe(
+                          tap(() => srsc.update())
+                        );
                       } else {
                         // TODO: Navigate to parent
                         throwError(e);
