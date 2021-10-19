@@ -62,10 +62,8 @@ export const pairwiseDistanceMin = (pos: number[], positions: number[][]) => {
 
 export class Utils {
 
-  private static tree = require( 'tree-kit' );
-
   // Load the core build.
-  static lodashCore = require('lodash');
+  private static lodashCore = require('lodash');
 
   static clone(obj) {
     return Utils.lodashCore.cloneDeep(obj, true);
