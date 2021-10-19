@@ -103,4 +103,34 @@ export class UserQuestionsService {
       duration
     }).then(toast => toast.present());
   }
+
+  createNewData(): Observable<boolean> {
+    return from(this.alertController.create({
+      //cssClass: 'my-custom-class',
+      header: 'Loading Failed',
+      //subHeader: 'Subtitle',
+      message: `Loading of the existing annotation data failed. Do you want to create a new clean one?`,
+      buttons: [
+        {
+          text: 'No',
+          role: 'cancel'
+        },
+        {
+          text: 'Yes',
+          role: 'confirm',
+        },
+      ]
+    })).pipe(
+      tap(alert => {
+        alert.present()
+      }),
+      switchMap(alert => {
+        return from(alert.onDidDismiss())
+      }),
+      map(data => {
+        return data['role']
+      }),
+      map(role => role == 'confirm')
+    );
+  }
 }

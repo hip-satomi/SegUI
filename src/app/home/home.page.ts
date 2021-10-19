@@ -8,7 +8,7 @@ import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged } from './../models/change';
 import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
-import { from, Observable, of, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
+import { from, Observable, of, pipe, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
 import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
@@ -404,64 +404,87 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   loadImageSetById(imageSetId: number) {
     // get image urls
     return this.omeroAPI.getImageUrls(imageSetId).pipe(
-      // get the latest tracking
-      mergeMap((urls: string[]) => {
-        return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUITracking.json').pipe(
-          map(tr => ({urls, tracking: tr}))
+      switchMap((urls: string[]) => {
+        return of(urls).pipe(
+          // get the latest tracking
+          mergeMap((urls: string[]) => {
+            return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUITracking.json').pipe(
+              map(tr => ({urls, tracking: tr}))
+            );
+          }),
+          // TODO: depending on the tracking load the segmentation
+          // Currently: Load the latest GUISegmentation
+          mergeMap((joint) => {
+            return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUISegmentation.json').pipe(
+              map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
+            );
+          }),
+          takeUntil(this.ngUnsubscribe),
+          // create the segmentation connector
+          switchMap((content) => {
+            let srsc: GlobalSegmentationOMEROStorageConnector;
+            let created = false;
+
+            let srscPipeline: Observable<GlobalSegmentationOMEROStorageConnector>;
+
+            if (content.segm === null) {
+              srscPipeline = this.omeroImport(false).pipe(
+                //map((srsc: GlobalSegmentationOMEROStorageConnector) => 'hello'),
+                catchError(e => {
+                  // loading from OMERO failed or has been rejected
+                  srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
+                  return of(srsc);
+                })
+              )
+            } else {
+              // load the existing model file
+              srscPipeline = of(1).pipe(
+                map(() => {
+                  const srsc = GlobalSegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId, this.ngUnsubscribe)
+                  return srsc;
+                }),
+                catchError((e, obs) => {
+                  // there was an error importing the existing data
+                  return this.userQuestions.createNewData().pipe(
+                    switchMap((createNewOne) => {
+                      if(createNewOne) {
+                        srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
+                        return of(srsc);
+                      } else {
+                        // TODO: Navigate to parent
+                        throwError(e);
+                        return of(null);
+                      }
+                    })
+                  );
+                })
+              );
+            }
+            return srscPipeline.pipe(
+              map (srsc => {return {srsc, tracking: content.tracking, urls: content.urls}})
+            );
+          }),
+          map((content) => {
+            // add the simple model
+            // TODO the construction here is a little bit weird
+            const derived = new SimpleSegmentationHolder(content.srsc.getModel());
+            const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, content.srsc);
+            // if we create a new segmentation -> update also the simple storage
+            //if (created) {
+            derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'));
+            //}
+
+            return {...content, derived};
+          }),
+          tap(async (content) => {
+            this.pencil = new Pencil(this.imageDisplay.ctx, this.imageDisplay.canvasElement);
+
+            //this.stateService.imageSetId = imageSetId;
+            await this.importSegmentation(content.srsc.getModel(), content.derived, content.urls);
+            //await this.importTracking(content.trsc.getModel());
+          }),
         );
-      }),
-      // TODO: depending on the tracking load the segmentation
-      // Currently: Load the latest GUISegmentation
-      mergeMap((joint) => {
-        return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUISegmentation.json').pipe(
-          map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
-        );
-      }),
-      takeUntil(this.ngUnsubscribe),
-      // create the segmentation connector
-      switchMap((content) => {
-        let srsc: GlobalSegmentationOMEROStorageConnector;
-        let created = false;
-
-        let srscPipeline: Observable<GlobalSegmentationOMEROStorageConnector>;
-
-        if (content.segm === null) {
-          srscPipeline = this.omeroImport(false).pipe(
-            //map((srsc: GlobalSegmentationOMEROStorageConnector) => 'hello'),
-            catchError(e => {
-              // loading from OMERO failed or has been rejected
-              srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
-              return of(srsc);
-            })
-          )
-        } else {
-          // load the existing model file
-          srsc = GlobalSegmentationOMEROStorageConnector.createFromExisting(this.omeroAPI, content.segm, imageSetId, this.ngUnsubscribe);
-          srscPipeline = of(srsc);
-        }
-        return srscPipeline.pipe(
-          map (srsc => {return {srsc, tracking: content.tracking, urls: content.urls}})
-        );
-      }),
-      map((content) => {
-        // add the simple model
-        // TODO the construction here is a little bit weird
-        const derived = new SimpleSegmentationHolder(content.srsc.getModel());
-        const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, content.srsc);
-        // if we create a new segmentation -> update also the simple storage
-        //if (created) {
-        derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'));
-        //}
-
-        return {...content, derived};
-      }),
-      tap(async (content) => {
-        this.pencil = new Pencil(this.imageDisplay.ctx, this.imageDisplay.canvasElement);
-
-        //this.stateService.imageSetId = imageSetId;
-        await this.importSegmentation(content.srsc.getModel(), content.derived, content.urls);
-        //await this.importTracking(content.trsc.getModel());
-      }),
+      }), 
       switchMap(() => this.route.paramMap.pipe(take(1))),
       switchMap(params => {
         return this.curSegUI.loadImage().pipe(

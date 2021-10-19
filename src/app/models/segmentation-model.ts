@@ -338,12 +338,22 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
     @JsonProperty()
     private actionManager: ActionManager<SegCollData>;
 
+    @JsonProperty()
+    private _formatVersion: string;
+
+    // TODO: change this if version changes (especially for breaks)
+    static currentFormatVersion = '0.1';
+
     segmentationData: SegCollData;
     private subscriptions: Subscription[] = [];
 
     _modelChanged = new EventEmitter<ModelChanged<GlobalSegmentationModel>>();
 
     protected destroySignal: Subject<void>;
+
+    get formatVersion(): string {
+        return this._formatVersion;
+    }
 
     get modelChanged() {
         return this.actionManager.onDataChanged.pipe(
@@ -377,8 +387,12 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
         });*/
 
         if (numSegmentationLayers === undefined) {
+            // we are only deserializing
             return;
         }
+
+        // set creation format version
+        this._formatVersion = GlobalSegmentationModel.currentFormatVersion;
 
         this.actionManager.addAction(new CreateSegmentationLayersAction(numSegmentationLayers));
 

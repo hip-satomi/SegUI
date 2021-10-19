@@ -35,6 +35,10 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
     public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number, destroySignal: Subject<void>): GlobalSegmentationOMEROStorageConnector {
         const model = deserialize<GlobalSegmentationModel>(segmentation, GlobalSegmentationModel);
 
+        if(model.formatVersion != GlobalSegmentationModel.currentFormatVersion) {
+            throw new Error("Segmentation format incompatability!");
+        }
+
         // TODO: this should be implemented into the serializer
         model.onDeserialized(destroySignal);
 
