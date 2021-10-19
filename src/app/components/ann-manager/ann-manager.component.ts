@@ -34,12 +34,12 @@ export class AnnManagerComponent implements OnInit {
     this.globalSegModel.addAction(new AddLabelAction(new AnnotationLabel(this.globalSegModel.nextLabelId(), newName, true, 'random', true)));
   }
 
-  beginHover() {
-    console.log('begin Hover');
+  beginHover(label: AnnotationLabel) {
+    console.log(`begin Hover: ${label}.name`);
   }
 
-  endHover() {
-    console.log('end Hover');
+  endHover(label: AnnotationLabel) {
+    console.log(`end Hover ${label}.name`);
   }
 
   changeVisibility(label: AnnotationLabel, visible: boolean) {
