@@ -106,7 +106,7 @@ export class UserQuestionsService {
 
   createNewData(): Observable<boolean> {
     return from(this.alertController.create({
-      //cssClass: 'my-custom-class',
+      cssClass: 'over-loading',
       header: 'Loading Failed',
       //subHeader: 'Subtitle',
       message: `Loading of the existing annotation data failed. Do you want to create a new clean one?`,
