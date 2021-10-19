@@ -1,7 +1,7 @@
 {
   "name": "segmentation",
-  "version": "0.0.1",
-  "author": "Ionic Framework",
+  "version": "0.0.2",
+  "author": "Johannes Seiffarth",
   "homepage": "https://ionicframework.com/",
   "scripts": {
     "ng": "ng",
@@ -75,5 +75,5 @@
     "tslint": "~6.1.0",
     "typescript": "~4.1.6"
   },
-  "description": "An Ionic project"
+  "description": "SegUI: microbial image annotation made easy"
 }
