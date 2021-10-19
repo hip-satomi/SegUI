@@ -22,31 +22,6 @@
         #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
         <ion-icon name="scan-outline"></ion-icon>
       </ion-button>
-      <!--<ion-button *ngIf="isSegmentation" (click)="isMultiSelectOpen = !isMultiSelectOpen; this.draw()" [ngClass]="{active: isMultiSelectOpen}"
-        #tooltip="matTooltip" matTooltip="Open multi-selection tool: Allows you to select multiple cells and jointly delete them">
-        <ion-icon name="scan-outline"></ion-icon>
-      </ion-button>-->
-      <!--<ion-button (click)=showPop()>
-        ADV-SEG
-      </ion-button>-->
-      <!--<ion-button (click)="openToolkit()">
-        <ion-icon name="medkit-outline"></ion-icon>
-      </ion-button>-->
-      <ion-button *ngIf="isTracking" (click)="track()">
-        TRACK
-      </ion-button>
-      <!--<ion-button *ngIf="isSegmentation" (click)="brushTool()" [ngClass]="{active: this.tool !== null}">
-        Brush
-      </ion-button>-->
-      <!--<ion-button (click)="doSegment('cs')">
-        SP-CS
-      </ion-button>-->
-      <!--<ion-button *ngIf="isSegmentation" (click)="doSegment('js')">
-        SP-JS
-      </ion-button>-->
-      <!--<ion-button (click)="segmentAll()">
-        ALL
-      </ion-button>-->
       <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px" #tooltip="matTooltip"
         matTooltip="Undo (Ctrl+Z)">
         <ion-icon name="arrow-undo-outline"></ion-icon>
