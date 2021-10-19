@@ -12,7 +12,6 @@ import { RouterModule } from '@angular/router';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
 import { AnimatedPreviewComponent } from '../components/animated-preview/animated-preview.component';
 import { ThumbnailsPipe } from '../pipes/thumbnails.pipe';
-import { AnnLabelComponent } from '../components/ann-label/ann-label.component';
 import { ColorPickerComponent } from '../components/color-picker/color-picker.component';
 
 import { ColorPickerModule } from 'ngx-color-picker';
@@ -29,7 +28,6 @@ import { AnnLabelChipComponent } from '../components/ann-label-chip/ann-label-ch
     MultiSelectToolComponent,
     AnimatedPreviewComponent,
     ThumbnailsPipe,
-    AnnLabelComponent,
     ColorPickerComponent,
     AnnManagerComponent,
     AnnLabelChipComponent
@@ -43,7 +41,6 @@ import { AnnLabelChipComponent } from '../components/ann-label-chip/ann-label-ch
     MultiSelectToolComponent,
     AnimatedPreviewComponent,
     ThumbnailsPipe,
-    AnnLabelComponent,
     ColorPickerComponent,
     AnnManagerComponent,
     AnnLabelChipComponent
