@@ -62,7 +62,14 @@ export const pairwiseDistanceMin = (pos: number[], positions: number[][]) => {
 
 export class Utils {
 
-  static tree = require( 'tree-kit' );
+  private static tree = require( 'tree-kit' );
+
+  // Load the core build.
+  static lodashCore = require('lodash');
+
+  static clone(obj) {
+    return Utils.lodashCore.cloneDeep(obj, true);
+  }
 
   static euclideanDistance(a: Point, b: Point) {
     return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));

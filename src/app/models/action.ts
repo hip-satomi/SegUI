@@ -198,7 +198,7 @@ export class AddPolygon extends Action<SegmentationData> {
     }
 
     perform(segmentationData: SegmentationData) {
-        segmentationData.addPolygon(this.uuid, Utils.tree.clone(this.poly), this.labelId);
+        segmentationData.addPolygon(this.uuid, Utils.clone(this.poly), this.labelId);
     }
 
 }
@@ -281,13 +281,13 @@ export class AddPointAction extends Action<SegmentationData> {
             return;
         }
 
-        this.point = Utils.tree.clone(point);
+        this.point = Utils.clone(point);
         this.index = index;
         this.polygonId = polygonId;
     }
 
     perform(segmentationData: SegmentationData) {
-        segmentationData.getPolygon(this.polygonId).addPoint(this.index, Utils.tree.clone(this.point));
+        segmentationData.getPolygon(this.polygonId).addPoint(this.index, Utils.clone(this.point));
 
         segmentationData.activePointIndex = this.index;
     }
@@ -340,13 +340,13 @@ export class MovePointAction extends Action<SegmentationData> {
 
         // newPoint can be null -> on deserialization
         if (newPoint) {
-            this.newPoint = Utils.tree.clone([...newPoint]);
+            this.newPoint = Utils.clone([...newPoint]);
         }
     }
 
     perform(segmentationData: SegmentationData) {
         const point = segmentationData.getPolygon(this.polygonId).getPoint(this.pointIndex)
-        this.oldPoint = Utils.tree.clone(point);
+        this.oldPoint = Utils.clone(point);
 
         point[0] = this.newPoint[0];
         point[1] = this.newPoint[1];
@@ -384,11 +384,11 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
         }
 
         this.polygonId = polygonId;
-        this.newPoints = Utils.tree.clone(newPoints);
+        this.newPoints = Utils.clone(newPoints);
     }
 
     perform(segmentationData: SegmentationData) {
-        segmentationData.getPolygon(this.polygonId).setPoints(Utils.tree.clone(this.newPoints));
+        segmentationData.getPolygon(this.polygonId).setPoints(Utils.clone(this.newPoints));
     }
 }
 

@@ -215,7 +215,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
       }
 
       this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
-      this.oldPoints = Utils.tree.clone(this.currentPolygon.points);
+      this.oldPoints = Utils.clone(this.currentPolygon.points);
 
       if (this.currentPolygon.numPoints === 0) {
           this.increase = true;
@@ -292,7 +292,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   }
 
   onPan(event: any): boolean {
-    const oldPointerPos = Utils.tree.clone(this.pointerPos);
+    const oldPointerPos = Utils.clone(this.pointerPos);
     this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
     if (this.brushActivated) {
         this.dirty = true;
