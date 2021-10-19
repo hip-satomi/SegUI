@@ -58,11 +58,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   simpleSegHolder: SimpleSegmentationHolder;
   globalSegModel: GlobalSegmentationModel;
 
-  /** Key where the segmentation data is stored */
-  segKey = 'segmentations';
-  /** Key where the tracking data is stored */
-  trackingKey = 'tracking';
-
   justTapped = false;
 
   backendMode = BackendMode.OMERO;
@@ -406,17 +401,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     return this.omeroAPI.getImageUrls(imageSetId).pipe(
       switchMap((urls: string[]) => {
         return of(urls).pipe(
-          // get the latest tracking
-          mergeMap((urls: string[]) => {
-            return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUITracking.json').pipe(
-              map(tr => ({urls, tracking: tr}))
-            );
-          }),
-          // TODO: depending on the tracking load the segmentation
           // Currently: Load the latest GUISegmentation
           mergeMap((joint) => {
             return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUISegmentation.json').pipe(
-              map(segm => ({urls: joint.urls, tracking: joint.tracking, segm}))
+              map(segm => ({urls: urls, segm}))
             );
           }),
           takeUntil(this.ngUnsubscribe),
@@ -461,7 +449,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               );
             }
             return srscPipeline.pipe(
-              map (srsc => {return {srsc, tracking: content.tracking, urls: content.urls}})
+              map (srsc => {return {srsc, urls: content.urls}})
             );
           }),
           map((content) => {
