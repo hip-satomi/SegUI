@@ -907,7 +907,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           tap(() => this.ngUnsubscribe.next()),
           switchMap(({importLabels, roiData}) => this.omeroAPI.getImageUrls(imageSetId).pipe(map(urls => {return {importLabels, roiData, urls}}))),
           map(combined => {
-            const {importLabels, roiData, urls} = combined;
+            let {importLabels, roiData, urls} = combined;
+
+            // only polgyons
+            roiData = roiData.filter(shape => shape.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
+
             // try to load the data
             const srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
 
