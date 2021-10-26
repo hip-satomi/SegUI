@@ -73,7 +73,7 @@ export class SegmentationComponent extends Tool implements Drawer {
   scoreThreshold = 0.4;
   simplifyError = 0.1;
   filterOverlaps = true;
-  useLabels = true;
+  useLabels = false;
 
   // cache for filtering detections
   _cachedFilterDets: Array<[string, Polygon]> = null;

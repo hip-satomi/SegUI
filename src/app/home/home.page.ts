@@ -875,7 +875,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                   name: 'labels',
                   label: 'Import labels?',
                   type: 'checkbox',
-                  checked: true,
+                  checked: false,
                   value: 'labels',
                 },
               ],        
