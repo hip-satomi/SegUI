@@ -14,6 +14,10 @@
         matTooltip="Advanced ML based segmentation proposals" [color]="(activeTool == segTool) ? 'primary' : ''">
         <ion-icon name="rocket-outline"></ion-icon>ADV-SEG
       </ion-button>
+      <ion-button *ngIf="isSegmentation" (click)="toggleTool(flexSegTool)" type="button" #tooltip="matTooltip"
+        matTooltip="Advanced ML based segmentation proposals" [color]="(activeTool == flexSegTool) ? 'primary' : ''">
+        <ion-icon name="rocket-outline"></ion-icon>FLX-SEG
+      </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(brushToolComponent)" type="button" [color]="(activeTool == brushToolComponent) ? 'primary' : ''"
         #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
         <ion-icon name="brush-outline"></ion-icon>Brush
@@ -42,6 +46,9 @@
   </div>
   <app-segmentation #segTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-segmentation>
+
+  <app-flexible-segmentation #flexSegTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
+  </app-flexible-segmentation>
 
   <app-brush #brushTool class="popover" [appMovable]="true" (changedEvent)="draw()" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-brush>
