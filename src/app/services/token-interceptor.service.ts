@@ -30,6 +30,10 @@ export class TokenInterceptorService implements HttpInterceptor {
       return next.handle(req);
     }
 
+    if (req.url.match('^/segService/')) {
+      return next.handle(req);
+    }
+
     if (req.url.match('^/omero/api/token')) {
       return next.handle(req);
     }
