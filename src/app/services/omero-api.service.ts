@@ -248,6 +248,14 @@ export class Image {
   roisUrl: string;
 }
 
+@Serializable()
+export class ImageInfo {
+  // There are more properties but not yet implemented
+
+  @JsonProperty({name: 'roi_count'})
+  roiCount: number;
+}
+
 
 
 export interface Permissions {
@@ -765,12 +773,18 @@ export class OmeroAPIService {
    * @param c the type (must be serializable)
    * @returns returns the deserialize object instance
    */
-  getData<T>(url: string, c: new () => T) {
+  getData<T>(url: string, c: new () => T, inData = true) {
     if (!url.startsWith('/omero/api')) {
       console.warn(`url ${url} is not compatible with endpoint.`)
     }
     return this.httpClient.get(url).pipe(
-      map((r: DataResponse<any>) => deserialize(r.data, c))
+      map((r: DataResponse<any>) => {
+        if (inData) {
+          return deserialize(r.data, c);
+        } else {
+          return deserialize(r, c);
+        }
+      })
     );
   }
 
@@ -858,5 +872,9 @@ export class OmeroAPIService {
         return images[nextImageIndex].id
       })
     )
+  }
+
+  getImageInfo(imageSetId: number): Observable<ImageInfo> {
+    return this.getData(`/omero/iviewer/image_data/${imageSetId}/`, ImageInfo, false);
   }
 }

@@ -1,0 +1,21 @@
+<ion-card [routerLink]="['/seg-track/', {'imageSetId': image.id}]">
+  <ion-card-header>
+    {{image.name}}
+  </ion-card-header>
+  <ion-card-content>
+    <app-permission-viz [item]="image"></app-permission-viz>
+    <ion-grid>
+      <ion-row>
+        <ion-col size="auto">
+          <ion-thumbnail style="--size: 150px;--border-radius:5%">
+            <ion-img [src]="omeroAPI.getThumbnailUrl(image.id)"></ion-img>
+          </ion-thumbnail>
+        </ion-col>
+        <ion-col>
+          <p>Num images: {{image.pixels.sizeZ * image.pixels.sizeT}}</p>
+          <p>Omero RoIs: {{roiCount}}</p>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-card-content>
+</ion-card>
