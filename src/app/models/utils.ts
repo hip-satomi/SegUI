@@ -185,6 +185,15 @@ export class Utils {
     const simplePoints = simplify(points, tolerance);
     return simplePoints.map(sp => [sp.x, sp.y]);
   }
+
+  /**
+   * Check points due to issue 48
+   * @param points array of points
+   * @returns valid array of valid points
+   */
+  static checkPoints(points: Point[]): Point[] {
+    return points.filter((point: Point) => point && point.length == 2);
+  }
 }
 
 export class UIUtils {

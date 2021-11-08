@@ -33,7 +33,7 @@ export class BoundingBox {
 
 @Serializable()
 export class Polygon {
-    @JsonProperty({name: 'points'})
+    @JsonProperty({name: 'points', postDeserialize: Utils.checkPoints})
     _points: Point[] = [];
 
     @JsonProperty()
