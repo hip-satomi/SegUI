@@ -6,7 +6,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, empty, forkJoin, of, combineLatest, from, Subject, BehaviorSubject, ReplaySubject, EMPTY } from 'rxjs';
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
-import { assert } from 'console';
 
 /**
  * Rewrite omero api urls into our urls (they get redirected again)
