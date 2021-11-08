@@ -14,7 +14,7 @@ export class ImageCardComponent implements OnInit {
 
   roiCount = -1;
 
-  constructor(private omeroAPI: OmeroAPIService) { }
+  constructor(public omeroAPI: OmeroAPIService) { }
 
   ngOnInit() {
     this.omeroAPI.getImageInfo(this.image.id).pipe(
