@@ -338,8 +338,37 @@ export const pointsToString = (points: Array<Point>): string => {
   return points.map(point => point.join(',')).join(' ');
 }
 
+/**
+ * Convert omero point list (string) into a valid floating point array
+ * @param pointList omero point list as string
+ * @returns Array of [x,y] points
+ */
 export const stringToPoints = (pointList: string): Array<Point> => {
-  return pointList.split(' ').map((pointString: string): Point => pointString.split(',').map(parseFloat) as Point);
+  // extract coordinate pairs (e.g. '29.0,55.5')
+  const strCoordinates = pointList.match(/\d+\.\d*,\d+\.\d*/g);
+
+  const points: Point[] = [];
+
+  // loop over coordinate pairs
+  for(const coord of strCoordinates) {
+    // extract x and y coordinates
+    const m = /(?<x>\d+\.\d*),(?<y>\d+\.\d*)/g.exec(coord);
+
+    // check whether regex matching worked
+    if (m != null && ('x' in m.groups && 'y' in m.groups)) {  
+      // valid coordinate position
+      const x = parseFloat(m.groups['x']);
+      const y = parseFloat(m.groups['y']);
+
+      points.push([x, y]);
+    } else {
+      // report when matching did not work
+      console.warn(`Error parsing coordinates from point: "${coord}"`);
+    }
+
+  }
+
+  return points;
 }
 
 @Serializable()
