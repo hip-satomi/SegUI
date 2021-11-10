@@ -18,6 +18,7 @@ import { ColorPickerModule } from 'ngx-color-picker';
 import { AnnManagerComponent } from '../components/ann-manager/ann-manager.component';
 import { AnnLabelChipComponent } from '../components/ann-label-chip/ann-label-chip.component';
 import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
+import { ImageCardComponent } from '../components/image-card/image-card.component';
 
 @NgModule({
   declarations: [
@@ -32,7 +33,8 @@ import { FlexibleSegmentationComponent } from '../components/flexible-segmentati
     ColorPickerComponent,
     AnnManagerComponent,
     AnnLabelChipComponent,
-    FlexibleSegmentationComponent
+    FlexibleSegmentationComponent,
+    ImageCardComponent,
   ],
   exports: [
     ImageDisplayComponent,
@@ -46,7 +48,8 @@ import { FlexibleSegmentationComponent } from '../components/flexible-segmentati
     ColorPickerComponent,
     AnnManagerComponent,
     AnnLabelChipComponent,
-    FlexibleSegmentationComponent
+    FlexibleSegmentationComponent,
+    ImageCardComponent,
   ],
   imports: [
     CommonModule,

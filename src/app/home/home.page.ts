@@ -949,7 +949,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
               // create polygon add action
               // TODO: Deal with z-coordinate?
-              const action = new LocalAction(new AddPolygon(new Polygon(...poly.points), labelId), poly.t);
+              const action = new LocalAction(new AddPolygon(new Polygon(...Utils.checkPoints(poly.points)), labelId), poly.t);
 
               actions.push(action);
             }

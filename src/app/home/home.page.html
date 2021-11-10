@@ -69,7 +69,7 @@
 
 <app-ann-manager *ngIf="globalSegModel" [globalSegModel]="globalSegModel" (redraw)="draw()"></app-ann-manager>
 
-<ion-footer *ngIf="segmentationModels.length > 1">
+<ion-footer *ngIf="segmentationModels.length >= 1">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="navigateToPreviousImageSequence().pipe(showErrorPipe).subscribe()" style="padding-right:10px">

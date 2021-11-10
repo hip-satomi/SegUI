@@ -6,7 +6,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, empty, forkJoin, of, combineLatest, from, Subject, BehaviorSubject, ReplaySubject, EMPTY } from 'rxjs';
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
-import { assert } from 'console';
 
 /**
  * Rewrite omero api urls into our urls (they get redirected again)
@@ -248,6 +247,14 @@ export class Image {
   roisUrl: string;
 }
 
+@Serializable()
+export class ImageInfo {
+  // There are more properties but not yet implemented
+
+  @JsonProperty({name: 'roi_count'})
+  roiCount: number;
+}
+
 
 
 export interface Permissions {
@@ -330,8 +337,37 @@ export const pointsToString = (points: Array<Point>): string => {
   return points.map(point => point.join(',')).join(' ');
 }
 
+/**
+ * Convert omero point list (string) into a valid floating point array
+ * @param pointList omero point list as string
+ * @returns Array of [x,y] points
+ */
 export const stringToPoints = (pointList: string): Array<Point> => {
-  return pointList.split(' ').map((pointString: string): Point => pointString.split(',').map(parseFloat) as Point);
+  // extract coordinate pairs (e.g. '29.0,55.5')
+  const strCoordinates = pointList.match(/\d+\.\d*,\d+\.\d*/g);
+
+  const points: Point[] = [];
+
+  // loop over coordinate pairs
+  for(const coord of strCoordinates) {
+    // extract x and y coordinates
+    const m = /(?<x>\d+\.\d*),(?<y>\d+\.\d*)/g.exec(coord);
+
+    // check whether regex matching worked
+    if (m != null && ('x' in m.groups && 'y' in m.groups)) {  
+      // valid coordinate position
+      const x = parseFloat(m.groups['x']);
+      const y = parseFloat(m.groups['y']);
+
+      points.push([x, y]);
+    } else {
+      // report when matching did not work
+      console.warn(`Error parsing coordinates from point: "${coord}"`);
+    }
+
+  }
+
+  return points;
 }
 
 @Serializable()
@@ -765,12 +801,18 @@ export class OmeroAPIService {
    * @param c the type (must be serializable)
    * @returns returns the deserialize object instance
    */
-  getData<T>(url: string, c: new () => T) {
+  getData<T>(url: string, c: new () => T, inData = true) {
     if (!url.startsWith('/omero/api')) {
       console.warn(`url ${url} is not compatible with endpoint.`)
     }
     return this.httpClient.get(url).pipe(
-      map((r: DataResponse<any>) => deserialize(r.data, c))
+      map((r: DataResponse<any>) => {
+        if (inData) {
+          return deserialize(r.data, c);
+        } else {
+          return deserialize(r, c);
+        }
+      })
     );
   }
 
@@ -858,5 +900,9 @@ export class OmeroAPIService {
         return images[nextImageIndex].id
       })
     )
+  }
+
+  getImageInfo(imageSetId: number): Observable<ImageInfo> {
+    return this.getData(`/omero/iviewer/image_data/${imageSetId}/`, ImageInfo, false);
   }
 }
