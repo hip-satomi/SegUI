@@ -305,6 +305,12 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
       // TODO: This should not be necessary
       const contour = det.contour_coordinates;
 
+      if (contour.length < 3) {
+        // check minimum requirement for contour
+        continue;
+      }
+
+
       const simplifiedPoints = Utils.simplifyPointList(contour, this.simplifyError);
 
       // create a polygon from points and set random color
