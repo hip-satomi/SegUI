@@ -52,10 +52,9 @@
         "pathRewrite": {"^/omero/" : "/"}
     },
     "/segService/*": {
-        "target": "http://localhost:35179",
+        "target": "http://localhost:8080",
         "secure": false,
         "logLevel": "debug",
-        "changeOrigin": true,
-        "pathRewrite": {"^/segService/" : "/"}
+        "changeOrigin": true
     }
 }
