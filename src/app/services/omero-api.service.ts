@@ -851,10 +851,12 @@ export class OmeroAPIService {
         }
 
         return of(...requestList).pipe(
+          // combine all requests (executed in parallel)
           combineAll(),
         )
       }),
-      map((data: Array<PagedResponse<T>>) => data.map(d => d.data).reduce((a,b) => a.concat(b)).map(rawImage => deserialize(rawImage, c))),
+      // unpack, concatenated and deserialize
+      map((data: Array<PagedResponse<T>>) => data.map(d => d.data).reduce((a,b) => a.concat(b)).map(rawData => deserialize(rawData, c))),
       map(resArray => <Array<T>>resArray)
     );
   }
