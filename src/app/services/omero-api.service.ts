@@ -344,14 +344,14 @@ export const pointsToString = (points: Array<Point>): string => {
  */
 export const stringToPoints = (pointList: string): Array<Point> => {
   // extract coordinate pairs (e.g. '29.0,55.5')
-  const strCoordinates = pointList.match(/\d+\.\d*,\d+\.\d*/g);
+  const strCoordinates = pointList.match(/\d+(\.\d*)?,\d+(\.\d*)?/g);
 
   const points: Point[] = [];
 
   // loop over coordinate pairs
   for(const coord of strCoordinates) {
     // extract x and y coordinates
-    const m = /(?<x>\d+\.\d*),(?<y>\d+\.\d*)/g.exec(coord);
+    const m = /(?<x>\d+(\.\d*)?),(?<y>\d+(\.\d*)?)/g.exec(coord);
 
     // check whether regex matching worked
     if (m != null && ('x' in m.groups && 'y' in m.groups)) {  
@@ -851,10 +851,12 @@ export class OmeroAPIService {
         }
 
         return of(...requestList).pipe(
+          // combine all requests (executed in parallel)
           combineAll(),
         )
       }),
-      map((data: Array<PagedResponse<T>>) => data.map(d => d.data).reduce((a,b) => a.concat(b)).map(rawImage => deserialize(rawImage, c))),
+      // unpack, concatenated and deserialize
+      map((data: Array<PagedResponse<T>>) => data.map(d => d.data).reduce((a,b) => a.concat(b)).map(rawData => deserialize(rawData, c))),
       map(resArray => <Array<T>>resArray)
     );
   }
