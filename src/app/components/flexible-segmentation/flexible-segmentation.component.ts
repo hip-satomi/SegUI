@@ -215,7 +215,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
 
     // create progress loader
     const loading = this.loadingCtrl.create({
-      message: 'Please wait while AI is doing the job...',
+      message: 'Please wait while AI is doing the job...  <br /><br /><b>Hint:</b>The execution may take a while for the first time because the server needs to install the segmentation software!',
       backdropDismiss: true,
     });
 
