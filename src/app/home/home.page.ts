@@ -421,7 +421,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                 catchError(e => {
                   // loading from OMERO failed or has been rejected
                   srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
-                  return of(srsc);
+                  return of(srsc).pipe(
+                    // enforce an update
+                    tap((srsc) => srsc.update().subscribe())
+                  );
                 })
               )
             } else {
@@ -442,7 +445,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
                         srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
                         // and force an update on the server
                         return of(srsc).pipe(
-                          tap(() => srsc.update())
+                          tap(() => srsc.update().subscribe())
                         );
                       } else {
                         // TODO: Navigate to parent
