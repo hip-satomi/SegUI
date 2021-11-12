@@ -1,4 +1,4 @@
-import { map, take } from 'rxjs/operators';
+import { map, take, tap } from 'rxjs/operators';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
@@ -20,13 +20,26 @@ export interface Detection {
   score: number;
 }
 
-export interface SegmentationService {
-  name: string,
-  description: string,
-  repo_url: string,
-  repo_entry_point: string,
-  repo_version: string,
+@Serializable()
+export class SegmentationServiceDef {
+  @JsonProperty()
+  name: string;
+  @JsonProperty()
+  description: string;
+  @JsonProperty()
+  repo_url: string;
+  @JsonProperty()
+  repo_entry_point: string;
+  @JsonProperty()
+  repo_version: string;
+  @JsonProperty()
   additional_parameters: { [name: string]: string }
+}
+
+@Serializable()
+class SegServiceStore {
+  @JsonProperty({type: SegmentationServiceDef})
+  services: Array<SegmentationServiceDef>;
 }
 
 export interface SegmentationData {
@@ -42,6 +55,9 @@ export interface ServiceResult {
 }
 
 import { HttpParameterCodec } from '@angular/common/http';import { Point } from '../models/geometry';
+import { Observable, ReplaySubject } from 'rxjs';
+import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
+import { StorageService } from './storage.service';
 export class CustomHttpParamEncoder implements HttpParameterCodec {  encodeKey(key: string): string {
   return encodeURIComponent(key);
 }  encodeValue(value: string): string {
@@ -57,7 +73,19 @@ export class CustomHttpParamEncoder implements HttpParameterCodec {  encodeKey(k
 })
 export class SegmentationService {
 
-  constructor(private httpClient: HttpClient) { }
+  services$ = new ReplaySubject<Array<SegmentationServiceDef>>(1);
+
+  constructor(private httpClient: HttpClient,
+            private storageService: StorageService) {
+    this.httpClient.get('assets/segmentation-services.json').pipe(
+      map(res => {
+        return deserialize(res, SegServiceStore).services;
+      }),
+      tap(services => {
+        this.services$.next(services);
+      })
+    ).subscribe();
+  }
 
   public requestCSSegmentationProposal(imageBlob) {
     // put the binary image data into form data
@@ -82,7 +110,7 @@ export class SegmentationService {
     );
   }
 
-  public requestSegmentationProposal(imageBlob, service_description: SegmentationService) {
+  public requestSegmentationProposal(imageBlob, service_description: SegmentationServiceDef) {
     // put the binary image data into form data
     const fd = new FormData();
     fd.append('file', imageBlob, 'image.jpg');

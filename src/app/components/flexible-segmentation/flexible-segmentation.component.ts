@@ -11,7 +11,7 @@ import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { UIUtils, Utils } from 'src/app/models/utils';
-import { Detection, SegmentationData, SegmentationService, ServiceResult } from 'src/app/services/segmentation.service';
+import { Detection, SegmentationData, SegmentationService, SegmentationServiceDef, ServiceResult } from 'src/app/services/segmentation.service';
 import { threadId } from 'worker_threads';
 
 @Component({
@@ -76,7 +76,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   simplifyError = 0.1;
   filterOverlaps = true;
   useLabels = false;
-  segmentationModels$ = new ReplaySubject<any>();
+  segmentationModels$ = new ReplaySubject<Array<SegmentationServiceDef>>();
 
   // cache for filtering detections
   _cachedFilterDets: Array<[string, Polygon]> = null;
@@ -184,11 +184,11 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   }
 
   ngOnInit() {
-    this.httpClient.get('assets/segmentation-services.json').pipe(
-      tap(services => this.segmentationModels$.next(services['services']))
+    this.segmentationService.getSegmentationServices().pipe(
+      tap(services => {
+        this.segmentationModels$.next(services)
+      })
     ).subscribe();
-
-    //this.segmentationModels$.next(response['services']);
   }
 
   /**
