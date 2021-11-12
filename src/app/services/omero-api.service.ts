@@ -690,14 +690,14 @@ export class OmeroAPIService {
       switchMap(() => this.getFileAnnotations(imageId)),
       // filter by current filename
       map(annotations => annotations.filter(ann => ann.file.name === fileName)),
-      // delete all but the latest file version
+      // delete all but the latest file version (it is the file we have just uploaded)
       mergeMap(
         (annotations: Annotation[]) => {
           let sortedAnnotations = annotations.sort((a, b) => -(a.date.getTime() - b.date.getTime()));
           // do not delete the newest file version
-          sortedAnnotations = sortedAnnotations.splice(0, 1);
+          sortedAnnotations = sortedAnnotations.splice(1);
           const deletions = [];
-          for (const ann of annotations) {
+          for (const ann of sortedAnnotations) {
             // remove them
             const formData = new FormData();
             formData.set('parent', 'image-' + imageId);
