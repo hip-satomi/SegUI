@@ -477,10 +477,14 @@ export class LocalSegmentationModel {
         });
     }
 
+    /**
+     * Returns polygons of visible labels
+     * @returns 
+     */
     getVisiblePolygons() {
         const visibleLabelIds: Array<number> = this.parent.segmentationData.labels.filter(l => l.visible).map(l => l.id);
         return [...this.segmentationData.getPolygons().entries()].filter(([id, poly]) => {
-            return this.getPolygonLabelId(id) in visibleLabelIds;
+            return visibleLabelIds.includes(this.getPolygonLabelId(id));
         });
     }
 
