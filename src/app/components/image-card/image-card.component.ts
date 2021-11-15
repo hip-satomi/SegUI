@@ -24,4 +24,8 @@ export class ImageCardComponent implements OnInit {
     ).subscribe();
   }
 
+  get numImages() {
+    return this.image.pixels.sizeZ * this.image.pixels.sizeT;
+  }
+
 }
