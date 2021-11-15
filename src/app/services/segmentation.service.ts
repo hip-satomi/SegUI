@@ -57,7 +57,6 @@ export interface ServiceResult {
 import { HttpParameterCodec } from '@angular/common/http';import { Point } from '../models/geometry';
 import { Observable, ReplaySubject } from 'rxjs';
 import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
-import { StorageService } from './storage.service';
 export class CustomHttpParamEncoder implements HttpParameterCodec {  encodeKey(key: string): string {
   return encodeURIComponent(key);
 }  encodeValue(value: string): string {
@@ -75,8 +74,7 @@ export class SegmentationService {
 
   services$ = new ReplaySubject<Array<SegmentationServiceDef>>(1);
 
-  constructor(private httpClient: HttpClient,
-            private storageService: StorageService) {
+  constructor(private httpClient: HttpClient) {
     this.httpClient.get('assets/segmentation-services.json').pipe(
       map(res => {
         return deserialize(res, SegServiceStore).services;
@@ -141,4 +139,9 @@ export class SegmentationService {
       })
     );
   }
+
+  public getSegmentationServices(): Observable<Array<SegmentationServiceDef>> {
+    return this.services$;
+  }
+
 }
