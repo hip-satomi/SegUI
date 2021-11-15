@@ -10,7 +10,7 @@ export class PermissionVizComponent implements OnInit {
   _item: any;
   _user: any;
 
-  data;
+  data = [];
 
   @Input() set item(item: any) {
     this._item = item;

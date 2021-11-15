@@ -1151,6 +1151,19 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     ).subscribe();
   }
 
+  /**
+   * 
+   * @param tool the tool component
+   * @returns true if the current tool component is active, i.e. presented to the user
+   */
+  isToolActive(tool): boolean {
+    if (!tool) {
+      return false;
+    } else {
+      return tool == this.activeTool;
+    }
+  }
+
   get activeTool() {
     if (this.tool && this.tool.show) {
       return this.tool;

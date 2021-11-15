@@ -1,5 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
+import { GlobalSegmentationModel } from 'src/app/models/segmentation-model';
 
 import { AnnManagerComponent } from './ann-manager.component';
 
@@ -15,6 +16,7 @@ describe('AnnManagerComponent', () => {
 
     fixture = TestBed.createComponent(AnnManagerComponent);
     component = fixture.componentInstance;
+    component.globalSegModel = new GlobalSegmentationModel(null, 10);
     fixture.detectChanges();
   }));
 
