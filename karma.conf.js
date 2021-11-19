@@ -40,7 +40,7 @@ module.exports = function (config) {
         { type: 'cobertura', subdir: '.', file: 'cobertura.txt' },
       ]
     },*/
-    reporters: ['progress', 'kjhtml', 'coverage'],
+    reporters: ['progress', 'kjhtml', 'coverage', 'text-summary'],
     coverageReporter: {
       // specify a common output directory
       dir: 'builds/',
