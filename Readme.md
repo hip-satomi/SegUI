@@ -1,3 +1,6 @@
+ [![coverage report](https://jugit.fz-juelich.de/satomi/segtrackui/badges/develop/coverage.svg)](https://jugit.fz-juelich.de/satomi/segtrackui/-/commits/develop)
+
+
 # segTrackUI
 
 Web Application for high-quality and interactive microbial cell segmentation and tracking. The application is based on the [Ionic](https://ionicframework.com/) and [Anglar](https://angular.io/) frameworks.
