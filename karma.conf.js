@@ -50,7 +50,7 @@ module.exports = function (config) {
         { type: 'lcov', subdir: 'report-lcov' },
         // reporters supporting the `file` property, use `subdir` to directly
         // output them in the `dir` directory
-        { type: 'cobertura', subdir: '.', file: 'cobertura.txt' },
+        { type: 'cobertura', subdir: '.', file: 'cobertura.xml' },
         { type: 'lcovonly', subdir: '.', file: 'report-lcovonly.txt' },
         { type: 'teamcity', subdir: '.', file: 'teamcity.txt' },
         { type: 'text', subdir: '.', file: 'text.txt' },
