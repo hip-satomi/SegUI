@@ -40,7 +40,7 @@ module.exports = function (config) {
         { type: 'cobertura', subdir: '.', file: 'cobertura.txt' },
       ]
     },*/
-    reporters: ['progress', 'kjhtml', 'coverage', 'text-summary'],
+    reporters: ['progress', 'kjhtml', 'coverage'],
     coverageReporter: {
       // specify a common output directory
       dir: 'builds/',
@@ -54,7 +54,7 @@ module.exports = function (config) {
         { type: 'lcovonly', subdir: '.', file: 'report-lcovonly.txt' },
         { type: 'teamcity', subdir: '.', file: 'teamcity.txt' },
         { type: 'text', subdir: '.', file: 'text.txt' },
-        { type: 'text-summary', subdir: '.', file: 'text-summary.txt' },
+        { type: 'text-summary'},
       ]
     },
     port: 9876,
