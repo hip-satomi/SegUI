@@ -66,6 +66,8 @@ test:
   stage: test
   extends: .pull_cached_node_modules
   before_script:
+    - echo $CI_BUILDS_DIR
+    - echo $PROJECT_FULL_PATH
     - apt-get update
     - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     - apt install -y ./google-chrome*.deb;
