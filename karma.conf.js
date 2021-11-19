@@ -43,7 +43,7 @@ module.exports = function (config) {
     reporters: ['progress', 'kjhtml', 'coverage'],
     coverageReporter: {
       // specify a common output directory
-      dir: 'build/reports/coverage',
+      dir: 'builds/',
       reporters: [
         // reporters not supporting the `file` property
         { type: 'html', subdir: 'report-html' },
