@@ -35,8 +35,8 @@ cache:
     key: ${CI_COMMIT_SHORT_SHA}
     policy: pull
 
-stages:
 #  - setup
+stages:
   - test
 
 install:
