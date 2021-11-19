@@ -76,6 +76,7 @@ test:
     - npm install
   script:
     - npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage
+  coverage: '/Lines \W+: (\d+\.\d+)%.*/'
   artifacts:
       reports:
         cobertura: ./builds/cobertura.xml
