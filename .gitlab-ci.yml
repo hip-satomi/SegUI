@@ -36,7 +36,7 @@ cache:
     policy: pull
 
 stages:
-  - setup
+#  - setup
   - test
 
 install:
