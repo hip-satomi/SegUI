@@ -6,6 +6,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, empty, forkJoin, of, combineLatest, from, Subject, BehaviorSubject, ReplaySubject, EMPTY } from 'rxjs';
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
+import { UserQuestionsService } from './user-questions.service';
 
 /**
  * Rewrite omero api urls into our urls (they get redirected again)
@@ -445,7 +446,8 @@ export class OmeroAPIService {
 
   projects$: Observable<Project[]>;
 
-  constructor(private httpClient: HttpClient) {
+  constructor(private httpClient: HttpClient,
+      public userQuestionService: UserQuestionsService) {
 
     // pipe to list all omero projects
     this.projects$ = this.getPagedData('/omero/api/m/projects/', Project);
