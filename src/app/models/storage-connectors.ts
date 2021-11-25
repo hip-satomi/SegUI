@@ -92,6 +92,7 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
                 return this.update().pipe(
                     catchError((err) => {
                         console.error('Failed updating GUI segmentation REST model;');
+                        this.omeroAPI.userQuestionService.showError("Failed updating the segmentation backend!");
                         console.error(err);
                         return empty();
                     })
