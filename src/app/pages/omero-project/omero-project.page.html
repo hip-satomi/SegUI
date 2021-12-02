@@ -24,6 +24,21 @@
     </ion-row>
   </ion-grid>
   <ion-grid class="ion-text-center" *ngIf="(datasets$ | async)?.length == 0">
-    <ion-badge color="primary" class="ion-text-center" ><h1>This project does not contain any datasets</h1></ion-badge>
+    <ion-row>
+      <ion-col size="12" size-sm="10" offset-sm="1" size-md="8" offset-md="2" size-lg="6" offset-lg="3" size-xl="4"
+            offset-xl="4">
+        
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title class="ion-text-center">This is an empty project!</ion-card-title>
+          </ion-card-header>
+
+          <ion-card-content>
+            Please create a project first. You can do this, for example, using omeroweb or <a href="https://www.openmicroscopy.org/omero/downloads/" target="_blank">omero insight</a>
+          </ion-card-content>
+        </ion-card>
+        
+      </ion-col>
+    </ion-row>
   </ion-grid>
 </ion-content>

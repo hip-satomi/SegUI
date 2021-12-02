@@ -19,8 +19,23 @@
             <p>{{ project.description }}</p>
           </ion-card-content>
         </ion-card>
-        <p *ngIf="(projects$ | async)?.length === 0">There are no projects!</p>
       </ion-col>
+      <ng-template *ngIf="(projects$ | async)?.length === 0">
+        <ion-col size="12" size-sm="10" offset-sm="1" size-md="8" offset-md="2" size-lg="6" offset-lg="3" size-xl="4"
+              offset-xl="4">
+          
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title class="ion-text-center">Your omero instance is empty!</ion-card-title>
+            </ion-card-header>
+  
+            <ion-card-content>
+              Please create a project first. You can do this, for example, using omeroweb or <a href="https://www.openmicroscopy.org/omero/downloads/" target="_blank">omero insight</a>
+            </ion-card-content>
+          </ion-card>
+          
+        </ion-col>
+      </ng-template>
     </ion-row>
   </ion-grid>
 
