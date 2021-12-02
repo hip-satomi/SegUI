@@ -18,7 +18,7 @@ Now launch the compilation and setup using
 docker-compose -f docker-compose.full.yml up --build
 ```
 
-This will take a while because we need to download all the docker images and compile our code to make it ready for execution. But after everything is setup, everything runs seamlessly and you can access it in the browser (here)[localhost].
+This will take a while because we need to download all the docker images and compile our code to make it ready for execution. But after everything is setup, everything runs seamlessly and you can access it in the browser [here](http://localhost). Use the default credentials (user: root, password: omero) to login.
 
 ## How to Test the UI - Use a docker container
 
