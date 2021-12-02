@@ -1,4 +1,4 @@
-import { Dataset, OmeroAPIService, Project, RoIData, RoIModData } from './../services/omero-api.service';
+import { Dataset, OmeroAPIService, Project, RoIShape } from './../services/omero-api.service';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './../services/auth.service';
 import { OmeroUtils, UIUtils, Utils } from './../models/utils';
@@ -924,6 +924,37 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             const currentModel = srsc.getModel()//.segmentations[poly.t]
             const existingLabels = currentModel.labels;
             const firstFreeLabelId = currentModel.nextLabelId(); //Math.max(...currentModel.labels.map(l => l.id));
+
+            // TODO: correct t and z handling
+            const t_max = Math.max(...roiData.map(poly => poly.t));
+            const z_max = Math.max(...roiData.map(poly => poly.z));
+            let timeMode = '';
+
+            if (t_max == 0) {
+              // we have no time axis
+              timeMode = 'z';
+            } else if(z_max == 0) {
+              // we have no z axis
+              timeMode = 't';
+            } else {
+              // we have both axes
+              console.warn('TZ mode is not yet fully supported')
+              timeMode = 'tz';
+            }
+
+            const timeComputer = (poly: RoIShape, mode: string) => {
+              if (mode == 't') {
+                return poly.t;
+              } else if (mode == 'z') {
+                return poly.z;
+              } else if (mode == 'tz') {
+                return poly.t * z_max + poly.z;
+              } else {
+                throw new Error('Unsupported time mode');
+              }
+            }
+
+
             for (const poly of roiData) {
 
               // get the label name from text
@@ -951,7 +982,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
               // create polygon add action
               // TODO: Deal with z-coordinate?
-              const action = new LocalAction(new AddPolygon(new Polygon(...Utils.checkPoints(poly.points)), labelId), poly.t);
+              const action = new LocalAction(new AddPolygon(new Polygon(...Utils.checkPoints(poly.points)), labelId), timeComputer(poly, timeMode));
 
               actions.push(action);
             }
