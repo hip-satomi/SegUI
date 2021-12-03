@@ -1,8 +1,10 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 import { of } from 'rxjs';
+import { SharedComponentsModule } from 'src/app/shared-components-module/shared-components.module';
 
 import { OmeroProjectPage } from './omero-project.page';
 
@@ -25,7 +27,7 @@ describe('OmeroProjectPage', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ OmeroProjectPage ],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule],
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, SharedComponentsModule, RouterTestingModule],
       providers: [
         {
           provide: ActivatedRoute,

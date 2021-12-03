@@ -6,7 +6,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, empty, forkJoin, of, combineLatest, from, Subject, BehaviorSubject, ReplaySubject, EMPTY } from 'rxjs';
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
-import { assert } from 'console';
+import { UserQuestionsService } from './user-questions.service';
 
 /**
  * Rewrite omero api urls into our urls (they get redirected again)
@@ -248,6 +248,14 @@ export class Image {
   roisUrl: string;
 }
 
+@Serializable()
+export class ImageInfo {
+  // There are more properties but not yet implemented
+
+  @JsonProperty({name: 'roi_count'})
+  roiCount: number;
+}
+
 
 
 export interface Permissions {
@@ -304,6 +312,11 @@ export class WindowInfo {
   min: number;
   @JsonProperty()
   max: number;
+
+  @JsonProperty()
+  start: number;
+  @JsonProperty()
+  end: number;
 }
 
 @Serializable()
@@ -325,8 +338,37 @@ export const pointsToString = (points: Array<Point>): string => {
   return points.map(point => point.join(',')).join(' ');
 }
 
+/**
+ * Convert omero point list (string) into a valid floating point array
+ * @param pointList omero point list as string
+ * @returns Array of [x,y] points
+ */
 export const stringToPoints = (pointList: string): Array<Point> => {
-  return pointList.split(' ').map((pointString: string): Point => pointString.split(',').map(parseFloat) as Point);
+  // extract coordinate pairs (e.g. '29.0,55.5')
+  const strCoordinates = pointList.match(/\d+(\.\d*)?,\d+(\.\d*)?/g);
+
+  const points: Point[] = [];
+
+  // loop over coordinate pairs
+  for(const coord of strCoordinates) {
+    // extract x and y coordinates
+    const m = /(?<x>\d+(\.\d*)?),(?<y>\d+(\.\d*)?)/g.exec(coord);
+
+    // check whether regex matching worked
+    if (m != null && ('x' in m.groups && 'y' in m.groups)) {  
+      // valid coordinate position
+      const x = parseFloat(m.groups['x']);
+      const y = parseFloat(m.groups['y']);
+
+      points.push([x, y]);
+    } else {
+      // report when matching did not work
+      console.warn(`Error parsing coordinates from point: "${coord}"`);
+    }
+
+  }
+
+  return points;
 }
 
 @Serializable()
@@ -342,6 +384,9 @@ export class RoIShape {
 
   @JsonProperty({name: 'TheZ'})
   z: number;
+
+  @JsonProperty({name: 'Text'})
+  text: string;
 
   @JsonProperty({name: 'Points', onDeserialize: stringToPoints, onSerialize: pointsToString})
   points: Array<Point>;
@@ -401,7 +446,8 @@ export class OmeroAPIService {
 
   projects$: Observable<Project[]>;
 
-  constructor(private httpClient: HttpClient) {
+  constructor(private httpClient: HttpClient,
+      public userQuestionService: UserQuestionsService) {
 
     // pipe to list all omero projects
     this.projects$ = this.getPagedData('/omero/api/m/projects/', Project);
@@ -412,24 +458,27 @@ export class OmeroAPIService {
    * @param id project omero id
    */
   getProject(id: number): Observable<Project> {
-    return this.httpClient.get(`/omero/api/m/projects/${id}/`).pipe(
+    return this.getData(`/omero/api/m/projects/${id}/`, Project);
+    /*return this.httpClient.get(`/omero/api/m/projects/${id}/`).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Project))
-    );
+    );*/
   }
 
   getProjectByUrl(url: string): Observable<Project> {
-    return this.httpClient.get(url).pipe(
+    return this.getData(url, Project);
+    /*return this.httpClient.get(url).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Project))
-    );
+    );*/
   }
 
   getDatasetProjects(dataset: Dataset): Observable<Array<Project>> {
-    return this.httpClient.get(dataset.urlProjects).pipe(
+    return this.getPagedData(dataset.urlProjects, Project);
+    /*return this.httpClient.get(dataset.urlProjects).pipe(
       map((r: DataListResponse<any>) => r.data),
       map(rawProjects => {
         return rawProjects.map(p => deserialize(p, Project));
       })
-    );
+    );*/
   }
 
   /**
@@ -439,24 +488,22 @@ export class OmeroAPIService {
   getDatasetsByProjectId(projectId: number): Observable<Dataset[]> {
     const fullUrl = `/omero/api/m/projects/${projectId}/datasets/`;
 
-    return this.httpClient.get(fullUrl).pipe(
+    return this.getPagedData(fullUrl, Dataset);
+
+    /*return this.httpClient.get(fullUrl).pipe(
       map((r: DataListResponse<any>) => r.data.map(rawDataset => deserialize(rawDataset, Dataset)))
-    );
+    );*/
   }
 
   getImagesFromDataset(datasetId: number): Observable<Image[]> {
-    const params = new HttpParams()
-      .set('dataset', '' + datasetId);
-    return this.httpClient.get(`/omero/api/m/images/`, {params}).pipe(
-      tap(r => console.log(r)),
-      map((r: DataListResponse<any>) => r.data.map(rawImage => deserialize(rawImage, Image)))
-    );
+    return this.getPagedData(`/omero/api/m/images/`, Image, 500, {dataset : '' + datasetId});
   }
 
   getImage(imageId: number): Observable<Image> {
-    return this.httpClient.get(`/omero/api/m/images/${imageId}/`).pipe(
+    return this.getData(`/omero/api/m/images/${imageId}/`, Image);
+    /*return this.httpClient.get(`/omero/api/m/images/${imageId}/`).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Image))
-    );
+    );*/
   }
 
   /**
@@ -476,13 +523,34 @@ export class OmeroAPIService {
   };
 
   getDataset(datasetId: number): Observable<Dataset> {
-    return this.httpClient.get(`/omero/api/m/datasets/${datasetId}/`).pipe(
+    return this.getData(`/omero/api/m/datasets/${datasetId}/`, Dataset);
+    /*return this.httpClient.get(`/omero/api/m/datasets/${datasetId}/`).pipe(
       map((r: DataResponse<any>) => {
         console.log(r);
         return deserialize(r.data, Dataset);
       })
+    );*/
+  }
+
+  getDatasetThumbnailUrls(datasetId: number): Observable<string[]> {
+    return this.getImagesFromDataset(datasetId)
+      .pipe(
+        tap(() => console.log('get dataset urls ' + datasetId)),
+        map(images => images.map(image => this.getThumbnailUrl(image.id))),
+        tap(data => console.log(data))
+      );
+  }
+
+  getProjectThumbnailUrls(projectId: number): Observable<string[]> {
+    return this.getDatasetsByProjectId(projectId).pipe(
+      switchMap(datasets => of(...datasets.map(ds => this.getDatasetThumbnailUrls(ds.id)))),
+      combineAll(),
+      map(imgUrls => {
+        return imgUrls.reduce((a,b) => a.concat(b), [])
+      })
     );
   }
+
 
   getThumbnailUrl(imageId: number) {
     return `/omero/webclient/render_thumbnail/${imageId}/?version=0`;
@@ -497,8 +565,8 @@ export class OmeroAPIService {
    * @param max maximum image value
    * @param quality jpeg quality parameter
    */
-  getImageViewUrl(imageId: number, z: number, t: number, min: number, max: number, quality = 1.0) {
-    return `/omero/webgateway/render_image/${imageId}/${z}/${t}/?c=1|${min}:${max}$808080&q=${quality}`;
+  getImageViewUrl(imageId: number, z: number, t: number, min: number, max: number, quality = 1.0, channel=1) {
+    return `/omero/webgateway/render_image/${imageId}/${z}/${t}/?c=${channel}|${min}:${max}$808080&q=${quality}`;
   }
 
   /**
@@ -508,7 +576,9 @@ export class OmeroAPIService {
    */
   getImageRenderInfos(imageId: number) {
     return this.httpClient.get(`/omero/webgateway/imgData/${imageId}/`).pipe(
-      map(r => deserialize(r, RenderInfos))
+      map(r => {
+        return deserialize(r, RenderInfos)
+      })
     );
   }
 
@@ -542,8 +612,8 @@ export class OmeroAPIService {
       }),
       // generate the final image urls with render info
       map((data: {image: Image, renderInfos: RenderInfos, it: Array<{imageId: number, z: number, t: number}>}) => {
-        const min = data.renderInfos.channels[0].window.min;
-        const max = data.renderInfos.channels[0].window.max;
+        const min = data.renderInfos.channels[0].window.start;
+        const max = data.renderInfos.channels[0].window.end;
         return data.it.map(item => this.getImageViewUrl(item.imageId, item.z, item.t, min, max));
       })
     );
@@ -553,59 +623,20 @@ export class OmeroAPIService {
    * Show all file annotations associated with an image sequence in omero
    * @param imageId image sequence id
    */
-  getFileAnnotations(imageId: number) {
+  getFileAnnotations(imageId: number): Observable<Array<Annotation>> {
     return this.httpClient.get(`/omero/webclient/api/annotations/?type=file&image=${imageId}`).pipe(
       map(r => {
         return deserialize(r, AnnotationResult);
-      })
-    );
-  }
-
-  genRoIRequest(imageId: number, limit: number, offset: number): Observable<RoIResult> {
-    // Begin assigning parameters
-    const params = {
-      limit: `${limit}`,
-      offset: `${offset}`
-    };
-    
-    return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`, {params}).pipe(
-      map(r => deserialize(r, RoIResult))
+      }),
+      map(r => r.annotations)
     );
   }
 
   getPagedRoIData(imageId: number): Observable<Array<RoIData>> {
-    return this.genRoIRequest(imageId, 500, 0).pipe(
-      switchMap(result => {
-
-        // extract paging meta data from request
-        const limit = result.meta.limit;
-        const maxLimit = result.meta.maxLimit;
-        const totalCount = result.meta.totalCount;
-
-        const requestList: Array<Observable<RoIResult>> = [];
-
-        if (totalCount > limit) {
-          for(let i = 0; i < Math.ceil((totalCount - limit) / maxLimit); i++) {
-            requestList.push(this.genRoIRequest(imageId, maxLimit, limit + i * maxLimit));
-          }
-        }
-
-        return of(of(result), ...requestList).pipe(
-          combineAll(),
-          map((res: Array<RoIResult>) => {
-            // combine all RoIDatas
-            return res.map(r => r.data).reduce((a,b) => a.concat(b), [])
-          })
-        )
-        //return result.data;
-      }),
-      /*map((data: RoIData[]) => {
-        // join all rois and shapes into an array of shape polygons
-        return data.map(roi => roi.shapes
-          .filter(s => s.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
-          .map(s => new ShapePolygon(s.points, s.t, s.z))).reduce((a,b) => a.concat(b), []);
-      }),*/
-    );
+    return this.getPagedData(`/omero/api/m/images/${imageId}/rois/`, RoIData);
+    /*return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`, {params}).pipe(
+      map(r => deserialize(r, RoIResult))
+    );*/
   }
 
   /**
@@ -619,8 +650,8 @@ export class OmeroAPIService {
     // get all annotations first
     return this.getFileAnnotations(imageId).pipe(
       // filter by name and sort by date
-      map(annotResult => {
-        return annotResult.annotations.filter(ann => ann.file.name === fileName).sort((a, b) => -(a.date.getTime() - b.date.getTime()));
+      map(annotations => {
+        return annotations.filter(ann => ann.file.name === fileName).sort((a, b) => -(a.date.getTime() - b.date.getTime()));
       }),
       // download file and parse
       switchMap(sortedAnnots => {
@@ -659,17 +690,16 @@ export class OmeroAPIService {
     return this.httpClient.post(`/omero/webclient/annotate_file/`, formData).pipe(
       // if file is posted successfully get all annotations
       switchMap(() => this.getFileAnnotations(imageId)),
-      map(annotations => annotations.annotations),
       // filter by current filename
       map(annotations => annotations.filter(ann => ann.file.name === fileName)),
-      // delete all but the latest file version
+      // delete all but the latest file version (it is the file we have just uploaded)
       mergeMap(
         (annotations: Annotation[]) => {
           let sortedAnnotations = annotations.sort((a, b) => -(a.date.getTime() - b.date.getTime()));
           // do not delete the newest file version
-          sortedAnnotations = sortedAnnotations.splice(0, 1);
+          sortedAnnotations = sortedAnnotations.splice(1);
           const deletions = [];
-          for (const ann of annotations) {
+          for (const ann of sortedAnnotations) {
             // remove them
             const formData = new FormData();
             formData.set('parent', 'image-' + imageId);
@@ -768,18 +798,42 @@ export class OmeroAPIService {
   }
 
   /**
+   * Get data of certain type
+   * @param url endpoint url
+   * @param c the type (must be serializable)
+   * @returns returns the deserialize object instance
+   */
+  getData<T>(url: string, c: new () => T, inData = true) {
+    if (!url.startsWith('/omero/api')) {
+      console.warn(`url ${url} is not compatible with endpoint.`)
+    }
+    return this.httpClient.get(url).pipe(
+      map((r: DataResponse<any>) => {
+        if (inData) {
+          return deserialize(r.data, c);
+        } else {
+          return deserialize(r, c);
+        }
+      })
+    );
+  }
+
+  /**
    * Loads all pages of the backend and combines the result in array
    * @param url backend url
    * @param c class type
    * @param limit the limit you request with first api call (later automatically max limit)
    * @returns an array of obtained data items
    */
-  getPagedData<T>(url, c: new () => T, limit=500): Observable<Array<T>> {
+  getPagedData<T>(url, c: new () => T, limit=500, params?: { [param: string]: string | string[]}): Observable<Array<T>> {
+    if (!url.startsWith('/omero/api')) {
+      console.warn(`url ${url} is not compatible with endpoint.`)
+    }
     const unpackPage = map(r => {
       const response = deserialize(r, PagedResponse);
       return <PagedResponse<T>>response;
     });
-    return this.httpClient.get(url, {params: {limit: limit + ''}}).pipe(
+    return this.httpClient.get(url, {params: {limit: limit + '', ...params}}).pipe(
       unpackPage,
       switchMap((result: PagedResponse<T>) => {
 
@@ -794,15 +848,17 @@ export class OmeroAPIService {
 
         if (totalCount > limit) {
           for(let i = 0; i < Math.ceil((totalCount - limit) / maxLimit); i++) {
-            requestList.push(this.httpClient.get(url, {params: {limit: maxLimit + '', offset: limit + i * maxLimit + ''}}).pipe(unpackPage));
+            requestList.push(this.httpClient.get(url, {params: {limit: maxLimit + '', offset: limit + i * maxLimit + '', ...params}}).pipe(unpackPage));
           }
         }
 
         return of(...requestList).pipe(
+          // combine all requests (executed in parallel)
           combineAll(),
         )
       }),
-      map((data: Array<PagedResponse<T>>) => data.map(d => d.data).reduce((a,b) => a.concat(b)).map(rawImage => deserialize(rawImage, c))),
+      // unpack, concatenated and deserialize
+      map((data: Array<PagedResponse<T>>) => data.map(d => d.data).reduce((a,b) => a.concat(b)).map(rawData => deserialize(rawData, c))),
       map(resArray => <Array<T>>resArray)
     );
   }
@@ -848,5 +904,9 @@ export class OmeroAPIService {
         return images[nextImageIndex].id
       })
     )
+  }
+
+  getImageInfo(imageSetId: number): Observable<ImageInfo> {
+    return this.getData(`/omero/iviewer/image_data/${imageSetId}/`, ImageInfo, false);
   }
 }

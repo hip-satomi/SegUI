@@ -1,57 +1,33 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-select [(ngModel)]="editMode" interface="action-sheet" slot="start" #tooltip="matTooltip"
-    matTooltip="Change your working mode here">
-      <ion-select-option value="0">Segment</ion-select-option>
-      <ion-select-option value="1" *ngIf="this.trackingUI">Track</ion-select-option>
-    </ion-select>
     <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
     <ion-buttons slot="end">
-      <ion-button (click)="omeroImport(this.stateService.imageSetId).subscribe()" #tooltip="matTooltip"
-      matTooltip="Import segmentation from OMERO">Import</ion-button>
+      <ion-button (click)="omeroImport().subscribe()" #tooltip="matTooltip"
+        matTooltip="Import segmentation from OMERO"><ion-icon name="download-outline"></ion-icon> Import</ion-button>
       <ion-button (click)="omeroExport()" #tooltip="matTooltip"
-      matTooltip="Export segmentation to OMERO">Export</ion-button>
+        matTooltip="Export segmentation to OMERO"><ion-icon name="share-outline"></ion-icon> Export</ion-button>
+
       <a ion-button href="https://jugit.fz-juelich.de/satomi/segtrackui/-/issues" target="_blank" #tooltip="matTooltip"
-      matTooltip="Please report problems/feature requests for the software here">ISSUES</a>
-      <ion-button *ngIf="isSegmentation" (click)="isOpen = !isOpen; this.draw()" type="button" #tooltip="matTooltip"
-      matTooltip="Advanced ML based segmentation proposals">
-        {{isOpen ? "Close" : "ADV-SEG"}}
+        matTooltip="Please report problems/feature requests for the software here"><ion-icon name="bug-outline"></ion-icon> ISSUES</a>
+
+      <ion-button *ngIf="isSegmentation" (click)="toggleTool(segTool)" type="button" #tooltip="matTooltip"
+        matTooltip="Advanced ML based segmentation proposals" [color]="isToolActive(segTool) ? 'primary' : ''">
+        <ion-icon name="rocket-outline"></ion-icon>ADV-SEG
       </ion-button>
-      <ion-button *ngIf="isSegmentation" (click)="isBrushOpen = !isBrushOpen; newBrushTool(); this.draw();" type="button"
-      #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
-        {{isOpen ? "Close" : "BRUSH"}}
+      <ion-button *ngIf="isSegmentation" (click)="toggleTool(brushToolComponent)" type="button" [color]="isToolActive(brushToolComponent) ? 'primary' : ''"
+        #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
+        <ion-icon name="brush-outline"></ion-icon>Brush
       </ion-button>
-      <!--<ion-button (click)=showPop()>
-        ADV-SEG
-      </ion-button>-->
-      <!--<ion-button (click)="openToolkit()">
-        <ion-icon name="medkit-outline"></ion-icon>
-      </ion-button>-->
-      <ion-button *ngIf="isTracking" (click)="track()">
-        TRACK
+      <ion-button *ngIf="isSegmentation" (click)="toggleTool(multiSelectComponent)" type="button" [color]="isToolActive(multiSelectComponent) ? 'primary' : ''"
+        #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
+        <ion-icon name="scan-outline"></ion-icon>
       </ion-button>
-      <ion-button *ngIf="isSegmentation" (click)="rectTool()" [ngClass]="{active: this.tool !== null}"
-      #tooltip="matTooltip" matTooltip="Open rectangle segmentation Tool">
-        RECT
-      </ion-button>
-      <!--<ion-button *ngIf="isSegmentation" (click)="brushTool()" [ngClass]="{active: this.tool !== null}">
-        Brush
-      </ion-button>-->
-      <!--<ion-button (click)="doSegment('cs')">
-        SP-CS
-      </ion-button>-->
-      <ion-button *ngIf="isSegmentation" (click)="doSegment('js')">
-        SP-JS
-      </ion-button>
-      <!--<ion-button (click)="segmentAll()">
-        ALL
-      </ion-button>-->
       <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px" #tooltip="matTooltip"
-      matTooltip="Undo (Ctrl+Z)">
+        matTooltip="Undo (Ctrl+Z)">
         <ion-icon name="arrow-undo-outline"></ion-icon>
       </ion-button>
       <ion-button [disabled]="!canRedo" (click)="redo()" style="padding-right:10xpx" #tooltip="matTooltip"
-      matTooltip="Redo (Ctrl+Y)">
+        matTooltip="Redo (Ctrl+Y)">
         <ion-icon name="arrow-redo-outline"></ion-icon>
       </ion-button>
       <ion-button [disabled]="!canSave" (click)="done()">
@@ -64,11 +40,14 @@
 <ion-content [fullscreen]="true" appMovableArea>
   <div #toolContainer>
   </div>
-  <app-segmentation #segTool class="popover" style="position: absolute;" [class.ion-hide]="!isOpen" [appMovable]="true" (close)="isOpen=false; this.tool=null" [segModel]="curSegModel" [segUI]="curSegUI">
+  <app-segmentation #segTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-segmentation>
 
-  <app-brush #brushTool class="popover" style="position: absolute;" [class.ion-hide]="!isBrushOpen" [appMovable]="true" (close)="isBrushOpen=false; this.tool=null" (changedEvent)="this.draw()" [segModel]="curSegModel" [segUI]="curSegUI">
+  <app-brush #brushTool class="popover" [appMovable]="true" (changedEvent)="draw()" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-brush>
+
+  <app-multi-select-tool #multiSelectTool class="popover" [appMovable]="true" (changedEvent)="draw()" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
+  </app-multi-select-tool>
 
   <ion-header collapse="condense">
     <ion-toolbar>
@@ -81,7 +60,9 @@
   <!--<app-image-view #imageView [imageUrl]="url" [enabled]="activeView === i" [segmentationModel]="segmentationModels[i]" [segmentationUI]="segmentationUIs[i]" *ngFor="let url of urls; let i = index"></app-image-view>-->
 </ion-content>
 
-<ion-footer *ngIf="urls.length > 1">
+<app-ann-manager *ngIf="globalSegModel" [globalSegModel]="globalSegModel" (redraw)="draw()"></app-ann-manager>
+
+<ion-footer *ngIf="segmentationModels.length >= 1">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="navigateToPreviousImageSequence().pipe(showErrorPipe).subscribe()" style="padding-right:10px">

@@ -239,8 +239,8 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     const zoomFactor = Math.min(xZoomFactor, yZoomFactor);
 
     // compute zoomed translation
-    const xTranslate = (cWidth - boxWidth * zoomFactor) / 2;
-    const yTranslate = (cHeight - boxHeight * zoomFactor) / 2;
+    const xTranslate = -box.x;// * zoomFactor +  (cWidth - boxWidth * zoomFactor) / 2;
+    const yTranslate = -box.y;// * zoomFactor + (cHeight - boxHeight * zoomFactor) / 2;
 
     // create the full transform
     const transform = Utils.createTransform(zoomFactor, zoomFactor, xTranslate, yTranslate);
@@ -251,7 +251,40 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     console.log('zoomToShowFixedBox');
   }
 
+  /**
+   * 
+   * @param box the box to center and show (zooming)
+   */
+   centerFixedBox(box: BoundingBox) {
+    // obtain canvas (drawing) dimensions
+    const cWidth = this.canvasElement.width
+    const cHeight = this.canvasElement.height
 
+    // obtain box dimensions
+    const boxWidth = box.w;
+    const boxHeight = box.h;
+
+    // reset current transform
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // compute the zoom factor
+    const xZoomFactor = cWidth / boxWidth;
+    const yZoomFactor = cHeight / boxHeight;
+
+    const zoomFactor = Math.min(xZoomFactor, yZoomFactor);
+
+    // compute zoomed translation
+    const xTranslate = -box.x + (cWidth - boxWidth * zoomFactor) / 2;// * zoomFactor +  (cWidth - boxWidth * zoomFactor) / 2;
+    const yTranslate = -box.y + (cHeight - boxHeight * zoomFactor) / 2;// * zoomFactor + (cHeight - boxHeight * zoomFactor) / 2;
+
+    // create the full transform
+    const transform = Utils.createTransform(zoomFactor, zoomFactor, xTranslate, yTranslate);
+
+    // update transform
+    this.ctx.setTransform(transform);
+
+    console.log('zoomToShowFixedBox');
+  }
 
     /**
    * Apply zoom at current mouse pointer position

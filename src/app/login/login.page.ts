@@ -3,6 +3,9 @@ import { AlertController, ToastController, LoadingController } from '@ionic/angu
 import { AuthService } from './../services/auth.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { map, tap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -16,7 +19,9 @@ export class LoginPage implements OnInit {
     password: ''
   };
 
-  redirectUrl = ''
+  redirectUrl = '';
+
+  version$: Observable<string>;
 
   constructor(
     private auth: AuthService,
@@ -26,7 +31,14 @@ export class LoginPage implements OnInit {
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
     private route: ActivatedRoute,
-  ) { }
+    private httpClient: HttpClient
+  ) {
+    this.version$ = this.httpClient.get('assets/info.json').pipe(
+      tap(data => console.log(data)),
+      map(data => data['version']),
+      tap(version => console.log(version))
+    );
+  }
 
   ngOnInit() {
     this.route.queryParams.subscribe(

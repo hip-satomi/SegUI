@@ -1,0 +1,20 @@
+<ion-list>
+  <ion-radio-group [(ngModel)]="radioValue">
+    <ion-list-header>
+      <ion-label>Set Color</ion-label>
+    </ion-list-header>
+    <ion-item>
+      <ion-label>Random</ion-label>
+      <ion-radio slot="start" value="random"></ion-radio>
+    </ion-item>
+    <ion-item>
+      <ion-label>Custom</ion-label>
+      <ion-radio slot="end" value="custom"></ion-radio>
+    </ion-item>
+    <div *ngIf="radioValue == 'custom'">
+      <ion-label>Picker</ion-label>
+      <input [(colorPicker)]="color" [style.background]="color" [cpUseRootViewContainer]="true"/>
+    </div>
+  </ion-radio-group>
+</ion-list>
+<ion-button expand="block" (click)="close()">Save</ion-button>

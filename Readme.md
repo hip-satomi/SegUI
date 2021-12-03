@@ -1,6 +1,24 @@
+ [![coverage report](https://jugit.fz-juelich.de/satomi/segtrackui/badges/develop/coverage.svg)](https://jugit.fz-juelich.de/satomi/segtrackui/-/commits/develop)
+
+
 # segTrackUI
 
 Web Application for high-quality and interactive microbial cell segmentation and tracking. The application is based on the [Ionic](https://ionicframework.com/) and [Anglar](https://angular.io/) frameworks.
+
+## Installation
+
+To install all the microservices including omero and omero web, we have prepared a docker-compose setup. Make sure you have docker installed. Then switch to the docker-compose directory
+
+```
+cd docker-compose
+```
+
+Now launch the compilation and setup using
+```
+docker-compose -f docker-compose.full.yml up --build
+```
+
+This will take a while because we need to download all the docker images and compile our code to make it ready for execution. But after everything is setup, everything runs seamlessly and you can access it in the browser [here](http://localhost). Use the default credentials (user: root, password: omero) to login.
 
 ## How to Test the UI - Use a docker container
 
@@ -60,6 +78,15 @@ npm install
 ```
 ionic serve
 ```
+
+## Build from source
+
+Build the application from source and launch it together with a full omero server instance
+```
+docker-compose -f ./docker-compose/docker-compose.full.yml up --build
+```
+
+You can reach the local segTrack app [here](http://localhost) and the omero web [here](http://localhost:4080). The username is `root` and the password is `omero` for the standard user.
 
 ## Important notes
 

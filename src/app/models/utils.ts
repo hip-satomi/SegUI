@@ -1,8 +1,10 @@
 import { Point } from './geometry';
 import { multiply, inv } from 'mathjs';
 import * as simplify from 'simplify-js';
-import { SegmentationHolder } from './segmentation-model';
+import { SegCollData, SegmentationHolder } from './segmentation-model';
 import { pointsToString } from '../services/omero-api.service';
+import { SegmentationData } from './segmentation-data';
+import { AddLabelAction } from './action';
 
 export interface Position {
     x: number;
@@ -60,7 +62,12 @@ export const pairwiseDistanceMin = (pos: number[], positions: number[][]) => {
 
 export class Utils {
 
-  static tree = require( 'tree-kit' );
+  // Load the core build.
+  private static lodashCore = require('lodash');
+
+  static clone(obj) {
+    return Utils.lodashCore.cloneDeep(obj, true);
+  }
 
   static euclideanDistance(a: Point, b: Point) {
     return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
@@ -178,6 +185,15 @@ export class Utils {
     const simplePoints = simplify(points, tolerance);
     return simplePoints.map(sp => [sp.x, sp.y]);
   }
+
+  /**
+   * Check points due to issue 48
+   * @param points array of points
+   * @returns valid array of valid points
+   */
+  static checkPoints(points: Point[]): Point[] {
+    return points.filter((point: Point) => point && point.length == 2);
+  }
 }
 
 export class UIUtils {
@@ -289,13 +305,15 @@ export class OmeroUtils {
     return empty_rois;
   }
 
-  static createNewRoIList(segHolder: SegmentationHolder) {
+  static createNewRoIList(segHolder: SegCollData) {
     const new_list = [];
-    for (const [index, element] of segHolder.segmentations.entries()) {
+    // loop over all image slices
+    for (const [index, slice] of segHolder.segData.entries()) {
       const z = 0;
       const t = index;
-      for (const roi of element.segmentationData.getPolygons()) {
-        if(roi[1].numPoints == 0) {
+      // loop over all annotated polygons in the slice
+      for (const [id, poly] of slice.getPolygons()) {
+        if(poly.numPoints == 0) {
           continue;
         }
         const roi_data = {
@@ -304,7 +322,7 @@ export class OmeroUtils {
           FillColor:	-256,
           Length: -1,
           oldId: "-6:-850",
-          Points: pointsToString(roi[1].points),
+          Points: pointsToString(poly.points),
           StrokeColor: -65281,
           StrokeWidth: {
             "@type":	"TBD#LengthI",
@@ -312,6 +330,8 @@ export class OmeroUtils {
             Unit:	"PIXEL",
             Value:	1
           },
+          // set the label name as a comment
+          Text: segHolder.getLabelById(slice.getPolygonLabel(id)).name,
           TheT:	t,
           TheZ:	z,
         }

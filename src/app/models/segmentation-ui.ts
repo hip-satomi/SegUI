@@ -1,14 +1,16 @@
 import { ActionSheetController } from '@ionic/angular';
 import { Polygon } from 'src/app/models/geometry';
 import { UIInteraction, Drawer, Pencil } from './drawing';
-import { AddPointAction, JointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
-import { Utils } from './utils';
-import { SegmentationModel } from './segmentation-model';
+import { AddPointAction, ChangeLabelActivityAction, JointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
+import { UIUtils, Utils } from './utils';
+import { LocalSegmentationModel, SegmentationModel } from './segmentation-model';
 import { from, Observable, of, ReplaySubject } from 'rxjs';
-import { map, switchMap, take } from 'rxjs/operators';
+import { map, switchMap, take, tap } from 'rxjs/operators';
+import { SegmentationData } from './segmentation-data';
+import { UserQuestionsService } from '../services/user-questions.service';
 export class SegmentationUI implements UIInteraction, Drawer {
 
-    segmentationModel: SegmentationModel;
+    segModel: LocalSegmentationModel;
     canvasElement;
     ctx;
     distanceThreshold: number = 25;
@@ -22,13 +24,14 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
     /**
      * 
-     * @param segmentationModel 
+     * @param segModel 
      * @param canvasElement native canvas element
      */
-    constructor(segmentationModel: SegmentationModel,
+    constructor(segModel: LocalSegmentationModel,
                 imageUrl: string, canvasElement,
-                private actionSheetController: ActionSheetController) {
-        this.segmentationModel = segmentationModel;
+                private actionSheetController: ActionSheetController,
+                private userQuestions: UserQuestionsService) {
+        this.segModel = segModel;
         this.canvasElement = canvasElement;
         this.ctx = canvasElement.getContext('2d');
         this.imageUrl = imageUrl;
@@ -108,7 +111,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
         e.preventDefault();
 
-        const poly = this.segmentationModel.activePolygon;
+        const poly = this.segModel.activePolygon;
         const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         const x = mousePos.x;
         const y = mousePos.y;
@@ -137,13 +140,19 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
         if (!lineInsert) {
             // check whether you did click onto another polygon
-            for (const [index, polygon] of this.segmentationModel.segmentationData.getPolygonEntries()) {
-                if (index === this.segmentationModel.activePolygonId) {
+            for (const [index, polygon] of this.segModel.segmentationData.getPolygonEntries()) {
+                if (index === this.segModel.activePolygonId) {
                     continue;
                 }
                 if (polygon.isInside([x, y])) {
                     // clicke inside a non active polygon
-                    this.segmentationModel.activePolygonId = index;
+                    this.segModel.addAction(new SelectPolygon(index));
+
+                    if(!this.segModel.activeLabels.map(l => l.id).includes(this.segModel.getPolygonLabelId(index))) {
+                        // activate the label if necessary
+                        this.segModel.parent.addAction(new ChangeLabelActivityAction(this.segModel.getPolygonLabelId(index), true));
+                    }
+                    //this.segModel.activePolygonId = index;
                     return true;
                 }
             }
@@ -157,7 +166,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
         event.preventDefault();
         let match: [string, Polygon] = null;
         const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
-        for (const [id, polygon] of this.segmentationModel.segmentationData.getPolygonEntries()) {
+        for (const [id, polygon] of this.segModel.segmentationData.getPolygonEntries()) {
             if (polygon.isInside([mousePos.x, mousePos.y])) {
                 match = [id, polygon];
                 break;
@@ -168,10 +177,11 @@ export class SegmentationUI implements UIInteraction, Drawer {
             // match contains [uuid, Polygon] of the selected polygon
 
             // select the polygon
-            this.segmentationModel.addAction(new SelectPolygon(match[0],
-                                                               this.segmentationModel.activePolygonId));
+            this.segModel.addAction(new SelectPolygon(match[0],
+                                                               this.segModel.activePolygonId));
 
             // show action opportunities
+            // TODO: Default label id?
             const actionSheet = this.actionSheetController.create({
                 header: 'Cell Actions',
                 buttons: [{
@@ -182,9 +192,9 @@ export class SegmentationUI implements UIInteraction, Drawer {
                     // create an action to remove the polygon
                     const removeAction = new RemovePolygon(match[0]);
                     // add another polygon for safety
-                    this.segmentationModel.addNewPolygon();
+                    //this.segModel.addNewPolygon(0);
                     // execute the remove action
-                    this.segmentationModel.addAction(removeAction);
+                    this.segModel.addAction(removeAction);
                   }
                 }, {
                   text: 'Cancel',
@@ -204,7 +214,11 @@ export class SegmentationUI implements UIInteraction, Drawer {
     onPanStart(event): boolean {
         console.log('pan start');
 
-        const poly = this.segmentationModel.activePolygon;
+        const poly = this.segModel.activePolygon;
+        if(poly == null) {
+            // TODO add a polygon here
+            return false;
+        }
         // check whether we will drag something
         const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
         const x = mousePos.x;
@@ -219,21 +233,23 @@ export class SegmentationUI implements UIInteraction, Drawer {
             // activate dragging by setting the point index
             this.draggingPointIndex = minDisIndex;
 
-            this.segmentationModel.activePointIndex = minDisIndex;
+            this.segModel.activePointIndex = minDisIndex;
         }
         return true;
     }
 
     onPan(event): boolean {
+        if(this.segModel.activePolygonId == null) {
+            return false;
+        }
         if (this.draggingPointIndex !== -1) {
             console.log("drag");
 
             const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
 
-            const polygon = this.segmentationModel.activePolygon;
-            this.segmentationModel.addAction(new MovePointAction([mousePos.x, mousePos.y],
-                                                this.segmentationModel.activePointIndex,
-                                                this.segmentationModel.activePolygonId));
+            const polygon = this.segModel.activePolygon;
+            // change the point temporarily
+            polygon.points[this.segModel.activePointIndex] = [mousePos.x, mousePos.y];
 
             return true;
         }
@@ -242,10 +258,23 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     onPanEnd(event): boolean {
+        if(this.segModel.activePolygonId == null) {
+            return false;
+        }
+
         console.log('pan end');
 
         if (this.draggingPointIndex !== -1) {
             this.draggingPointIndex = -1;
+
+            // record final drag position
+            const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+
+            const polygon = this.segModel.activePolygon;
+            this.segModel.addAction(new MovePointAction([mousePos.x, mousePos.y],
+                                                this.segModel.activePointIndex,
+                                                this.segModel.activePolygonId));
+
             return true;
         }
 
@@ -258,29 +287,29 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     delete() {
-        if (this.segmentationModel.activePolygon) {
-            const removalId = this.segmentationModel.activePolygonId;
+        if (this.segModel.activePolygon) {
+            const removalId = this.segModel.activePolygonId;
 
-            // TODO: this action recording can be dangerous
-            //this.segmentationModel.recordActions();
+            // TODO: Default label id ?
             const jointAction = 
                 new JointAction(
-                    ...this.segmentationModel.addNewPolygonActions(),
+                    //...this.segModel.addNewPolygonActions(0),
                     new RemovePolygon(removalId));
 
-            this.segmentationModel.addAction(jointAction);
-
-            //this.segmentationModel.actionManager.mergeRecordedActions();
+            this.segModel.addAction(jointAction);
         }
     }
 
     get canSave(): boolean {
-        return this.segmentationModel.activePolygon?.numPoints > 0;
+        return this.segModel.activePolygon?.numPoints > 0;
     }
 
     save() {
         if (this.canSave) {
-            this.segmentationModel.addNewPolygon();
+            // TODO: Default label id?
+            this.userQuestions.activeLabel(this.segModel).pipe(
+                tap(label => this.segModel.addNewPolygon(label.id))
+            ).subscribe();
         }
     }
 
@@ -302,8 +331,69 @@ export class SegmentationUI implements UIInteraction, Drawer {
         pencil.clear();
 
         const ctx = pencil.canvasCtx;
-        this.segmentationModel.draw(ctx);
+        //this.drawPolygons(ctx);
+        this.drawPolygonsAdv(ctx, true,
+            // filter only polygons with visible label
+            (p: [string, Polygon]) => {
+                return this.segModel.labels[this.segModel.segmentationData.getPolygonLabel(p[0])].visible
+            },
+            ({uuid, poly}) => {
+                const label = this.segModel.labels[this.segModel.segmentationData.getPolygonLabel(uuid)]
+                const mode = label.color;
+
+                if (mode == 'random') {
+                    return poly.color;
+                } else {
+                    return label.color;
+                }
+            }
+
+        );
         this.drawImage(ctx);
+    }
+
+    /**
+     * Draws the polygons of the segmentation data
+     * @param ctx the target canvas context
+     * @param markActive iff true marks the currently active polygon
+     * @param polyFilter a filter function to draw only specific polygons
+     */
+    drawPolygons(ctx, markActive = true, polyFilter: (p: [string, Polygon]) => boolean = p => true) {
+        for (const [index, polygon] of Array.from(this.segModel.segmentationData.getPolygonEntries()).filter(polyFilter)) {
+            if (markActive) {
+                UIUtils.drawSingle(polygon.points, index === this.segModel.activePolygonId, ctx, polygon.getColor());
+            } else {
+                UIUtils.drawSingle(polygon.points, false, ctx, polygon.getColor());
+            }
+        }
+    }
+
+    drawPolygonsAdv(ctx, markActive = true, polyFilter: (p: [string, Polygon]) => boolean = p => true, polyColor: ({uuid: string, poly: Polygon}) => string = ({uuid, poly}) => poly.getColor()) {
+        for (const [index, polygon] of Array.from(this.segModel.segmentationData.getPolygonEntries()).filter(polyFilter)) {
+            if (markActive) {
+                UIUtils.drawSingle(polygon.points, index === this.segModel.activePolygonId, ctx, polyColor({uuid: index, poly: polygon}));
+            } else {
+                UIUtils.drawSingle(polygon.points, false, ctx, polyColor({uuid: index, poly: polygon}));
+            }
+        }
+    }
+
+    drawAdvanced(ctx, colorGenerator: (polygon: Polygon) => string = (poly: Polygon) => poly.getColor()) {
+        const markActive = false;
+
+        for (const [index, polygon] of this.segModel.segmentationData.getPolygonEntries()) {
+            if (polygon.numPoints === 0) {
+                continue;
+            }
+
+            if (markActive) {
+                UIUtils.drawSingle(polygon.points, index === this.segModel.activePolygonId, ctx, colorGenerator(polygon));
+            } else {
+                UIUtils.drawSingle(polygon.points, false, ctx, colorGenerator(polygon));
+            }
+            //UIUtils.drawCircle(ctx, polygon.center, 4, '#00FF00');
+        }
+        //ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
     }
 
     /**
@@ -322,7 +412,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                 ctx.msImageSmoothingEnabled = false;
                 ctx.imageSmoothingEnabled = false;
 
-                console.log('Drawing image');
+                //console.log('Drawing image');
                 
 
                 // draw image

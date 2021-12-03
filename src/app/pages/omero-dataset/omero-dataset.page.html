@@ -10,31 +10,28 @@
   <ion-grid *ngIf="(images$ | async) as images">
     <ion-row>
       <ion-col *ngFor="let image of images" size-sm="6" size-xl="3">
-        <ion-card [routerLink]="['/seg-track/', {'imageSetId': image.id}]">
-          <ion-card-header>
-            {{image.name}}
-          </ion-card-header>
-          <ion-card-content>
-            <app-permission-viz [item]="image"></app-permission-viz>
-            <ion-grid>
-              <ion-row>
-                <ion-col size="auto">
-                  <ion-thumbnail style="--size: 150px;--border-radius:5%">
-                    <ion-img [src]="omeroApi.getThumbnailUrl(image.id)"></ion-img>
-                  </ion-thumbnail>
-                </ion-col>
-                <ion-col>
-                  <p>Num images: {{image.pixels.sizeZ * image.pixels.sizeT}}</p>
-                </ion-col>
-              </ion-row>
-            </ion-grid>
-          </ion-card-content>
-        </ion-card>
+        <app-image-card [image]="image"></app-image-card>
       </ion-col>
     </ion-row>
   </ion-grid>
   <!-- Check whether there is content -->
   <ion-grid class="ion-text-center" *ngIf="(images$ | async)?.length == 0">
-    <ion-badge color="primary" class="ion-text-center" ><h1>This dataset does not contain any images</h1></ion-badge>
+    <!--<ion-badge color="primary" class="ion-text-center" ><h1>This dataset does not contain any images</h1></ion-badge>-->
+    <ion-row>
+      <ion-col size="12" size-sm="10" offset-sm="1" size-md="8" offset-md="2" size-lg="6" offset-lg="3" size-xl="4"
+            offset-xl="4">
+        
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title class="ion-text-center">This is an empty dataset!</ion-card-title>
+          </ion-card-header>
+
+          <ion-card-content>
+            Please upload images first. You can do this, for example, using <a href="https://www.openmicroscopy.org/omero/downloads/" target="_blank">omero insight</a>
+          </ion-card-content>
+        </ion-card>
+        
+      </ion-col>
+    </ion-row>
   </ion-grid>
 </ion-content>

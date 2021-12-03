@@ -33,7 +33,7 @@ export class BoundingBox {
 
 @Serializable()
 export class Polygon {
-    @JsonProperty({name: 'points'})
+    @JsonProperty({name: 'points', postDeserialize: Utils.checkPoints})
     _points: Point[] = [];
 
     @JsonProperty()
@@ -84,7 +84,7 @@ export class Polygon {
     }
 
     setPoints(points: Point[]) {
-        this.points = Utils.tree.clone(points);
+        this.points = Utils.clone(points);
     }
 
     addPoint(index: number, point: Point) {
@@ -242,7 +242,7 @@ export class Polygon {
      * @param other polygon
      */
     subtract(other: Polygon) {
-        const pointsCopy = Utils.tree.clone(this.points);
+        const pointsCopy = Utils.clone(this.points);
         try {
             const points = this.takeLargest(polygon.subtract(this.points, other.points));
             this.points = points;

@@ -1,13 +1,13 @@
 import { Serializable, JsonProperty } from 'typescript-json-serializer';
 import { ModelChanged, ChangeType, ChangableModel } from './change';
 import { EventEmitter } from '@angular/core';
-import { SegmentationData } from './segmentation-data';
+import { AnnotationLabel, SegmentationData } from './segmentation-data';
 import { UIUtils } from './utils';
 import { Polygon, Point } from './geometry';
-import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper, Action, JointAction } from './action';
+import { ActionManager, AddEmptyPolygon, SelectPolygon, PreventUndoActionWrapper, Action, JointAction, ClearableStorage, LocalAction, CreateSegmentationLayersAction, AddLabelAction } from './action';
 import { SynchronizedObject } from './storage';
 import { Subscription, Observable, combineLatest, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { map, takeUntil } from 'rxjs/operators';
 
 /**
  * Segmentation model contains all the information of the segmentation
@@ -29,7 +29,7 @@ export class SegmentationModel {
 
     constructor() {
 
-        this.actionManager = new ActionManager(0.5, this.segmentationData);
+        this.actionManager = new ActionManager(this.segmentationData);
 
         // clear segmentation data
         this.clear();
@@ -41,7 +41,8 @@ export class SegmentationModel {
         });
 
         // TODO this is somehow strange not to able to have an empty model. If the model is empty on interaction a new polygon is added and this can destroy the redo stack.
-        this.addNewPolygon();
+        // TODO: Default label id?
+        this.addNewPolygon(0);
     }
 
     /**
@@ -129,7 +130,7 @@ export class SegmentationModel {
         this.actionManager.addAction(action, toPerform);
     }
 
-    addNewPolygonActions(): Action<SegmentationData>[] {
+    addNewPolygonActions(labelId: number): Action<SegmentationData>[] {
         let uuid = '';
         // do not allow undo for the first segment (it should be always present)
         let allowUndo = true;
@@ -138,7 +139,7 @@ export class SegmentationModel {
 
         if (this.segmentationData.numPolygons === 0) {
             // when there are no polygons we simply have to add one
-            const newAction = new AddEmptyPolygon(UIUtils.randomColor());
+            const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
             uuid = newAction.uuid;
             //this.addAction(newAction);
             actions.push(newAction);
@@ -152,7 +153,7 @@ export class SegmentationModel {
             if (emptyId) {
                 uuid = emptyId;
             } else {
-                const newAction = new AddEmptyPolygon(UIUtils.randomColor());
+                const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
                 uuid = newAction.uuid;
                 //this.addAction(newAction);
                 actions.push(newAction);
@@ -176,9 +177,9 @@ export class SegmentationModel {
      * 
      * if there is  an empty polygon at the end, this one is used
      */
-    addNewPolygon() {
+    addNewPolygon(labelId: number) {
 
-        const actions = this.addNewPolygonActions();
+        const actions = this.addNewPolygonActions(labelId);
 
         // add all these actions as a joint action
         this.addAction(new JointAction(...actions));
@@ -222,7 +223,8 @@ export class SegmentationModel {
      */
     get activePolygon() {
         if (this.segmentationData.numPolygons === 0) {
-            this.addNewPolygon();
+            // TODO: Default label id?
+            this.addNewPolygon(0);
         }
 
         return this.segmentationData.getPolygon(this.activePolygonId);
@@ -269,6 +271,320 @@ export class SegmentationModel {
         return newSegMod;
     }
 
+}
+
+
+export class SegCollData implements ClearableStorage {
+    segData: SegmentationData[] = [];
+
+    /** Views on individual frames */
+    localModels: LocalSegmentationModel[] = [];
+    parent: GlobalSegmentationModel;
+
+    /** Annotation labels */
+    labels: AnnotationLabel[] = [];
+
+    constructor(parent: GlobalSegmentationModel) {
+        this.parent = parent;
+    }
+
+    clear() {
+        this.segData = [];
+        this.localModels = [];
+        this.labels = [];
+    }
+
+    get(index: number) {
+        return this.segData[index];
+    }
+
+    addSegmentationData(segData: SegmentationData) {
+        this.segData.push(segData);
+        this.localModels.push(new LocalSegmentationModel(this.parent, this.segData.length - 1));
+    }
+
+    addLabel(label: AnnotationLabel) {//(labelName: string, visible = true, color = 'random', active = true) {
+        this.labels.push(label);
+
+        // TODO: check activity
+        // make sure only a single label is active
+        if (label.active) {
+            for (const l of this.labels) {
+                l.active = false;
+            }
+            label.active = true;
+        }
+    }
+
+    getLabelById(labelId: number) {
+        const filteredLabels = this.labels.filter(l => l.id == labelId)
+        if (filteredLabels.length == 1) {
+            return filteredLabels[0];
+        } else {
+            console.warn("Could not find label by id");
+            return null;
+        }
+    }
+
+    /** View on active labels only */
+    get activeLabels(): Array<AnnotationLabel> {
+        return this.labels.filter(l => l.active);
+    }
+
+}
+
+@Serializable()
+export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentationModel> implements ChangableModel<GlobalSegmentationModel> {
+    @JsonProperty()
+    private actionManager: ActionManager<SegCollData>;
+
+    @JsonProperty()
+    private _formatVersion: string;
+
+    // TODO: change this if version changes (especially for breaks)
+    static currentFormatVersion = '0.1';
+
+    segmentationData: SegCollData;
+    private subscriptions: Subscription[] = [];
+
+    _modelChanged = new EventEmitter<ModelChanged<GlobalSegmentationModel>>();
+
+    protected destroySignal: Subject<void>;
+
+    get formatVersion(): string {
+        return this._formatVersion;
+    }
+
+    get modelChanged() {
+        return this.actionManager.onDataChanged.pipe(
+            takeUntil(this.destroySignal),
+            map(() => new ModelChanged<GlobalSegmentationModel>(this, ChangeType.HARD))
+        );
+    }
+
+    get segmentations(): SegmentationData[] {
+        return this.segmentationData.segData;
+    }
+
+    get segmentationModels(): LocalSegmentationModel[] {
+        return this.segmentationData.localModels;
+    }
+
+    get labels(): Array<AnnotationLabel> {
+        return this.segmentationData.labels;
+    }
+
+    constructor(destroySignal, numSegmentationLayers: number) {
+        super();
+        this.destroySignal = destroySignal;
+
+        this.segmentationData = new SegCollData(this);
+
+        this.actionManager = new ActionManager(this.segmentationData);
+
+        /*this.actionManager.onDataChanged.subscribe((actionManager: ActionManager<SegmentationData>) => {
+            this.notfiyModelChanged();
+        });*/
+
+        if (numSegmentationLayers === undefined) {
+            // we are only deserializing
+            return;
+        }
+
+        // set creation format version
+        this._formatVersion = GlobalSegmentationModel.currentFormatVersion;
+
+        this.actionManager.addAction(new CreateSegmentationLayersAction(numSegmentationLayers));
+
+        this.actionManager.addAction(new AddLabelAction(new AnnotationLabel(0, 'Cell', true, 'random', true)));
+    }
+
+    onDeserialized(destroySignal: Subject<void>) {
+        this.destroySignal = destroySignal;
+
+        this.actionManager.data = this.segmentationData;
+        // reapply the actions of the action manager
+        this.actionManager.reapplyActions(this.segmentationData);
+    }
+
+    /*notfiyModelChanged() {
+        this._modelChanged.emit(new ModelChanged<GlobalSegmentationModel>(this, ChangeType.HARD));
+    }*/
+
+    clearSegmentations() {
+        //this.subscriptions.forEach(sub => sub.unsubscribe());
+        this.segmentationData.clear();
+    }
+
+    addAction(a: Action<SegCollData>, toPerform = true) {
+        this.actionManager.addAction(a, toPerform);
+    }
+
+    getLocalModel(position: number) {
+        return new LocalSegmentationModel(this, position);
+    }
+
+    nextLabelId(): number {
+        return Math.max(...this.segmentationData.labels.map(l => l.id), 0) + 1;
+    }
+
+    get canUndo() {
+        return this.actionManager.canUndo;
+    }
+
+    get canRedo() {
+        return this.actionManager.canRedo;
+    }
+
+    redo() {
+        this.actionManager.redo();
+    }
+
+    undo() {
+        this.actionManager.undo();
+    }  
+}
+
+export class LocalSegmentationModel {
+    parent: GlobalSegmentationModel;
+    position: number;
+
+    constructor(parent: GlobalSegmentationModel, position: number) {
+        this.parent = parent;
+        this.position = position;
+    }
+
+    addAction(action: Action<SegmentationData>, toPerform = true) {
+        this.parent.addAction(this.wrapAction(action), toPerform);
+    }
+
+    wrapAction(action: Action<SegmentationData>) {
+        return new LocalAction(action, this.position);
+    }
+
+    get segmentationData(): SegmentationData {
+        return this.parent.segmentationData.get(this.position);
+    }
+
+    /**
+     * Only get the polygons of active labels
+     * @returns 
+     */
+    getActivePolygons() {
+        const activeLabelIds: Array<number> = this.parent.segmentationData.labels.filter(l => l.active).map(l => l.id);
+        return this.getVisiblePolygons().filter(([id, poly]) => {
+            return activeLabelIds.includes(this.getPolygonLabelId(id));
+        });
+    }
+
+    /**
+     * Returns polygons of visible labels
+     * @returns 
+     */
+    getVisiblePolygons() {
+        const visibleLabelIds: Array<number> = this.parent.segmentationData.labels.filter(l => l.visible).map(l => l.id);
+        return [...this.segmentationData.getPolygons().entries()].filter(([id, poly]) => {
+            return visibleLabelIds.includes(this.getPolygonLabelId(id));
+        });
+    }
+
+    get activePolygonId(): string {
+        return this.segmentationData.activePolygonId;
+    }
+
+    set activePolygonId(polyId: string) {
+        //assert(this.segmentationData.contains(polyId));
+        this.segmentationData.activePolygonId = polyId;
+    }
+
+    get activePolygon(): Polygon {
+        return this.segmentationData.getPolygon(this.segmentationData.activePolygonId);
+    }
+
+    get activePointIndex(): number {
+        return this.segmentationData.activePointIndex;
+    }
+
+    set activePointIndex(activePointIndex: number) {
+        this.segmentationData.activePointIndex = activePointIndex;
+    }
+
+    addNewPolygonActions(labelId: number): Action<SegmentationData>[] {
+        let uuid = '';
+        // do not allow undo for the first segment (it should be always present)
+        let allowUndo = true;
+
+        const actions: Action<SegmentationData>[] = [];
+
+        if (this.segmentationData.numPolygons === 0) {
+            // when there are no polygons we simply have to add one
+            const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
+            uuid = newAction.uuid;
+            //this.addAction(newAction);
+            actions.push(newAction);
+
+            allowUndo = false;
+
+            this.activePointIndex = 0;
+        } else {
+            // if there are polygons we check whether there are empty ones before creating a new one
+            const candidates = this.segmentationData.getEmptyPolygons().filter(([id, poly]) => {
+                this.getPolygonLabelId(id) == labelId
+            });
+            let emptyId: string = null;
+            if (candidates.length >= 1) {
+                emptyId = candidates[0][0];
+            }
+            if (emptyId) {
+                uuid = emptyId;
+            } else {
+                const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
+                uuid = newAction.uuid;
+                //this.addAction(newAction);
+                actions.push(newAction);
+
+                this.activePointIndex = 0;
+            }
+        }
+
+        // select the correct polygon
+        if (allowUndo) {
+            actions.push(new SelectPolygon(uuid, this.segmentationData.activePolygonId));
+        } else {
+            actions.push(new PreventUndoActionWrapper(new SelectPolygon(uuid, this.segmentationData.activePolygonId)));
+        }
+
+        return actions;
+    }
+
+    /**
+     * Adds a new polygon to the segmentation model if necessary
+     * 
+     * if there is  an empty polygon at the end, this one is used
+     */
+    addNewPolygon(labelId: number) {
+
+        const actions = this.addNewPolygonActions(labelId);
+
+        // add all these actions as a joint action
+        this.addAction(new JointAction(...actions));
+    }
+
+    get activeLabels(): Array<AnnotationLabel> {
+        return this.parent.segmentationData.activeLabels;
+    }
+
+    get labels(): Array<AnnotationLabel> {
+        return this.parent.labels;
+    }
+
+    nextLabelId(): number {
+        return this.parent.nextLabelId();
+    }
+
+    getPolygonLabelId(id: string): number {
+        return this.segmentationData.labels.get(id);
+    }
 }
 
 /**
@@ -345,13 +661,13 @@ export class SimpleSegmentationHolder
     implements ChangableModel<SimpleSegmentationHolder> {
 
     modelChanged = new EventEmitter<ModelChanged<SimpleSegmentationHolder>>();
-    baseHolder: SegmentationHolder;
+    baseHolder: GlobalSegmentationModel;
 
     content: Array<SimpleSegmentation>;
     
-    constructor(baseHolder: SegmentationHolder) {
+    constructor(baseHolder: GlobalSegmentationModel) {
         this.baseHolder = baseHolder;
-        this.baseHolder.modelChanged.subscribe((changedEvent: ModelChanged<SegmentationModel>) => {
+        this.baseHolder.modelChanged.subscribe((changedEvent: ModelChanged<GlobalSegmentationModel>) => {
             if (changedEvent.changeType === ChangeType.HARD) {
                 // update the models simple representation
                 this.update();
@@ -368,14 +684,15 @@ export class SimpleSegmentationHolder
     update() {
         this.content = [];
         // iterate over models and collect simple segmentation
-        for (const [frameId, segModel] of this.baseHolder.segmentations.entries()) {
+        for (const [frameId, segData] of this.baseHolder.segmentations.entries()) {
             const detections: SimpleDetection[] = [];
 
-            for (const [uuid, poly] of segModel.segmentationData.getPolygonEntries()) {
+            for (const [uuid, poly] of segData.getPolygonEntries()) {
                 if (poly.points.length === 0) {
                     // we don't need empty segmentations
                     continue;
                 }
+                // TODO: hard coded label here!
                 detections.push({label: 'cell', contour: poly.points, id: uuid});
             }
 

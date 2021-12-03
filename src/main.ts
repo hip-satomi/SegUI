@@ -6,6 +6,12 @@ import { environment } from './environments/environment';
 
 import 'hammerjs';
 
+// make dayjs parse work
+import * as dayjs from 'dayjs';
+var customParseFormat = require('dayjs/plugin/customParseFormat');
+dayjs.extend(customParseFormat);
+
+
 if (environment.production) {
   enableProdMode();
 }
