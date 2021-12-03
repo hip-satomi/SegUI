@@ -40,9 +40,9 @@
           <ion-label style="text-align: center;">Brush Size: {{brushSize | number:'1.0-0'}}</ion-label>
         </ion-col>
         <ion-col size="12">
-          <ion-range  min="0" max="50" step="1" snaps="true" [(ngModel)]="brushSize" pin="true" style="padding: 0px;">
-            <ion-label slot="start">0</ion-label>
-            <ion-label slot="end">50</ion-label>
+          <ion-range  min="1" max="20" step="1" snaps="true" [(ngModel)]="brushSize" pin="true" style="padding: 0px;">
+            <ion-label slot="start">1</ion-label>
+            <ion-label slot="end">20</ion-label>
           </ion-range>
         </ion-col>
       </ion-row>
