@@ -6,6 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { map, tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
+import { UserQuestionsService } from '../services/user-questions.service';
 
 @Component({
   selector: 'app-login',
@@ -31,7 +32,8 @@ export class LoginPage implements OnInit {
     private toastCtrl: ToastController,
     private loadingCtrl: LoadingController,
     private route: ActivatedRoute,
-    private httpClient: HttpClient
+    private httpClient: HttpClient,
+    private questionService: UserQuestionsService,
   ) {
     this.version$ = this.httpClient.get('assets/info.json').pipe(
       tap(data => console.log(data)),
@@ -73,18 +75,14 @@ export class LoginPage implements OnInit {
       } else {
         const alert = await this.alertCtrl.create({
           header: 'Login Failed',
-          message: 'Wrong credentails.',
+          message: 'Wrong username or password.',
           buttons: ['OK']
         });
       }
     }, (err) => {
-      // now we have the id of the image set
+      // show the error
       console.log(err);
-      const toast = this.toastCtrl.create({
-        message: JSON.stringify(err),
-        duration: 2000
-      }).then((toast) => toast.present());
-      loading.then(l => l.dismiss());
+      this.questionService.showError(JSON.stringify(err));
     },
     () => loading.then(l => l.dismiss()));
   }
