@@ -35,11 +35,11 @@ export class MyHammerConfig extends HammerGestureConfig  {
             HammerModule,
             HttpClientModule,
             BrowserAnimationsModule,
-            ColorPickerModule
-            /*HttpClientXsrfModule.withOptions({
+            ColorPickerModule,
+            HttpClientXsrfModule.withOptions({
               cookieName: 'csrftoken', // this is optional
               headerName: 'X-CSRFToken' // this is optional
-            })*/
+            })
           ],
   providers: [
     StatusBar,
@@ -49,11 +49,11 @@ export class MyHammerConfig extends HammerGestureConfig  {
       provide: HAMMER_GESTURE_CONFIG,
       useClass: MyHammerConfig
     },
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: TokenInterceptorService,
-      multi: true
-    },
+    //{
+    //  provide: HTTP_INTERCEPTORS,
+    //  useClass: TokenInterceptorService,
+    //  multi: true
+    //},
   ],
   bootstrap: [AppComponent]
 })
