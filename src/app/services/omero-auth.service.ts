@@ -8,7 +8,6 @@ import { Plugins } from '@capacitor/core';
 import { JwtHelperService } from '@auth0/angular-jwt';
 import { switchMap, map, tap } from 'rxjs/operators';
 import * as dayjs from 'dayjs';
-import { CsrfService } from './csrf.service';
 
 const { Storage } = Plugins;
 
@@ -82,8 +81,7 @@ export class OmeroAuthService {
   constructor(private httpClient: HttpClient,
               private plt: Platform,
               private router: Router,
-              private alertController: AlertController,
-              private csrfService: CsrfService) {
+              private alertController: AlertController) {
 
       this.server$ = this.httpClient.get('/omero/api/servers/').pipe(
         map((r: DataListResponse<Server>) => {
@@ -118,7 +116,6 @@ export class OmeroAuthService {
           }),
           tap((r: LoginResponse) => {
             this.updateUser(r.eventContext);
-            this.startRefreshTokenTimer();
           }),
           map((r: LoginResponse) => r.eventContext)
         );
@@ -132,38 +129,8 @@ export class OmeroAuthService {
 
   logout() {
     Storage.remove({key: TOKEN_KEY}).then(() => {
-      this.stopRefreshTokenTimer();
       this.router.navigateByUrl('/');
       this.updateUser(null);
     });
-  }
-
-  refreshToken() {
-    return this.csrfService.getToken(true)
-        .pipe(tap(() => {
-            this.startRefreshTokenTimer();
-            console.log('CSRF Refresh Timer!')
-        }));
-  }
-
-
-  public startRefreshTokenTimer() {
-    // set a timeout to refresh the token a minute before it expires
-    if (!this.refreshTokenTimeout) {
-      //const expires = dayjs().add(5, 'minute').toDate();
-      //const timeout = expires.getTime() - Date.now() - (60 * 1000);
-      
-      // schedule every five minutes
-      this.refreshTokenTimeout = interval(5 * 60 * 1000).pipe(
-        switchMap(() => this.csrfService.getToken(true)),
-        tap(() => console.log('CSRF Refresh Timer!'))
-      ).subscribe();
-      //(() => this.refreshToken().subscribe(), timeout);
-      console.log('refresh token timer startet')
-    }
-  }
-
-  private stopRefreshTokenTimer() {
-      clearTimeout(this.refreshTokenTimeout);
   }
 }

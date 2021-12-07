@@ -1,4 +1,3 @@
-import { CsrfService } from './csrf.service';
 import { catchError, delayWhen, retryWhen, shareReplay, switchMap, tap, map, concatMap, mergeMap, take, delay } from 'rxjs/operators';
 import { AuthService, NoValidTokenException } from './auth.service';
 import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
@@ -13,7 +12,6 @@ import { OmeroAuthService } from './omero-auth.service';
 export class TokenInterceptorService implements HttpInterceptor {
 
   constructor(private authService: AuthService,
-              private csrfService: CsrfService,
               private toastController: ToastController,
               private omeroAuthService: OmeroAuthService) { }
 
