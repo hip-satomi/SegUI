@@ -4,7 +4,7 @@ import { AuthService } from './../services/auth.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { map, tap } from 'rxjs/operators';
+import { finalize, map, tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { UserQuestionsService } from '../services/user-questions.service';
 
@@ -64,7 +64,9 @@ export class LoginPage implements OnInit {
       message: 'Logging in...',
     }).then(l => {l.present(); return l; });
     
-    this.omeroAuth.login(this.credentials).subscribe(async res => {
+    this.omeroAuth.login(this.credentials).pipe(
+      finalize(() => loading.then(l => l.dismiss()))
+    ).subscribe(async res => {
       if (res) {
         if (this.redirectUrl) {
           // redirect if possible
@@ -83,8 +85,7 @@ export class LoginPage implements OnInit {
       // show the error
       console.log(err);
       this.questionService.showError(JSON.stringify(err));
-    },
-    () => loading.then(l => l.dismiss()));
+    });
   }
 
 }
