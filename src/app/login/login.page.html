@@ -18,19 +18,20 @@
  
         <ion-card-content>
  
-          <ion-item lines="none">
-            <ion-label position="stacked">Username</ion-label>
-            <ion-input type="text" placeholder="Username" name="username" [(ngModel)]="credentials.username"></ion-input>
-          </ion-item>
- 
-          <ion-item lines="none">
-            <ion-label position="stacked">Password</ion-label>
-            <ion-input type="password" placeholder="Password" name="password" [(ngModel)]="credentials.password">
-            </ion-input>
-          </ion-item>
- 
-          <ion-button (click)="login()" expand="block">Login</ion-button>
- 
+          <form (keyup.enter)="login()">
+            <ion-item lines="none">
+              <ion-label position="stacked">Username</ion-label>
+              <ion-input type="text" placeholder="Username" name="username" [(ngModel)]="credentials.username"></ion-input>
+            </ion-item>
+  
+            <ion-item lines="none">
+              <ion-label position="stacked">Password</ion-label>
+              <ion-input type="password" placeholder="Password" name="password" [(ngModel)]="credentials.password">
+              </ion-input>
+            </ion-item>
+  
+            <ion-button type="submit" (click)="login()" expand="block">Login</ion-button>
+          </form> 
         </ion-card-content>
       </ion-card>
  
