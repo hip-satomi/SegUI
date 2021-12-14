@@ -17,6 +17,7 @@ import { ColorPickerComponent } from '../components/color-picker/color-picker.co
 import { ColorPickerModule } from 'ngx-color-picker';
 import { AnnManagerComponent } from '../components/ann-manager/ann-manager.component';
 import { AnnLabelChipComponent } from '../components/ann-label-chip/ann-label-chip.component';
+import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
 import { ImageCardComponent } from '../components/image-card/image-card.component';
 
 @NgModule({
@@ -32,6 +33,7 @@ import { ImageCardComponent } from '../components/image-card/image-card.componen
     ColorPickerComponent,
     AnnManagerComponent,
     AnnLabelChipComponent,
+    FlexibleSegmentationComponent,
     ImageCardComponent,
   ],
   exports: [
@@ -46,6 +48,7 @@ import { ImageCardComponent } from '../components/image-card/image-card.componen
     ColorPickerComponent,
     AnnManagerComponent,
     AnnLabelChipComponent,
+    FlexibleSegmentationComponent,
     ImageCardComponent,
   ],
   imports: [

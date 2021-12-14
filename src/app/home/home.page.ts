@@ -50,6 +50,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   @ViewChild('toolContainer', { read: ViewContainerRef }) container;
   @ViewChild('segTool') segTool: SegmentationComponent;
+  @ViewChild('flexSegTool') flexSegTool: SegmentationComponent;
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
   @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
 
