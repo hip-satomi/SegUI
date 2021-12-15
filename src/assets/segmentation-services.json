@@ -1,0 +1,28 @@
+{
+    "services": [
+        {
+            "name": "CellPose",
+            "description": "Blabliblut: This is your meta information",
+            "repo_url": "https://gitlab+deploy-token-1:jzCPzEwRQacvqp8z2an9@jugit.fz-juelich.de/mlflow-executors/cellpose-executor.git",
+            "repo_entry_point": "main",
+            "repo_version": "main"
+        },
+        {
+            "name": "OmniPose",
+            "description": "Blabliblut: This is your meta information",
+            "repo_url": "https://gitlab+deploy-token-1:jzCPzEwRQacvqp8z2an9@jugit.fz-juelich.de/mlflow-executors/cellpose-executor.git",
+            "repo_entry_point": "omnipose",
+            "repo_version": "main"
+        },        {
+            "name": "CascadeMaskRCNN",
+            "description": "Blabliblut: This is your meta information",
+            "repo_url": "https://gitlab+deploy-token-1:jzCPzEwRQacvqp8z2an9@jugit.fz-juelich.de/mlflow-executors/mmdetection-executor.git",
+            "repo_entry_point": "main",
+            "repo_version": "main",
+            "additional_parameters": {
+              "config": "/home/appuser/sharedData/htc/htc_like_def_detr_tuned.py",
+              "checkpoint": "/home/appuser/sharedData/htc/latest.pth"
+            }
+        }
+    ]
+}
