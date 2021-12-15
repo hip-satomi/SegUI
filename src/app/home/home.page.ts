@@ -369,7 +369,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         ).subscribe();
     
       })
-    ).subscribe((id) => console.log(`Loaded image set ${id}`))
+    ).subscribe(
+      (id) => console.log(`Loaded image set ${id}`),
+      (error) => this.userQuestions.showError(`Failed loading image! Error: ${JSON.stringify(error)}`)
+    )
 
     // get the query param and fire the image id
     this.route.paramMap.pipe(
