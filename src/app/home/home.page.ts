@@ -1037,6 +1037,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    * Kicks off pipeline for omero Export including alert question
    */
   omeroExport() {
+    // create progress loader
+    let loading = this.loadingCtrl.create({
+      message: 'Exporting data in omero...',
+      backdropDismiss: true
+    });
+
     // 1. Warn the user that this can overwrite data
     from(this.alertController.create({
           header: 'Confirm OMERO Export',
@@ -1063,6 +1069,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           // exit the pipeline
           throw new Error('User did abort the action');
       }),
+      tap(() => loading = loading.then(l => {l.present(); return l})),
       tap(() => this.showError('You clicked confirm!')),
       // get the image id
       switchMap(() => this.imageSetId),
@@ -1083,9 +1090,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       switchMap((data) => {
         return of(this.omeroAPI.deleteRois(data.imageSetId, OmeroUtils.createRoIDeletionList(data)), this.omeroAPI.createRois(data.imageSetId, OmeroUtils.createNewRoIList(this.globalSegModel.segmentationData))).pipe(combineAll());
       }),
+      take(1),
       tap(() => console.log('Finished deleting/adding!')),
       tap(x => console.log(x)),
-      tap(() => this.showError("Successfully finished pipeline"))
+      tap(() => this.showError("Successfully finished pipeline")),
+      finalize(() => {
+        loading.then(l => l.dismiss())
+      })
     ).subscribe();
   }
 
