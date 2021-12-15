@@ -49,11 +49,11 @@ export class MyHammerConfig extends HammerGestureConfig  {
       provide: HAMMER_GESTURE_CONFIG,
       useClass: MyHammerConfig
     },
-    //{
-    //  provide: HTTP_INTERCEPTORS,
-    //  useClass: TokenInterceptorService,
-    //  multi: true
-    //},
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: TokenInterceptorService,
+      multi: true
+    },
   ],
   bootstrap: [AppComponent]
 })
