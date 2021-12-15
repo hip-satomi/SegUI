@@ -1015,6 +1015,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           finalize(() => loading.then(l => l.dismiss()))        
         )
       }),
+      catchError((err) => {
+        if(err?.message !== "User canceled import!") {
+          this.userQuestions.showError(`Failed import from omero: ${JSON.stringify(err)}`)
+        }
+        return throwError(err);
+      })
     );
   }
 
@@ -1081,6 +1087,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       tap(() => this.userQuestions.showInfo("Successfully finished pipeline")),
       finalize(() => {
         loading.then(l => l.dismiss())
+      }),
+      catchError((err) => {
+        if(err?.message !== 'User did abort the action') {
+          this.userQuestions.showError(`Failed import from omero: ${JSON.stringify(err)}`)
+        }
+        return throwError(err);
       })
     ).subscribe();
   }
