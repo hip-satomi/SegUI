@@ -853,11 +853,27 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }).then(toast => toast.present());
   }
 
-  
-  omeroImport(reload=true): Observable<GlobalSegmentationOMEROStorageConnector> {
+  /**
+   * Import segmentation RoIs from omero. This is the workflow in an rxjs fashion, finally subscribed in this function
+   * @param reload whether to update the UI (default: true)
+   * @param showLoading whether to show a loading controller (not necessary if there already is one)
+   * @returns nothing
+   */
+  omeroImport(reload=true, showLoading=false): Observable<GlobalSegmentationOMEROStorageConnector> {
+    // create progress loader
+    const loading = this.loadingCtrl.create({
+      message: 'Importing data from omero...',
+      backdropDismiss: true
+    });
+
     // 1. Check whether OMERO has ROI data available
     return this.imageSetId.pipe(
       take(1),
+      tap(() => {
+        if (showLoading) {
+          loading.then(l => l.present());
+        }
+      }),
       switchMap((imageSetId: number) => {
         return this.omeroAPI.getPagedRoIData(imageSetId).pipe(
           take(1),
@@ -1010,7 +1026,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             if (reload) {
               this.imageSetId.next(imageSetId)
             }
-          })          
+          }),
+          finalize(() => loading.then(l => l.dismiss()))        
         )
       }),
     );
