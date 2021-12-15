@@ -344,15 +344,15 @@ export const pointsToString = (points: Array<Point>): string => {
  * @returns Array of [x,y] points
  */
 export const stringToPoints = (pointList: string): Array<Point> => {
-  // extract coordinate pairs (e.g. '29.0,55.5')
-  const strCoordinates = pointList.match(/\d+(\.\d*)?,\d+(\.\d*)?/g);
+  // extract coordinate pairs (e.g. '29.0,1.25e-15')
+  const strCoordinates = pointList.match(/-?\d+(\.\d*(e-?\d+)?)?,-?\d+(\.\d*(e-?\d+)?)?/g);
 
   const points: Point[] = [];
 
   // loop over coordinate pairs
   for(const coord of strCoordinates) {
     // extract x and y coordinates
-    const m = /(?<x>\d+(\.\d*)?),(?<y>\d+(\.\d*)?)/g.exec(coord);
+    const m = /(?<x>-?\d+(\.\d*(e-?\d+)?)?),(?<y>-?\d+(\.\d*(e-?\d+)?)?)/g.exec(coord);
 
     // check whether regex matching worked
     if (m != null && ('x' in m.groups && 'y' in m.groups)) {  
@@ -363,7 +363,7 @@ export const stringToPoints = (pointList: string): Array<Point> => {
       points.push([x, y]);
     } else {
       // report when matching did not work
-      console.warn(`Error parsing coordinates from point: "${coord}"`);
+      console.error(`Error parsing coordinates from point: "${coord}"`);
     }
 
   }
