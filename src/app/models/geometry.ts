@@ -43,7 +43,7 @@ export class Polygon {
 
     constructor(...points: Point[]) {
         this.points = points;
-        this.color = UIUtils.randomColor();
+        this.color = UIUtils.randomBrightColor();
     }
 
     isInside(pos: Point): boolean {

@@ -803,7 +803,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     
                 // create a polygon from points and set random color
                 const poly = new Polygon(...simplifiedPoints);
-                poly.setColor(UIUtils.randomColor());
+                poly.setColor(UIUtils.randomBrightColor());
     
                 // collection new polygon actions
                 // TODO: Default label id?

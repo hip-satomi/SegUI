@@ -1,10 +1,10 @@
 import { Point } from './geometry';
 import { multiply, inv } from 'mathjs';
 import * as simplify from 'simplify-js';
-import { SegCollData, SegmentationHolder } from './segmentation-model';
+import { SegCollData} from './segmentation-model';
 import { pointsToString } from '../services/omero-api.service';
-import { SegmentationData } from './segmentation-data';
-import { AddLabelAction } from './action';
+
+var convert = require('color-convert');
 
 export interface Position {
     x: number;
@@ -252,8 +252,21 @@ export class UIUtils {
     ctx.stroke();
   }
 
-  static randomColor() {
-    return '#'+(function lol(m,s,c){return s[m.floor(m.random() * s.length)] + (c && lol(m,s,c-1));})(Math,'0123456789ABCDEF',4)
+  /**
+   * Generate random bright colors in hex format
+   * 
+   * Brightness is needed because we usually deal with dark images. Used to give a bigger contrast
+   * @returns a hex string color (e.g. '#FFFFFF')
+   */
+  static randomBrightColor() {
+    // sample color in hsl
+    const h = Math.random() * 360;
+    const s = (0.5 + Math.random() / 2.0) * 100.;
+    const l = (0.6 + Math.random() / 5.) * 100.;  // between 0.4-0.6
+
+    const hex = convert.rgb.hex(convert.hsl.rgb(h,s,l));
+
+    return '#'+hex;
   }
 
   static fitToContainer(canvasElement) {
