@@ -100,10 +100,24 @@ export class UserQuestionsService {
     // segmentation proposals have been applied successfully
     this.toastController.create({
       message,
-      duration
+      duration,
+      color: "danger"
     }).then(toast => toast.present());
   }
 
+  /**
+   * Show a short information to the user
+   * @param message the message
+   * @param duration the duration the message is presented
+   */
+  showInfo(message: string, duration = 2000) {
+    // segmentation proposals have been applied successfully
+    this.toastController.create({
+      message,
+      duration,
+    }).then(toast => toast.present());
+  }
+  
   createNewData(): Observable<boolean> {
     return from(this.alertController.create({
       cssClass: 'over-loading',

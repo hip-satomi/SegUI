@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { AlertController, ViewWillEnter, ToastController, LoadingController } from '@ionic/angular';
 import { Image, ImageSet, SegRestService } from 'src/app/services/seg-rest.service';
 import { NavigationExtras, Router } from '@angular/router';
+import { UserQuestionsService } from 'src/app/services/user-questions.service';
 
 @Component({
   selector: 'app-image-set-list',
@@ -14,7 +15,7 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
   constructor(private segService: SegRestService,
               private alertController: AlertController,
               private router: Router,
-              private toastController: ToastController,
+              private userQuestionService: UserQuestionsService,
               private loadingCtrl: LoadingController) { }
 
   imageSets = [];
@@ -43,11 +44,7 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
       this.imageSets = imageSets;
     }, async (err) => {
       console.error(err);
-      const toast = await this.toastController.create({
-        message: `Error ${JSON.stringify(err)}`,
-        duration: 10000
-      });
-      toast.present();
+      this.userQuestionService.showError(`Error ${JSON.stringify(err)}`);
     });
   }
 
