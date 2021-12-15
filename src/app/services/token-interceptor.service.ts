@@ -6,6 +6,7 @@ import { Observable, Subject, throwError } from 'rxjs';
 import { ToastController } from '@ionic/angular';
 import { NavigationExtras, Router } from '@angular/router';
 import { OmeroAuthService } from './omero-auth.service';
+import { UserQuestionsService } from './user-questions.service';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +16,7 @@ export class TokenInterceptorService implements HttpInterceptor {
   relogin$ = new Subject();
 
   constructor(private omeroAuthService: OmeroAuthService,
-              private toastController: ToastController,
+              private userQuestionService: UserQuestionsService,
               private router: Router) {
 
                 // listen for relogin events and call the specific function
@@ -51,10 +52,7 @@ export class TokenInterceptorService implements HttpInterceptor {
   }
 
   showAuthNotValid() {
-    this.toastController.create({
-      message: 'Your authentication has expired! Please login again!',
-      duration: 5000
-    }).then(toast => toast.present());
+    this.userQuestionService.showError('Your authentication has expired! Please login again!', 5000);
   }
 
   /**
