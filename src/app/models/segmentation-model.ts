@@ -139,7 +139,7 @@ export class SegmentationModel {
 
         if (this.segmentationData.numPolygons === 0) {
             // when there are no polygons we simply have to add one
-            const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
+            const newAction = new AddEmptyPolygon(labelId, UIUtils.randomBrightColor());
             uuid = newAction.uuid;
             //this.addAction(newAction);
             actions.push(newAction);
@@ -153,7 +153,7 @@ export class SegmentationModel {
             if (emptyId) {
                 uuid = emptyId;
             } else {
-                const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
+                const newAction = new AddEmptyPolygon(labelId, UIUtils.randomBrightColor());
                 uuid = newAction.uuid;
                 //this.addAction(newAction);
                 actions.push(newAction);
@@ -518,7 +518,7 @@ export class LocalSegmentationModel {
 
         if (this.segmentationData.numPolygons === 0) {
             // when there are no polygons we simply have to add one
-            const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
+            const newAction = new AddEmptyPolygon(labelId, UIUtils.randomBrightColor());
             uuid = newAction.uuid;
             //this.addAction(newAction);
             actions.push(newAction);
@@ -538,7 +538,7 @@ export class LocalSegmentationModel {
             if (emptyId) {
                 uuid = emptyId;
             } else {
-                const newAction = new AddEmptyPolygon(labelId, UIUtils.randomColor());
+                const newAction = new AddEmptyPolygon(labelId, UIUtils.randomBrightColor());
                 uuid = newAction.uuid;
                 //this.addAction(newAction);
                 actions.push(newAction);

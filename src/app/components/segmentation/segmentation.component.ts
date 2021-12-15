@@ -282,7 +282,7 @@ export class SegmentationComponent extends Tool implements Drawer {
 
         // create a polygon from points and set random color
         const poly = new Polygon(...simplifiedPoints);
-        poly.setColor(UIUtils.randomColor());
+        poly.setColor(UIUtils.randomBrightColor());
 
         // collection new polygon actions
         const addAction = new AddPolygon(poly, 0);
