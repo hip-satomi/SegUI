@@ -854,11 +854,27 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }).then(toast => toast.present());
   }
 
-  
-  omeroImport(reload=true): Observable<GlobalSegmentationOMEROStorageConnector> {
+  /**
+   * Import segmentation RoIs from omero. This is the workflow in an rxjs fashion, finally subscribed in this function
+   * @param reload whether to update the UI (default: true)
+   * @param showLoading whether to show a loading controller (not necessary if there already is one)
+   * @returns nothing
+   */
+  omeroImport(reload=true, showLoading=false): Observable<GlobalSegmentationOMEROStorageConnector> {
+    // create progress loader
+    const loading = this.loadingCtrl.create({
+      message: 'Importing data from omero...',
+      backdropDismiss: true
+    });
+
     // 1. Check whether OMERO has ROI data available
     return this.imageSetId.pipe(
       take(1),
+      tap(() => {
+        if (showLoading) {
+          loading.then(l => l.present());
+        }
+      }),
       switchMap((imageSetId: number) => {
         return this.omeroAPI.getPagedRoIData(imageSetId).pipe(
           take(1),
@@ -1011,7 +1027,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             if (reload) {
               this.imageSetId.next(imageSetId)
             }
-          })          
+          }),
+          finalize(() => loading.then(l => l.dismiss()))        
         )
       }),
     );
@@ -1021,6 +1038,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    * Kicks off pipeline for omero Export including alert question
    */
   omeroExport() {
+    // create progress loader
+    let loading = this.loadingCtrl.create({
+      message: 'Exporting data in omero...',
+      backdropDismiss: true
+    });
+
     // 1. Warn the user that this can overwrite data
     from(this.alertController.create({
           header: 'Confirm OMERO Export',
@@ -1047,6 +1070,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           // exit the pipeline
           throw new Error('User did abort the action');
       }),
+      tap(() => loading = loading.then(l => {l.present(); return l})),
       tap(() => this.showError('You clicked confirm!')),
       // get the image id
       switchMap(() => this.imageSetId),
@@ -1067,9 +1091,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       switchMap((data) => {
         return of(this.omeroAPI.deleteRois(data.imageSetId, OmeroUtils.createRoIDeletionList(data)), this.omeroAPI.createRois(data.imageSetId, OmeroUtils.createNewRoIList(this.globalSegModel.segmentationData))).pipe(combineAll());
       }),
+      take(1),
       tap(() => console.log('Finished deleting/adding!')),
       tap(x => console.log(x)),
-      tap(() => this.showError("Successfully finished pipeline"))
+      tap(() => this.showError("Successfully finished pipeline")),
+      finalize(() => {
+        loading.then(l => l.dismiss())
+      })
     ).subscribe();
   }
 
