@@ -75,7 +75,6 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   constructor(private loadingCtrl: LoadingController,
     private httpClient: HttpClient,
     private segmentationService: SegmentationService,
-    private toastController: ToastController,
     private userQuestions: UserQuestionsService,
     private actionSheetController: ActionSheetController) {
       super();

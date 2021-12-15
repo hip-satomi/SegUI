@@ -12,6 +12,7 @@ import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } fr
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { UIUtils, Utils } from 'src/app/models/utils';
 import { Detection, SegmentationService } from 'src/app/services/segmentation.service';
+import { UserQuestionsService } from 'src/app/services/user-questions.service';
 import { threadId } from 'worker_threads';
 
 @Component({
@@ -81,7 +82,7 @@ export class SegmentationComponent extends Tool implements Drawer {
   constructor(private loadingCtrl: LoadingController,
               private httpClient: HttpClient,
               private segmentationService: SegmentationService,
-              private toastController: ToastController) {
+              private userQuestionService: UserQuestionsService) {
     super();
   }
 
@@ -235,19 +236,12 @@ export class SegmentationComponent extends Tool implements Drawer {
     ).subscribe(
       () => {
         // segmentation proposals have been applied successfully
-        this.toastController.create({
-          message: 'Successfully requested segmentation proposals',
-          duration: 2000
-        }).then(toast => toast.present());
+        this.userQuestionService.showInfo('Successfully requested segmentation proposals');
 
         this.draw(this.oldPencil);
       },
       (error) => {
-        this.toastController.create({
-          message: 'Requesting segmentation proposals failed!',
-          duration: 2000,
-          color: 'warning'
-        }).then(toast => {toast.present();});
+        this.userQuestionService.showError('Requesting segmentation proposals failed!')
         console.error(error);
       },
     );
@@ -288,7 +282,7 @@ export class SegmentationComponent extends Tool implements Drawer {
 
         // create a polygon from points and set random color
         const poly = new Polygon(...simplifiedPoints);
-        poly.setColor(UIUtils.randomColor());
+        poly.setColor(UIUtils.randomBrightColor());
 
         // collection new polygon actions
         const addAction = new AddPolygon(poly, 0);

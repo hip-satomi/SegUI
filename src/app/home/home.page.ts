@@ -74,7 +74,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   tool = null;
 
-  showErrorPipe = catchError(e => {this.showError(e); return throwError(e);});
+  showErrorPipe = catchError(e => {this.userQuestions.showError(e); return throwError(e);});
 
   imageSetId = new ReplaySubject<number>(1);
 
@@ -87,8 +87,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   dataset$ = new ReplaySubject<Dataset>(1);
   project$ = new ReplaySubject<Project>(1);
 
-  constructor(private toastController: ToastController,
-              private actionSheetController: ActionSheetController,
+  constructor(private actionSheetController: ActionSheetController,
               private route: ActivatedRoute,
               private router: Router,
               private segService: SegRestService,
@@ -100,7 +99,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private popoverController: PopoverController,
               private resolver: ComponentFactoryResolver,
               private alertController: AlertController,
-              private userQuestions: UserQuestionsService) {
+              private userQuestions: UserQuestionsService,) {
   }
 
   // Redirect Mouse & Touch interactions
@@ -292,7 +291,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         const handleError = catchError(err => {
           console.error("Error while loading image");
           console.log(err)
-          this.showError(err.message);
+          this.userQuestions.showError(err.message);
           return of();
         })
     
@@ -371,7 +370,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         ).subscribe();
     
       })
-    ).subscribe((id) => console.log(`Loaded image set ${id}`))
+    ).subscribe(
+      (id) => console.log(`Loaded image set ${id}`),
+      (error) => this.userQuestions.showError(`Failed loading image! Error: ${JSON.stringify(error)}`)
+    )
 
     // get the query param and fire the image id
     this.route.paramMap.pipe(
@@ -802,7 +804,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     
                 // create a polygon from points and set random color
                 const poly = new Polygon(...simplifiedPoints);
-                poly.setColor(UIUtils.randomColor());
+                poly.setColor(UIUtils.randomBrightColor());
     
                 // collection new polygon actions
                 // TODO: Default label id?
@@ -820,11 +822,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         finalize(() => loading.then(l => l.dismiss()))
       ).subscribe(
         () => {
-          // segmentation proposals have been applied successfully
-          this.toastController.create({
-            message: 'Successfully requested segmentation proposals',
-            duration: 2000
-          }).then(toast => toast.present());
+          this.userQuestions.showInfo('Successfully requested segmentation proposals');
         },
         (error) => console.error(error),
       );
@@ -839,19 +837,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
 
     this.doSegment(type, indices);
-  }
-
-  /**
-   * Show an error to the user
-   * @param message the message
-   * @param duration the duration the message is presented
-   */
-  showError(message: string, duration = 2000) {
-    // segmentation proposals have been applied successfully
-    this.toastController.create({
-      message,
-      duration
-    }).then(toast => toast.present());
   }
 
   /**
@@ -1031,6 +1016,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           finalize(() => loading.then(l => l.dismiss()))        
         )
       }),
+      catchError((err) => {
+        if(err?.message !== "User canceled import!") {
+          this.userQuestions.showError(`Failed import from omero: ${JSON.stringify(err)}`)
+        }
+        return throwError(err);
+      })
     );
   }
 
@@ -1062,7 +1053,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     .pipe(
       tap((alert) => alert.present()),
       switchMap(alert => alert.onDidDismiss()),
-      tap(role => this.showError(`Role result: ${role.role}`)),
+      tap(role => this.userQuestions.showInfo(`Role result: ${role.role}`)),
       map(role => {
         if (role.role == 'confirm')
           return role;
@@ -1071,7 +1062,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           throw new Error('User did abort the action');
       }),
       tap(() => loading = loading.then(l => {l.present(); return l})),
-      tap(() => this.showError('You clicked confirm!')),
+      tap(() => this.userQuestions.showInfo('You clicked confirm!')),
       // get the image id
       switchMap(() => this.imageSetId),
       // 2. Fetch all the rois from omero
@@ -1081,10 +1072,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           return {"roiData": rawData, "imageSetId": imageSetId}
         })
       )),
-      tap(() => this.showError('Finished loading rois')),
+      tap(() => this.userQuestions.showInfo('Finished loading rois')),
       tap((data) => {
         const allItemCount = data.roiData.map((roi) => roi.shapes.length).reduce((a,b) => a+b, 0);
-        this.showError(`Will have to delete ${allItemCount} rois`);
+        this.userQuestions.showInfo(`Will have to delete ${allItemCount} rois`);
       }),
       // 3. compose request (delete all existing, add all new) & send
       tap(() => console.log("Start deleting/adding ...")),
@@ -1094,9 +1085,15 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       take(1),
       tap(() => console.log('Finished deleting/adding!')),
       tap(x => console.log(x)),
-      tap(() => this.showError("Successfully finished pipeline")),
+      tap(() => this.userQuestions.showInfo("Successfully finished pipeline")),
       finalize(() => {
         loading.then(l => l.dismiss())
+      }),
+      catchError((err) => {
+        if(err?.message !== 'User did abort the action') {
+          this.userQuestions.showError(`Failed import from omero: ${JSON.stringify(err)}`)
+        }
+        return throwError(err);
       })
     ).subscribe();
   }
