@@ -1,4 +1,4 @@
-FROM node:12
+FROM jugit-registry.fz-juelich.de/satomi/segtrackui/node:14.15-stretch
 
 COPY ./src ./app/src
 COPY ./*.json ./app/
