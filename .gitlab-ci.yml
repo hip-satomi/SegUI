@@ -42,8 +42,8 @@ stages:
 install:
   stage: setup
   script:
-    - npm install
     - npm install -g @angular/cli @ionic/cli
+    - npm install
     - ionic build
 
 build-docker:
