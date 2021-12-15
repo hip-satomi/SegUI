@@ -1,4 +1,4 @@
-import { Router } from '@angular/router';
+import { NavigationExtras, Router } from '@angular/router';
 import { Platform, AlertController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, from, Observable, of } from 'rxjs';
@@ -268,9 +268,14 @@ export class AuthService {
     this.handleTokenPair({access: '', refresh: ''}).subscribe();
   }
 
-  logout() {
+  logout(redirect=null) {
     Storage.remove({key: TOKEN_KEY}).then(() => {
-      this.router.navigateByUrl('/');
+      let navigationExtras: NavigationExtras = {
+        queryParams: {
+          r: redirect
+        }
+      };
+      this.router.navigateByUrl('/', navigationExtras);
       this.userData.next(null);
       //this.handleTokenPair({access: '', refresh: ''}).subscribe();
     });
