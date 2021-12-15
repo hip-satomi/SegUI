@@ -15,10 +15,20 @@ cd docker-compose
 
 Now launch the compilation and setup using
 ```
-docker-compose -f docker-compose.full.yml up --build
+docker-compose up --build
 ```
 
 This will take a while because we need to download all the docker images and compile our code to make it ready for execution. But after everything is setup, everything runs seamlessly and you can access it in the browser [here](http://localhost). Use the default credentials (user: root, password: omero) to login.
+
+### Using GPU acceleration
+
+For utilizing gpus for neural network execution please launch the GPU version instead using
+
+```
+docker-compose -f docker-compose.gpu.yml --build
+```
+
+**Note: This requires a modern version of `docker-compose`. You can get the most recent version [here](https://docs.docker.com/compose/install/).**
 
 ## How to Test the UI - Use a docker container
 

@@ -1,3 +1,4 @@
+
 version: "3"
 
 services:
@@ -69,7 +70,6 @@ services:
     image: jugit-registry.fz-juelich.de/j.seiffarth/serve-segmentation/server:experimental
     command: uvicorn --host 0.0.0.0 --root-path /segService main:app
     restart: always
-    runtime: nvidia
     networks:
       - omero
     expose:
