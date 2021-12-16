@@ -318,12 +318,41 @@ export class OmeroUtils {
     return empty_rois;
   }
 
-  static createNewRoIList(segHolder: SegCollData) {
+  /**
+   * Create a list of json RoIs that can be passed to the web interface for creation
+   * @param segHolder the segmentation information for the image stack
+   * @param sizeZ the z dimension
+   * @param sizeT the t dimension
+   * @returns a list of omero Polygons RoIs that can be passed to the web interface
+   */
+  static createNewRoIList(segHolder: SegCollData, sizeZ: number, sizeT: number) {
+
+    // obtain the output node
+    let mode: string;
+    if (sizeZ == 1 && sizeT >= 1) {
+      mode = "t";
+    } else if (sizeZ >= 1 && sizeT == 1) {
+      mode = "z";
+    } else if (sizeZ >= 1 && sizeT >= 1) {
+      mode = "zt";
+    } else {
+      throw new Error("Cannot obtain omero Export mode!");
+    }
+
     const new_list = [];
     // loop over all image slices
     for (const [index, slice] of segHolder.segData.entries()) {
-      const z = 0;
-      const t = index;
+      let z: number, t: number;
+      if (mode == "t") {
+        z = 0;
+        t = index;
+      } else if(mode == "z") {
+        z = index;
+        t = 0;
+      } else if(mode == "zt") {
+        t = index % sizeZ;
+        z = index - (t*sizeZ);
+      }
       // loop over all annotated polygons in the slice
       for (const [id, poly] of slice.getPolygons()) {
         if(poly.numPoints == 0) {
