@@ -7,6 +7,8 @@ import { Observable, empty, forkJoin, of, combineLatest, from, Subject, Behavior
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
 import { UserQuestionsService } from './user-questions.service';
+import { SegCollData } from '../models/segmentation-model';
+import { OmeroUtils } from '../models/utils';
 
 /**
  * Rewrite omero api urls into our urls (they get redirected again)
@@ -764,37 +766,59 @@ export class OmeroAPIService {
     );
   }
 
-  createRois(imageSetId, roiList, max=1000) {
-    const list = [];
+  /**
+   * Create Rois in omero
+   * @param imageSetId id of the image set
+   * @param roiList RoIs in segmentation data format
+   * @param max 
+   * @returns 
+   */
+  createRois(imageSetId: number, roiList: SegCollData, max=1000) {
 
-    for(let i = 0; i < Math.ceil(roiList.length / max); i++) {
-      // First we need to collect the ids
-      const post_data = {
-        imageId: imageSetId,
-        rois: {
-          count: 0,
-          deleted: {},
-          empty_rois: {},
-          modified: {},
-          new: roiList.slice(i * max, (i+1) * max),
-          new_and_deleted: [],
-        }
-      }
-      list.push(post_data);
-    }
+    // 1. Need to get image information
+    return this.getImage(imageSetId).pipe(
+      map(res => {
+        const sizeZ = res.pixels.sizeZ;
+        const sizeT = res.pixels.sizeT;
 
-    if (list.length == 0)  {
-      return of(of(1),of(2),of(3)).pipe(
-        combineAll()
-      );
-    }
-
-    return of(...list).pipe(
-      map((post_data: RoIModData) => {
-        return this.modifyRois(post_data);
+        return {sizeZ, sizeT};
       }),
-      combineAll()
-    );
+      map(imageDims => {
+        return OmeroUtils.createNewRoIList(roiList, imageDims.sizeZ, imageDims.sizeT);
+      }),
+      switchMap(roiList => {
+        const list = [];
+
+        for(let i = 0; i < Math.ceil(roiList.length / max); i++) {
+          // First we need to collect the ids
+          const post_data = {
+            imageId: imageSetId,
+            rois: {
+              count: 0,
+              deleted: {},
+              empty_rois: {},
+              modified: {},
+              new: roiList.slice(i * max, (i+1) * max),
+              new_and_deleted: [],
+            }
+          }
+          list.push(post_data);
+        }
+    
+        if (list.length == 0)  {
+          return of(of(1),of(2),of(3)).pipe(
+            combineAll()
+          );
+        }
+    
+        return of(...list).pipe(
+          map((post_data: RoIModData) => {
+            return this.modifyRois(post_data);
+          }),
+          combineAll()
+        );
+      })
+    )
   }
 
   /**
