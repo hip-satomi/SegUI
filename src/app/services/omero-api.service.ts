@@ -710,7 +710,14 @@ export class OmeroAPIService {
             );
           }
           if (deletions.length > 0) {
-            return combineLatest(deletions);
+            return combineLatest(deletions).pipe(
+              catchError(err => {
+                // there was an error during file deletion. However deletion is not so important
+                this.userQuestionService.showInfo("Problems when deleting Omero files");
+                // just skip it!
+                return of(null);
+              })
+            );
           } else {
             return of(null);
           }
