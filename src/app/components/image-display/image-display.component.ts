@@ -31,6 +31,7 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     pinchPos: {x: 0, y: 0}
   };
 
+  controlKeyDown = false;
 
   constructor() {
     this.indicators = new Indicator();
@@ -51,6 +52,16 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
   @HostListener('window:resize', [])
   private onResize() {
     this.fitToContainer(this.canvasElement);
+  }
+
+  @HostListener('document:keydown.control', ['$event'])
+  ctrlKeyDown(event) {
+    this.controlKeyDown = true;
+  }
+
+  @HostListener('document:keyup.control', ['$event'])
+  ctrlKeyUp(event) {
+    this.controlKeyDown = false;
   }
 
   /**
@@ -200,13 +211,11 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
 
   mousedown(event) {
 
-    if (event.button === 1) {
+    if (event.button === 1 || (event.button === 0 && this.controlKeyDown)) {
       // wheel mouse button --> TODO add some panning here
       this.pinchInfo.pinching = true;
       this.pinchInfo.pinchPos = Utils.getMousePosMouse(this.canvasElement, event);
       this.pinchInfo.pinchScale = 1.;
-
-      //this.setCursor(CursorType.Panning);
     }
   }
 

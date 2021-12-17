@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
@@ -55,6 +55,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   increase = true;
   dirty = false;
 
+  controlKeyDown = false;
+
   ctx;
   canvasElement;
   pencil: Pencil;
@@ -91,6 +93,16 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     return this.segUI.prepareDraw().pipe(
       switchMap(() => of(this))
     );
+  }
+
+  @HostListener('document:keydown.control', ['$event'])
+  ctrlKeyDown(event) {
+    this.controlKeyDown = true;
+  }
+
+  @HostListener('document:keyup.control', ['$event'])
+  ctrlKeyUp(event) {
+    this.controlKeyDown = false;
   }
 
   get currentPolygon(): Polygon {
@@ -203,6 +215,12 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   }
   onPanStart(event: any): boolean {
       event.preventDefault();
+
+      if(this.controlKeyDown) {
+          // when the control key is down --> other behavior than just drawing
+          return false;
+      }
+
       this.brushActivated = true;
 
       this.changedPolygons = new Map<string, Polygon>();
@@ -369,7 +387,13 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   }
 
   onMove(event: any): boolean {
-      return true;
+    if (this.controlKeyDown) {
+        // when the control key is down, we do not consume the event
+        return false;
+    } else {
+        // we consume the event
+        return true;
+    }
   }
 
   commitChanges() {
