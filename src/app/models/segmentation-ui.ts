@@ -140,7 +140,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
         if (!lineInsert) {
             // check whether you did click onto another polygon
-            for (const [index, polygon] of this.segModel.segmentationData.getPolygonEntries()) {
+            for (const [index, polygon] of this.segModel.getVisiblePolygons()) {
                 if (index === this.segModel.activePolygonId) {
                     continue;
                 }
