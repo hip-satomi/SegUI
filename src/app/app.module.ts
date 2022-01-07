@@ -18,6 +18,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { TokenInterceptorService } from './services/token-interceptor.service';
 
 import { ColorPickerModule } from 'ngx-color-picker';
+import { CookieService } from 'ngx-cookie-service';
 @Injectable({providedIn: 'root'})
 export class MyHammerConfig extends HammerGestureConfig  {
   overrides = {
@@ -44,6 +45,7 @@ export class MyHammerConfig extends HammerGestureConfig  {
   providers: [
     StatusBar,
     SplashScreen,
+    CookieService,
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     {
       provide: HAMMER_GESTURE_CONFIG,

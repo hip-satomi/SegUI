@@ -37,6 +37,7 @@
     "lodash": "^4.17.21",
     "mathjs": "^7.6.0",
     "ngx-color-picker": "^11.0.0",
+    "ngx-cookie-service": "^12.0.3",
     "point-in-polygon": "^1.1.0",
     "polygon-tools": "^0.4.8",
     "rbush": "^3.0.1",
