@@ -1,12 +1,13 @@
-import { catchError, tap, throttleTime} from 'rxjs/operators';
+import { catchError, switchMap, tap, throttleTime} from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, Subject, throwError } from 'rxjs';
 import { ToastController } from '@ionic/angular';
 import { NavigationExtras, Router } from '@angular/router';
 import { OmeroAuthService } from './omero-auth.service';
 import { UserQuestionsService } from './user-questions.service';
+import { CookieService } from 'ngx-cookie-service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,7 +19,9 @@ export class TokenInterceptorService implements HttpInterceptor {
 
   constructor(private omeroAuthService: OmeroAuthService,
               private userQuestionService: UserQuestionsService,
-              private router: Router) {
+              private router: Router,
+              private cookieService: CookieService,
+              private httpClient: HttpClient) {
 
     // listen for relogin events and call the specific function
     this.relogin$.pipe(
@@ -37,6 +40,15 @@ export class TokenInterceptorService implements HttpInterceptor {
   }
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    if (!this.cookieService.check('csrftoken') && !req.url.startsWith('omero/api/token/')) {
+      console.log('We do not have a valid csrf token yet');
+      // TODO: /api/v0/token/
+      return this.httpClient.get('omero/api/token/').pipe(
+        switchMap(() => {
+          return next.handle(req);
+        })
+      )
+    }
 
     return next.handle(req)
     .pipe(
