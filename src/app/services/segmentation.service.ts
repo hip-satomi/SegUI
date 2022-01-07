@@ -132,7 +132,7 @@ export class SegmentationService {
     //fd.append('parameters', JSON.stringify(service_description.additional_parameters))
 
     // post this to a segmentation service
-    return this.httpClient.post('/segService/image-prediction/', fd, {params: params}).pipe(
+    return this.httpClient.post('segService/image-prediction/', fd, {params: params}).pipe(
       take(1),
       map(data => {
         return data as ServiceResult
