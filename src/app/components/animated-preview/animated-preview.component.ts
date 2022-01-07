@@ -19,7 +19,7 @@ export class AnimatedPreviewComponent implements OnInit, AfterViewInit {
     lazy: true
   }
 
-  @Input() urlList: string[] = [2,3,4].map((imageId: number) => `/omero/webclient/render_thumbnail/${imageId}/?version=0`);
+  @Input() urlList: string[] = [2,3,4].map((imageId: number) => `omero/webclient/render_thumbnail/${imageId}/?version=0`);
 
   constructor() { }
   ngAfterViewInit(): void {
