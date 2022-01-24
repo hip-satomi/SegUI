@@ -933,4 +933,71 @@ export class OmeroAPIService {
   getImageInfo(imageSetId: number): Observable<ImageInfo> {
     return this.getData(`/omero/iviewer/image_data/${imageSetId}/`, ImageInfo, false);
   }
+
+  /**
+   * Set last modification date for the image id
+   * @param imageSetId image id
+   * @returns http response observable
+   */
+  setLastModificationDate(imageSetId: number) {
+    // get the current date
+    const date = new Date().toISOString();
+
+    // get existing image annotations first
+    return this.getImageAnnotations(imageSetId).pipe(
+      switchMap(result => {
+        // do we have existing annotations?
+        let annotationId = -1
+        if(result['annotations'].length >= 0) {
+          // yes, so let's use the first one
+          annotationId = result['annotations'][0]['id']
+        }
+
+        // find last modification value in annotation
+        let values = result['annotations'][0].values;
+        let existingIndex = -1;
+        for(const [index, value] of values.entries()) {
+          if (value[0] == "last_modification") {
+            existingIndex = index;
+            break;
+          }
+        }
+
+        // either replace or append modification value
+        if (existingIndex > -1) {
+          values[existingIndex] = ["last_modification", `${date}`];
+        } else {
+          values.push(["last_modification", `${date}`]);
+        }
+
+        // construct the form data
+        const formData = new FormData();
+        formData.set('image', `${imageSetId}`);
+        formData.set('mapAnnotation', JSON.stringify(values));
+        if (annotationId != -1) {
+          // add annotation id to form data (update)
+          formData.set("annId", `${annotationId}`);
+        }
+    
+        // convert to application/x-www-form-urlencoded
+        // just didn't accept any other post format
+        const data = [...formData.entries()];
+        const asString = data
+          .map(x => `${encodeURIComponent(x[0])}=${encodeURIComponent(x[1].toString())}`)
+          .join('&');
+    
+        // send post request to webclient
+        return this.httpClient.post(`/omero/webclient/annotate_map/`, asString, { headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}}); //"image=903&annId=14332&mapAnnotation=%5B%5B%22last_modification%22%2C%22test2%22%5D%5D");// JSON.stringify({image: `${imageSetId}`, mapAnnotation: `[[\"last_modification\",\"${date}\"]]`}));
+      })
+    );
+  }
+
+  /**
+   * List all annotations for an image
+   * @param imageSetId image id
+   * @returns two lists (of annotations, of owners)
+   */
+  getImageAnnotations(imageSetId: number) {
+    return this.httpClient.get(`/omero/webclient/api/annotations/`, {params: {type: 'map', image: `${imageSetId}`}});
+  }
 }
