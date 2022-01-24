@@ -23,6 +23,7 @@ import RBush from 'rbush';
 import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { stringify } from 'querystring';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
+import { BrushState, StateService } from 'src/app/services/state.service';
 
 @Component({
   selector: 'app-brush',
@@ -47,8 +48,6 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
   pointerPos: Position;
 
-  brushSize: number = 2;
-
   brushActivated = false;
   oldPoints: Point[];
 
@@ -62,11 +61,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   pencil: Pencil;
 
 
-  simplificationTolerance = 0.2;
-
-  showOverlay = true;
-
-  preventOverlap = true;
+  // configuration variables in state
+  brushState: BrushState;
 
   // track the polygons that get changed while drawing
   changedPolygons = new Map<string, Polygon>();
@@ -78,10 +74,11 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     private httpClient: HttpClient,
     private segmentationService: SegmentationService,
     private userQuestions: UserQuestionsService,
-    private actionSheetController: ActionSheetController) {
-      super();
+    private stateService: StateService) {
+      super("BrushTool");
 
-      //this.changedEvent.subscribe(() => console.log('Render'));
+      // get brush state from state service
+      this.brushState = stateService.brushState;
     }
 
   ngOnInit() {}
@@ -451,4 +448,39 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   redo() {
       return this.globalSegModel.redo();
   }
+
+    // getter and setter for brush state
+
+    get brushSize() {
+        return this.brushState.brushSize;
+    }
+
+    set brushSize(size: number) {
+        this.brushState.brushSize = size;
+    }
+
+    get simplificationTolerance() {
+        return this.brushState.simplificationTolerance;
+    }
+
+    set simplificationTolerance(tol: number) {
+        this.simplificationTolerance = tol;
+    }
+
+    get showOverlay() {
+        return this.brushState.showOverlay;
+    }
+
+    set showOverlay(show: boolean) {
+        this.brushState.showOverlay = show;
+    }
+
+    get preventOverlap() {
+        return this.brushState.preventOverlap;
+    }
+
+    set preventOverlap(prevOverlap: boolean) {
+        this.brushState.preventOverlap = prevOverlap;
+    }
+
 }

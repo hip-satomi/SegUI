@@ -17,7 +17,7 @@ import { Position, Utils } from 'src/app/models/utils';
 export class MultiSelectToolComponent extends Tool {
 
   constructor() {
-    super();
+    super("MultiSelectTool");
   }
 
   @Output() changedEvent = new EventEmitter<void>();

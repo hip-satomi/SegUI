@@ -61,6 +61,12 @@ export class UIInteraction {
 export class Tool extends UIInteraction {
     show = false;
     visibilityChange = new ReplaySubject<boolean>(1);
+    name: string;
+
+    constructor(name: string) {
+        super();
+        this.name = name;
+    }
 
     open() {
         this.show = true;

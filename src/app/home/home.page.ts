@@ -26,6 +26,7 @@ import { BrushComponent } from '../components/brush/brush.component';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
 import { UserQuestionsService } from '../services/user-questions.service';
 import { AnnotationLabel } from '../models/segmentation-data';
+import { StateService } from '../services/state.service';
 
 
 const { Storage } = Plugins;
@@ -99,7 +100,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private popoverController: PopoverController,
               private resolver: ComponentFactoryResolver,
               private alertController: AlertController,
-              private userQuestions: UserQuestionsService,) {
+              private userQuestions: UserQuestionsService,
+              private stateService: StateService) {
   }
 
   // Redirect Mouse & Touch interactions
@@ -286,6 +288,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           loading.then(l => l.dismiss());
         })
       )),
+      tap(() => {
+        if (this.stateService.openTool == "BrushTool" && !this.isToolActive(this.brushToolComponent)) {
+          // open the brush tool if it was open before
+          this.toggleTool(this.brushToolComponent);
+        }
+      }),
       tap(() => {
 
         const handleError = catchError(err => {
@@ -1196,6 +1204,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     of(1).pipe(
       map(() => {
         if (this.tool == tool && this.tool.show) {
+          // close tool
+          this.stateService.openTool = "";
           tool.close();
           this.tool = null;
         } else {
@@ -1205,6 +1215,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           }
           this.tool = tool;
           // open new tool
+          this.stateService.openTool = this.tool.name;
           this.tool.open();
         }
     
