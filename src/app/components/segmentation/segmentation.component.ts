@@ -83,7 +83,7 @@ export class SegmentationComponent extends Tool implements Drawer {
               private httpClient: HttpClient,
               private segmentationService: SegmentationService,
               private userQuestionService: UserQuestionsService) {
-    super();
+    super("SegmentationTool");
   }
 
   /**

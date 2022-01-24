@@ -85,7 +85,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
               private httpClient: HttpClient,
               private segmentationService: SegmentationService,
               private toastController: ToastController) {
-    super();
+    super("FlexSegmentationTool");
   }
 
   /**
