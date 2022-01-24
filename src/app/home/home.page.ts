@@ -1085,6 +1085,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       take(1),
       tap(() => console.log('Finished deleting/adding!')),
       tap(x => console.log(x)),
+      // update last modification date
+      switchMap(() => this.imageSetId),
+      take(1),
+      switchMap((id: number) => {
+        return this.omeroAPI.setLastModificationDate(id);
+      }),
       tap(() => this.userQuestions.showInfo("Successfully finished pipeline")),
       finalize(() => {
         loading.then(l => l.dismiss())
