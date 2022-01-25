@@ -7,7 +7,7 @@ RUN cd app && npm ci
 
 RUN cd app && npm install -g @angular/cli @ionic/cli
 RUN cd app && ls
-RUN cd app && ionic build --prod
+RUN cd app && ionic build --prod --aot --outputHashing=all
 
 FROM jugit-registry.fz-juelich.de/satomi/segtrackui/nginx:latest
 
