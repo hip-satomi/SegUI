@@ -111,13 +111,7 @@ export class SegmentationService {
   public requestSegmentationProposal(imageBlob, service_description: SegmentationServiceDef) {
     // put the binary image data into form data
     const fd = new FormData();
-    fd.append('file', imageBlob, 'image.jpg');
-    /*const params = {
-      repo: service_description.repo_url,
-      entry_point: service_description.repo_entry_point,
-      version: service_description.repo_version,
-      parameters: JSON.stringify(service_description.additional_parameters)
-    }*/
+    fd.append('files', imageBlob, 'image.jpg');
 
     let params = new HttpParams({encoder: new CustomHttpParamEncoder()});
     params = params.set('repo', service_description.repo_url)
@@ -125,14 +119,8 @@ export class SegmentationService {
     params = params.set('version', service_description.repo_version)
     params = params.set('parameters', JSON.stringify(service_description.additional_parameters))
 
-    //UrlP
-    //fd.append('repo', service_description.repo_url)
-    //fd.append('entry_point', service_description.repo_entry_point)
-    //fd.append('version', service_description.repo_version)
-    //fd.append('parameters', JSON.stringify(service_description.additional_parameters))
-
     // post this to a segmentation service
-    return this.httpClient.post('segService/image-prediction/', fd, {params: params}).pipe(
+    return this.httpClient.post('segService/image-batch-prediction/', fd, {params: params}).pipe(
       take(1),
       map(data => {
         return data as ServiceResult
