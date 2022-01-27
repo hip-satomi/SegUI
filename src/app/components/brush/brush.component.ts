@@ -3,7 +3,7 @@ import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@a
 import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
 import { of } from 'rxjs';
 import { finalize, switchMap, tap } from 'rxjs/operators';
-import { AddLabelAction, ChangePolygonPoints, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
+import { AddLabelAction, ChangeLabelActivityAction, ChangeLabelVisibilityAction, ChangePolygonPoints, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
 import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
@@ -100,6 +100,25 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   @HostListener('document:keyup.control', ['$event'])
   ctrlKeyUp(event) {
     this.controlKeyDown = false;
+  }
+
+  /**
+   * Use the keydown event to switch between label classes efficiently
+   * @param event keydown event
+   */
+  @HostListener('document:keydown', ['$event'])
+  keyDown(event) {
+      if (this.show) {
+        const match = event.key.match(/(\d)/g);
+        if (match) {
+            // compensate '1' index start ('1' maps to 0)
+            const index = Number.parseInt(match[0]) - 1
+            if(index < this.globalSegModel?.labels.length && !this.globalSegModel?.labels[index].active) {
+            // activate the indexed label
+            this.globalSegModel?.addAction(new ChangeLabelActivityAction(this.globalSegModel.labels[index].id, true));
+            }
+        }
+      }
   }
 
   get currentPolygon(): Polygon {

@@ -519,6 +519,10 @@ export class ChangeLabelActivityAction extends Action<SegCollData> {
             }
         }
         data.getLabelById(this.labelId).active = this.active;
+        if (this.active) {
+            // also make the label visible (otherwise activation makes no sense)
+            data.getLabelById(this.labelId).visible = true;
+        }
     }
 
 }
