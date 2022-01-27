@@ -441,6 +441,13 @@ export interface RoIModData {
   }
 }
 
+export interface RenderChannel {
+  min: number;
+  max: number;
+  c: number;
+  color: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -563,12 +570,21 @@ export class OmeroAPIService {
    * @param imageId image set id
    * @param z z channel index
    * @param t t channel index
-   * @param min minimum image value
-   * @param max maximum image value
+   * @param channels array of channels to render
    * @param quality jpeg quality parameter
    */
-  getImageViewUrl(imageId: number, z: number, t: number, min: number, max: number, quality = 1.0, channel=1) {
-    return `/omero/webgateway/render_image/${imageId}/${z}/${t}/?c=${channel}|${min}:${max}$808080&q=${quality}`;
+  getImageViewUrl(imageId: number, z: number, t: number, channels: Array<RenderChannel>, quality = 1.0) {
+    // create rendering strings
+    const individualChannelRenders = []
+    for (const channel of channels) {
+      individualChannelRenders.push(`${channel.c}|${channel.min}:${channel.max}$${channel.color}`);
+    }
+
+    // join channel rendering strings
+    const jointRenderString = individualChannelRenders.join(',');
+
+    // compose final image url
+    return `/omero/webgateway/render_image/${imageId}/${z}/${t}/?c=${jointRenderString}&q=${quality}`;
   }
 
   /**
@@ -616,7 +632,7 @@ export class OmeroAPIService {
       map((data: {image: Image, renderInfos: RenderInfos, it: Array<{imageId: number, z: number, t: number}>}) => {
         const min = data.renderInfos.channels[0].window.start;
         const max = data.renderInfos.channels[0].window.end;
-        return data.it.map(item => this.getImageViewUrl(item.imageId, item.z, item.t, min, max));
+        return data.it.map(item => this.getImageViewUrl(item.imageId, item.z, item.t, [{min, max, c: 1, color: '808080'}]));
       })
     );
   }
