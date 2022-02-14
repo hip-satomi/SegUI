@@ -1037,7 +1037,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         )
       }),
       catchError((err) => {
-        if(err instanceof UserCanceledImportError || err instanceof NoOmeroRoIError) {
+        if(err instanceof UserCanceledImportError || (!showLoading && err instanceof NoOmeroRoIError)) {
           // do nothing it's not an error
           console.info(err.message);
         } else {
