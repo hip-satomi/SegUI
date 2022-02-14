@@ -38,6 +38,18 @@ enum BackendMode {
   OMERO
 }
 
+class UserCanceledImportError extends Error {
+  constructor() {
+    super("User canceled import!")
+  }
+}
+
+class NoOmeroRoIError extends Error {
+  constructor() {
+    super("No Omero RoIs to import!")
+  }
+}
+
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
@@ -372,7 +384,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       })
     ).subscribe(
       (id) => console.log(`Loaded image set ${id}`),
-      (error) => this.userQuestions.showError(`Failed loading image! Error: ${JSON.stringify(error)}`)
+      (error) => this.userQuestions.showError(`Failed loading image! Error: ${error.message}`)
     )
 
     // get the query param and fire the image id
@@ -865,7 +877,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           take(1),
           map(roiData => {
             if (roiData.length == 0) {
-              throw new Error("No omero data available");
+              throw new NoOmeroRoIError();
             }
             return roiData;
           }),
@@ -899,7 +911,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               switchMap(alert => alert.onDidDismiss()),
               map(alertResult => {
                 if(alertResult.role != 'confirm')  {
-                  throw new Error("User canceled import!");
+                  throw new UserCanceledImportError();
                 }
 
                 const importLabels = alertResult.data.values.includes('labels');
@@ -1017,9 +1029,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
         )
       }),
       catchError((err) => {
-        if(err?.message !== "User canceled import!") {
-          this.userQuestions.showError(`Failed import from omero: ${JSON.stringify(err)}`)
+        if(err instanceof UserCanceledImportError || err instanceof NoOmeroRoIError) {
+          // do nothing it's not an error
+          console.info(err.message);
+        } else {
+          this.userQuestions.showError(`Failed import from omero: ${err.message}`)
         }
+        // omero import has to error out
         return throwError(err);
       })
     );
