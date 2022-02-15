@@ -10,7 +10,7 @@ import { UserQuestionsService } from 'src/app/services/user-questions.service';
   templateUrl: './image-set-list.page.html',
   styleUrls: ['./image-set-list.page.scss'],
 })
-export class ImageSetListPage implements OnInit, ViewWillEnter {
+export class ImageSetListPage implements ViewWillEnter {
 
   constructor(private segService: SegRestService,
               private alertController: AlertController,
@@ -19,9 +19,6 @@ export class ImageSetListPage implements OnInit, ViewWillEnter {
               private loadingCtrl: LoadingController) { }
 
   imageSets = [];
-
-  ngOnInit() {
-  }
 
   ionViewWillEnter() {
     // create progress loader

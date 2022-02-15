@@ -3,13 +3,14 @@ import { ActivatedRoute } from '@angular/router';
 import { OmeroAPIService, Image, Dataset, Project } from './../../services/omero-api.service';
 import { Observable } from 'rxjs';
 import { Component, OnInit } from '@angular/core';
+import { ViewWillEnter } from '@ionic/angular';
 
 @Component({
   selector: 'app-omero-dataset',
   templateUrl: './omero-dataset.page.html',
   styleUrls: ['./omero-dataset.page.scss'],
 })
-export class OmeroDatasetPage implements OnInit {
+export class OmeroDatasetPage implements ViewWillEnter {
 
   constructor(private route: ActivatedRoute,
               public omeroApi: OmeroAPIService) { }
@@ -18,7 +19,7 @@ export class OmeroDatasetPage implements OnInit {
   dataset$: Observable<Dataset>;
   project$: Observable<Project>;
 
-  ngOnInit() {
+  ionViewWillEnter() {
     this.images$ = this.route.paramMap.pipe(
       switchMap(params => {
         const datasetId = Number(params.get('dataset'));
