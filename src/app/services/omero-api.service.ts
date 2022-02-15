@@ -20,7 +20,7 @@ const rewriteOmeroUrl = (url: string): string => {
   if (match.length == 0) {
     throw new Error("This is not a valid omero url!");
   }
-  url = url.replace(match[0], '/omero/api/');
+  url = url.replace(match[0], 'omero/api/');
   return url;
 };
 
@@ -459,7 +459,7 @@ export class OmeroAPIService {
       public userQuestionService: UserQuestionsService) {
 
     // pipe to list all omero projects
-    this.projects$ = this.getPagedData('/omero/api/m/projects/', Project);
+    this.projects$ = this.getPagedData('omero/api/m/projects/', Project);
   }
 
   /**
@@ -467,8 +467,8 @@ export class OmeroAPIService {
    * @param id project omero id
    */
   getProject(id: number): Observable<Project> {
-    return this.getData(`/omero/api/m/projects/${id}/`, Project);
-    /*return this.httpClient.get(`/omero/api/m/projects/${id}/`).pipe(
+    return this.getData(`omero/api/m/projects/${id}/`, Project);
+    /*return this.httpClient.get(`omero/api/m/projects/${id}/`).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Project))
     );*/
   }
@@ -495,7 +495,7 @@ export class OmeroAPIService {
    * @param projectId project id
    */
   getDatasetsByProjectId(projectId: number): Observable<Dataset[]> {
-    const fullUrl = `/omero/api/m/projects/${projectId}/datasets/`;
+    const fullUrl = `omero/api/m/projects/${projectId}/datasets/`;
 
     return this.getPagedData(fullUrl, Dataset);
 
@@ -505,12 +505,12 @@ export class OmeroAPIService {
   }
 
   getImagesFromDataset(datasetId: number): Observable<Image[]> {
-    return this.getPagedData(`/omero/api/m/images/`, Image, 500, {dataset : '' + datasetId});
+    return this.getPagedData(`omero/api/m/images/`, Image, 500, {dataset : '' + datasetId});
   }
 
   getImage(imageId: number): Observable<Image> {
-    return this.getData(`/omero/api/m/images/${imageId}/`, Image);
-    /*return this.httpClient.get(`/omero/api/m/images/${imageId}/`).pipe(
+    return this.getData(`omero/api/m/images/${imageId}/`, Image);
+    /*return this.httpClient.get(`omero/api/m/images/${imageId}/`).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Image))
     );*/
   }
@@ -521,7 +521,7 @@ export class OmeroAPIService {
    * @returns parent dataset
    */
   getImageDataset(imageId: number): Observable<Dataset> {
-    return this.httpClient.get(`/omero/api/m/images/${imageId}/`).pipe(
+    return this.httpClient.get(`omero/api/m/images/${imageId}/`).pipe(
       map((r: DataResponse<any>) => deserialize(r.data, Image).datasetUrl),
       switchMap(dsUrl => this.httpClient.get(dsUrl)),
       map((r: DataResponse<any>) => {
@@ -532,8 +532,8 @@ export class OmeroAPIService {
   };
 
   getDataset(datasetId: number): Observable<Dataset> {
-    return this.getData(`/omero/api/m/datasets/${datasetId}/`, Dataset);
-    /*return this.httpClient.get(`/omero/api/m/datasets/${datasetId}/`).pipe(
+    return this.getData(`omero/api/m/datasets/${datasetId}/`, Dataset);
+    /*return this.httpClient.get(`omero/api/m/datasets/${datasetId}/`).pipe(
       map((r: DataResponse<any>) => {
         console.log(r);
         return deserialize(r.data, Dataset);
@@ -562,7 +562,7 @@ export class OmeroAPIService {
 
 
   getThumbnailUrl(imageId: number) {
-    return `/omero/webclient/render_thumbnail/${imageId}/?version=0`;
+    return `omero/webclient/render_thumbnail/${imageId}/?version=0`;
   }
 
   /**
@@ -584,7 +584,7 @@ export class OmeroAPIService {
     const jointRenderString = individualChannelRenders.join(',');
 
     // compose final image url
-    return `/omero/webgateway/render_image/${imageId}/${z}/${t}/?c=${jointRenderString}&q=${quality}`;
+    return `omero/webgateway/render_image/${imageId}/${z}/${t}/?c=${jointRenderString}&q=${quality}`;
   }
 
   /**
@@ -593,7 +593,7 @@ export class OmeroAPIService {
    * @param imageId image set id
    */
   getImageRenderInfos(imageId: number) {
-    return this.httpClient.get(`/omero/webgateway/imgData/${imageId}/`).pipe(
+    return this.httpClient.get(`omero/webgateway/imgData/${imageId}/`).pipe(
       map(r => {
         return deserialize(r, RenderInfos)
       })
@@ -642,7 +642,7 @@ export class OmeroAPIService {
    * @param imageId image sequence id
    */
   getFileAnnotations(imageId: number): Observable<Array<Annotation>> {
-    return this.httpClient.get(`/omero/webclient/api/annotations/?type=file&image=${imageId}`).pipe(
+    return this.httpClient.get(`omero/webclient/api/annotations/?type=file&image=${imageId}`).pipe(
       map(r => {
         return deserialize(r, AnnotationResult);
       }),
@@ -651,8 +651,8 @@ export class OmeroAPIService {
   }
 
   getPagedRoIData(imageId: number): Observable<Array<RoIData>> {
-    return this.getPagedData(`/omero/api/m/images/${imageId}/rois/`, RoIData);
-    /*return this.httpClient.get(`/omero/api/m/images/${imageId}/rois/`, {params}).pipe(
+    return this.getPagedData(`omero/api/m/images/${imageId}/rois/`, RoIData);
+    /*return this.httpClient.get(`omero/api/m/images/${imageId}/rois/`, {params}).pipe(
       map(r => deserialize(r, RoIResult))
     );*/
   }
@@ -674,7 +674,7 @@ export class OmeroAPIService {
       // download file and parse
       switchMap(sortedAnnots => {
         if (sortedAnnots.length > 0) {
-          return this.httpClient.get<Blob>(`/omero/webclient/annotation/${sortedAnnots[0].id}/`, {responseType: 'blob' as 'json'}).pipe(
+          return this.httpClient.get<Blob>(`omero/webclient/annotation/${sortedAnnots[0].id}/`, {responseType: 'blob' as 'json'}).pipe(
             switchMap(blob => from(blob.text())),
             map(txt => JSON.parse(txt))
           );
@@ -705,7 +705,7 @@ export class OmeroAPIService {
     formData.append('annotation_file', blob, fileName);
 
     // post new file
-    return this.httpClient.post(`/omero/webclient/annotate_file/`, formData).pipe(
+    return this.httpClient.post(`omero/webclient/annotate_file/`, formData).pipe(
       // if file is posted successfully get all annotations
       switchMap(() => this.getFileAnnotations(imageId)),
       // filter by current filename
@@ -722,7 +722,7 @@ export class OmeroAPIService {
             const formData = new FormData();
             formData.set('parent', 'image-' + imageId);
             deletions.push(
-              this.httpClient.post(`/omero/webclient/action/delete/file/${ann.id}/`, formData)
+              this.httpClient.post(`omero/webclient/action/delete/file/${ann.id}/`, formData)
             );
           }
           if (deletions.length > 0) {
@@ -736,7 +736,7 @@ export class OmeroAPIService {
   }
 
   modifyRois(modificationData: RoIModData) {
-    return this.httpClient.post('/omero/iviewer/persist_rois/', modificationData);
+    return this.httpClient.post('omero/iviewer/persist_rois/', modificationData);
   }
 
   arrayToDict(data: Array<any>) {
@@ -844,7 +844,7 @@ export class OmeroAPIService {
    * @returns returns the deserialize object instance
    */
   getData<T>(url: string, c: new () => T, inData = true) {
-    if (!url.startsWith('/omero/api')) {
+    if (!url.startsWith('omero/api')) {
       console.warn(`url ${url} is not compatible with endpoint.`)
     }
     return this.httpClient.get(url).pipe(
@@ -866,7 +866,7 @@ export class OmeroAPIService {
    * @returns an array of obtained data items
    */
   getPagedData<T>(url, c: new () => T, limit=500, params?: { [param: string]: string | string[]}): Observable<Array<T>> {
-    if (!url.startsWith('/omero/api')) {
+    if (!url.startsWith('omero/api')) {
       console.warn(`url ${url} is not compatible with endpoint.`)
     }
     const unpackPage = map(r => {
@@ -947,7 +947,7 @@ export class OmeroAPIService {
   }
 
   getImageInfo(imageSetId: number): Observable<ImageInfo> {
-    return this.getData(`/omero/iviewer/image_data/${imageSetId}/`, ImageInfo, false);
+    return this.getData(`omero/iviewer/image_data/${imageSetId}/`, ImageInfo, false);
   }
 
   /**

@@ -83,7 +83,7 @@ export class OmeroAuthService {
               private router: Router,
               private alertController: AlertController) {
 
-      this.server$ = this.httpClient.get('/omero/api/servers/').pipe(
+      this.server$ = this.httpClient.get('omero/api/servers/').pipe(
         map((r: DataListResponse<Server>) => {
           if (r.data.length === 0) {
             throw new NoServerAvailableException();
@@ -108,7 +108,7 @@ export class OmeroAuthService {
         body.append('username', credential.username);
         body.append('password', credential.password);
         body.append('server', `${serverId}`);
-        return this.httpClient.post('/omero/api/login/', body).pipe(
+        return this.httpClient.post('omero/api/login/', body).pipe(
           tap((r: LoginResponse) => {
             if (r.success === false) {
               throw new LoginFailedException();
