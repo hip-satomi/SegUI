@@ -3,13 +3,14 @@ import { switchMap, map } from 'rxjs/operators';
 import { ActivatedRoute } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
+import { ViewWillEnter } from '@ionic/angular';
 
 @Component({
   selector: 'app-omero-project',
   templateUrl: './omero-project.page.html',
   styleUrls: ['./omero-project.page.scss'],
 })
-export class OmeroProjectPage implements OnInit {
+export class OmeroProjectPage implements ViewWillEnter {
 
   constructor(private route: ActivatedRoute,
               private omeroAPI: OmeroAPIService) { }
@@ -19,7 +20,7 @@ export class OmeroProjectPage implements OnInit {
 
   datasets$: Observable<Array<Dataset>>;
 
-  ngOnInit() {
+  ionViewWillEnter() {
     this.projectId$ = this.route.paramMap.pipe(
       map(params => Number(params.get('id')))
     );
