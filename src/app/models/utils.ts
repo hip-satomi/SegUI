@@ -2,7 +2,7 @@ import { Point } from './geometry';
 import { multiply, inv } from 'mathjs';
 import * as simplify from 'simplify-js';
 import { SegCollData} from './segmentation-model';
-import { pointsToString } from '../services/omero-api.service';
+import { pointsToString, RoIData } from '../services/omero-api.service';
 
 var convert = require('color-convert');
 
@@ -306,16 +306,26 @@ export class UIUtils {
 
 export class OmeroUtils {
 
-  static createRoIDeletionList(data) {
+  /**
+   * Creating a list of roi and shape ids to be deleted to clear the omero overlay
+   * @param roiData List of RoIs 
+   * @returns [(roi id, shape id), ...]
+   */
+  static createRoIDeletionList(roiData: Array<RoIData>): Array<[number, number]> {
 
-    let empty_rois = [];
+    let deletion_list: Array<[number, number]> = [];
 
-    for (const roi of data.roiData) {
-      const remove_list = roi.shapes.map(shape => shape.id).map(shape_id => [roi.id, shape_id]);
-      empty_rois = empty_rois.concat(remove_list);
+    // loop over rois
+    for (const roi of roiData) {
+      // filter for polygons only
+      const remove_candidates = roi.shapes.filter(shape => shape.type === 'http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon');
+      // convert to (roi id, shape id)
+      const remove_list = remove_candidates.map(shape => shape.id).map(shape_id => [roi.id, shape_id] as [number, number]);
+      // add to the removal list
+      deletion_list = deletion_list.concat(remove_list);
     }
 
-    return empty_rois;
+    return deletion_list;
   }
 
   /**
