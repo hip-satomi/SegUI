@@ -964,32 +964,34 @@ export class OmeroAPIService {
       switchMap(result => {
         // do we have existing annotations?
         let annotationId = -1
-        if(result['annotations'].length >= 0) {
+        let existingIndex = -1;
+        let value_pairs = [];
+
+        if(result['annotations'].length > 0) {
           // yes, so let's use the first one
           annotationId = result['annotations'][0]['id']
-        }
 
-        // find last modification value in annotation
-        let values = result['annotations'][0].values;
-        let existingIndex = -1;
-        for(const [index, value] of values.entries()) {
-          if (value[0] == "last_modification") {
-            existingIndex = index;
-            break;
+          // find last modification value in annotation
+          value_pairs = result['annotations'][0].values;
+          for(const [index, value] of value_pairs.entries()) {
+            if (value[0] == "last_modification") {
+              existingIndex = index;
+              break;
+            }
           }
         }
 
         // either replace or append modification value
         if (existingIndex > -1) {
-          values[existingIndex] = ["last_modification", `${date}`];
+          value_pairs[existingIndex] = ["last_modification", `${date}`];
         } else {
-          values.push(["last_modification", `${date}`]);
+          value_pairs.push(["last_modification", `${date}`]);
         }
 
         // construct the form data
         const formData = new FormData();
         formData.set('image', `${imageSetId}`);
-        formData.set('mapAnnotation', JSON.stringify(values));
+        formData.set('mapAnnotation', JSON.stringify(value_pairs));
         if (annotationId != -1) {
           // add annotation id to form data (update)
           formData.set("annId", `${annotationId}`);
