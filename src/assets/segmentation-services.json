@@ -24,6 +24,16 @@
               "config": "https://fz-juelich.sciebo.de/s/LdVbQhCUMNUBnXy/download",
               "checkpoint": "https://fz-juelich.sciebo.de/s/Qngmf7FR7v7GZfS/download"
             }
+        },
+        {
+            "name": "Yolov5m",
+            "description": "Yolov5 object detector",
+            "repo_url": "https://gitlab+deploy-token-1:jzCPzEwRQacvqp8z2an9@jugit.fz-juelich.de/mlflow-executors/yolov5-executor.git",
+            "repo_entry_point": "main",
+            "repo_version": "master",
+            "additional_parameters": {
+              "model": "yolov5m"
+            }
         }
     ]
 }
