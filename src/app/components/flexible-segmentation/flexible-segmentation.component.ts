@@ -245,28 +245,35 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
 
         //return this.segmentationService.requestJSSegmentationProposal(data, 0.05);
       }),
-      tap(
+      map(
         (data: ServiceResult) => {
-          console.log(`Number of proposal detections ${data.segmentation.length}`);
+          console.log(`Number of proposal detections ${data.segmentation_data[0].length}`);
   
           // drop all segmentations with score lower 0.5
           //const threshold = 0.4;
           //data = data.filter(det => det.score >= threshold);
           //console.log(`Number of filtered detections ${data.length}`);
           console.log(data);
-          this.data = data.segmentation;
 
-          this.createLocalSegModel();       
+          if (data.format_version != "0.2") {
+            console.warn(`Working with unsupported segmentation format: ${data.format_version}`)
+          }
+
+          this.data = data.segmentation_data[0];
+
+          this.createLocalSegModel();
+          
+          return data.model;
         }
       ),
       finalize(() => {
         loading.then(l => l.dismiss());
       })
     ).subscribe(
-      () => {
+      (model: string) => {
         // segmentation proposals have been applied successfully
         this.toastController.create({
-          message: 'Successfully requested segmentation proposals',
+          message: `Successfully requested segmentation proposals using ${model}`,
           duration: 2000
         }).then(toast => toast.present());
 

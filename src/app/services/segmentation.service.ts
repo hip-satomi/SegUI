@@ -49,9 +49,9 @@ export interface SegmentationData {
   score: number;
 }
 export interface ServiceResult {
-  model_version: string;
+  model: string;
   format_version: string;
-  segmentation: Array<SegmentationData>
+  segmentation_data: Array<Array<SegmentationData>>
 }
 
 import { HttpParameterCodec } from '@angular/common/http';import { Point } from '../models/geometry';
@@ -108,7 +108,7 @@ export class SegmentationService {
     );
   }
 
-  public requestSegmentationProposal(imageBlob, service_description: SegmentationServiceDef) {
+  public requestSegmentationProposal(imageBlob, service_description: SegmentationServiceDef): Observable<ServiceResult> {
     // put the binary image data into form data
     const fd = new FormData();
     fd.append('files', imageBlob, 'image.jpg');
