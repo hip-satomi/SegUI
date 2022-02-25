@@ -1,4 +1,5 @@
-FROM jugit-registry.fz-juelich.de/satomi/segtrackui/node:12.18
+#FROM jugit-registry.fz-juelich.de/satomi/segtrackui/node:12.18
+FROM node:12.18
 
 COPY ./src ./app/src
 COPY ./*.json ./app/
@@ -9,7 +10,8 @@ RUN cd app && npm install -g @angular/cli @ionic/cli
 RUN cd app && ls
 RUN cd app && ionic build --prod --aot --outputHashing=all
 
-FROM jugit-registry.fz-juelich.de/satomi/segtrackui/nginx:latest
+#FROM jugit-registry.fz-juelich.de/satomi/segtrackui/nginx:latest
+FROM nginx:latest
 
 RUN rm /etc/nginx/conf.d/default.conf
 COPY docker/upstream.conf /etc/nginx/templates/upstream.conf.template
