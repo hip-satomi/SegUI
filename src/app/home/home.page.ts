@@ -279,17 +279,18 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     //console.log(this.stateService.navImageSetId);
     //console.log(this.stateService.imageSetId);
 
-    // create progress loader
-    const loading = this.loadingCtrl.create({
-      message: 'Loading data...',
-      backdropDismiss: true
-    });
+    let loading = null;
 
     // setup loading pipeline when we get a new imageId (also used for refreshing!)
     this.imageSetId.pipe(
       // disable all previous subscribers
       tap(() => this.ngUnsubscribe.next()),
       tap(() => {
+        // create progress loader
+        loading = this.loadingCtrl.create({
+          message: 'Loading data...',
+          backdropDismiss: true
+        });
         loading.then(l => l.present());
       }),
       // load the new imageId
@@ -937,15 +938,16 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             // only polgyons
             roiData = roiData.filter(shape => shape.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
 
-            // try to load the data
+            // create new connector
             const srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
 
             // add every polygon that already exists in omero
             const additionalLabels: string[] = [];
+            /** Array of all actions to be performed */
             const actions: Action<SegCollData>[] = [];
-            const currentModel = srsc.getModel()//.segmentations[poly.t]
+            const currentModel = srsc.getModel()
             const existingLabels = currentModel.labels;
-            const firstFreeLabelId = currentModel.nextLabelId(); //Math.max(...currentModel.labels.map(l => l.id));
+            const firstFreeLabelId = currentModel.nextLabelId();
 
             // TODO: correct t and z handling
             const t_max = Math.max(...roiData.map(poly => poly.t));
@@ -977,6 +979,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
             }
 
 
+            // create the AddPolygon action for every polygon that we have
             for (const poly of roiData) {
 
               // get the label name from text
@@ -1011,15 +1014,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
             // Add labels
             for (const [index, label] of additionalLabels.entries()) {
-              srsc.getModel().addAction(new AddLabelAction(new AnnotationLabel(firstFreeLabelId + index, label, true, 'random', true)));
+              actions.push(new AddLabelAction(new AnnotationLabel(firstFreeLabelId + index, label, true, 'random', true)));
             }
 
-            // add all the polygons
-            for(const action of actions) {
-              srsc.getModel().addAction(action);
-            }
-
-
+            // add all actions in one go (also undoable as one)
+            srsc.getModel().addAction(new JointAction(...actions));
             
             return srsc;
           }),

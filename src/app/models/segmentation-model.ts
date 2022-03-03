@@ -274,6 +274,9 @@ export class SegmentationModel {
 }
 
 
+/**
+ * Segmentation Collection Data: Segmentation data for a full image stack.
+ */
 export class SegCollData implements ClearableStorage {
     segData: SegmentationData[] = [];
 
