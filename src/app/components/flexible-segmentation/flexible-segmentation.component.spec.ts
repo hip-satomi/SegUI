@@ -1,5 +1,6 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { IonicModule } from '@ionic/angular';
 
 import { FlexibleSegmentationComponent } from './flexible-segmentation.component';
@@ -11,7 +12,7 @@ describe('FlexibleSegmentationComponent', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ FlexibleSegmentationComponent ],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule]
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, MatTooltipModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(FlexibleSegmentationComponent);
