@@ -14,7 +14,8 @@
       (mouseenter)="beginHover(label)"
       (mouseleave)="endHover(label)">
     </app-ann-label-chip>
-    <ion-chip (click)="addLabel()">
+    <ion-chip (click)="addLabel()" #tooltip="matTooltip"
+      matTooltip="Add new annotation label">
       <ion-icon name="add-circle-outline"></ion-icon>
     </ion-chip>
   </ion-toolbar>

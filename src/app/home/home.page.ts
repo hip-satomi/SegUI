@@ -1262,4 +1262,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
+  get numImages() {
+    return this.segmentationModels.length;
+  }
+
 }

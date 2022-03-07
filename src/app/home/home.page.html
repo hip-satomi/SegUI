@@ -72,22 +72,26 @@
 <ion-footer *ngIf="segmentationModels.length >= 1">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-button (click)="navigateToPreviousImageSequence().pipe(showErrorPipe).subscribe()" style="padding-right:10px">
+      <ion-button (click)="navigateToPreviousImageSequence().pipe(showErrorPipe).subscribe()" style="padding-right:10px"
+        #tooltip="matTooltip" matTooltip="Naviagte to previous image stack">
         <ion-icon name="play-skip-back"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-range min="0" max="{{segmentationModels.length - 1}}" color="secondary" step="1" snaps="true" [(ngModel)]="activeView">
-      <ion-label slot="start">{{activeView}}</ion-label>
-      <ion-label slot="end">{{segmentationModels.length - 1}}</ion-label>
+    <ion-range [disabled]="numImages == 1" min="0" max="{{segmentationModels.length - 1}}" color="secondary" step="1" snaps="true" [(ngModel)]="activeView">
+      <ion-label slot="start" #tooltip="matTooltip" matTooltip="Current image index (starting with 0)">{{activeView}}</ion-label>
+      <ion-label slot="end" #tooltip="matTooltip" matTooltip="Max image index (or number of frames - 1)">{{segmentationModels.length - 1}}</ion-label>
     </ion-range>
     <ion-buttons slot="end">
-      <ion-button [disabled]="!canPrevImage" (click)="prevImage()" style="padding-right:10px">
+      <ion-button [disabled]="!canPrevImage" (click)="prevImage()" style="padding-right:10px"
+        #tooltip="matTooltip" matTooltip="Naviagte to previous image">
         <ion-icon name="caret-back-outline"></ion-icon>
       </ion-button>
-      <ion-button [disabled]="!canNextImage" (click)="nextImage()" style="padding-right:10xpx">
+      <ion-button [disabled]="!canNextImage" (click)="nextImage()" style="padding-right:10xpx"
+        #tooltip="matTooltip" matTooltip="Naviagte to next image">
         <ion-icon name="caret-forward-outline"></ion-icon>
       </ion-button>
-      <ion-button (click)="navigateToNextImageSequence().pipe(showErrorPipe).subscribe()" style="padding-right:10px">
+      <ion-button (click)="navigateToNextImageSequence().pipe(showErrorPipe).subscribe()" style="padding-right:10px"
+        #tooltip="matTooltip" matTooltip="Naviagte to next image stack">
         <ion-icon name="play-skip-forward"></ion-icon>
       </ion-button>
     </ion-buttons>

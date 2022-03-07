@@ -1,17 +1,20 @@
 <ion-buttons>
-  <ion-chip [routerLink]="['/omero-dashboard']">
+  <ion-chip [routerLink]="['/omero-dashboard']" #tooltip="matTooltip"
+    matTooltip="Naivage to Dashboard">
     <ion-label color="primary">Dashboard</ion-label>
   </ion-chip>
   <ng-container *ngIf="project$">
     >
-    <ion-chip [routerLink]="['/omero-project', {id: (project$ | async)?.id}]">
+    <ion-chip [routerLink]="['/omero-project', {id: (project$ | async)?.id}]" #tooltip="matTooltip"
+      matTooltip="Navigate to Omero Project">
       <ion-label color="secondary">{{(project$ | async)?.name}}
       </ion-label>
     </ion-chip>
   </ng-container>
   <ng-container *ngIf="dataset$">
     >
-    <ion-chip [routerLink]="['/omero-dataset', {dataset: (dataset$ | async)?.id}]">
+    <ion-chip [routerLink]="['/omero-dataset', {dataset: (dataset$ | async)?.id}]" #tooltip="matTooltip"
+    matTooltip="Navigate to Omero Dataset">
       <ion-label color="tertiary">{{(dataset$ | async)?.name}}
       </ion-label>
     </ion-chip>
