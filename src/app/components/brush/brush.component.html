@@ -7,16 +7,16 @@
   <ion-grid>
     <ion-row>
       <ion-col>
-      <ion-item>
-        <ion-label>Show Overlay</ion-label>
-        <ion-toggle [(ngModel)]="showOverlay" (ionChange)="draw()"></ion-toggle>
-      </ion-item>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide segmentation overlay">Show Overlay</ion-label>
+          <ion-toggle [(ngModel)]="showOverlay" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
       </ion-col>
     </ion-row>
     <ion-row>
       <ion-col>
       <ion-item>
-        <ion-label>Prevent overlap</ion-label>
+        <ion-label #tooltip="matTooltip" matTooltip="Prevent overlap of segmentations. As soon as the brush hits another segmentation contour of the same label and the brush decreases the other contour.">Prevent overlap</ion-label>
         <ion-toggle [(ngModel)]="preventOverlap"></ion-toggle>
       </ion-item>
       </ion-col>
@@ -37,7 +37,10 @@
     <ion-item>
       <ion-row>
         <ion-col class="vertical-align-content">
-          <ion-label style="text-align: center;">Brush Size: {{brushSize | number:'1.0-0'}}</ion-label>
+          <ion-label style="text-align: center;" #tooltip="matTooltip"
+            matTooltip="The size of the drawing brush in pixels">
+            Brush Size: {{brushSize | number:'1.0-0'}}
+          </ion-label>
         </ion-col>
         <ion-col size="12">
           <ion-range  min="1" max="20" step="1" snaps="true" [(ngModel)]="brushSize" pin="true" style="padding: 0px;">
