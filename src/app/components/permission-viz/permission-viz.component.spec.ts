@@ -1,4 +1,5 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { IonicModule } from '@ionic/angular';
 
 import { PermissionVizComponent } from './permission-viz.component';
@@ -10,7 +11,7 @@ describe('PermissionVizComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [ PermissionVizComponent ],
-      imports: [IonicModule.forRoot()]
+      imports: [IonicModule.forRoot(), MatTooltipModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(PermissionVizComponent);

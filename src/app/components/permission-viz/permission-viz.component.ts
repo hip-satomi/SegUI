@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { TooltipComponent } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-permission-viz',
@@ -8,18 +9,15 @@ import { Component, Input, OnInit } from '@angular/core';
 export class PermissionVizComponent implements OnInit {
 
   _item: any;
-  _user: any;
 
   data = [];
+
+  granted = "This permission is granted!"
+  not_granted = "This permission is NOT granted!"
 
   @Input() set item(item: any) {
     this._item = item;
 
-    this.updateData();
-  }
-
-  @Input() set user(user: any) {
-    this._user = user;
     this.updateData();
   }
 
@@ -32,29 +30,25 @@ export class PermissionVizComponent implements OnInit {
     this.data = [
       {
         name: 'canAnnotate',
-        color: !this._item.details.permissions.canAnnotate ? 'medium': ''
+        allowed: this._item.details.permissions.canAnnotate,
+        tooltip: 'Permission to add annotations (e.g. segmentation) to the image stack!',
       },
       {
         name: 'canDelete',
-        color: !this._item.details.permissions.canDelete ? 'medium': ''
+        allowed: this._item.details.permissions.canDelete,
+        tooltip: 'Permission to delete the image stack and the data belonging to it',
       },
       {
         name: 'canEdit',
-        color: !this._item.details.permissions.canEdit ? 'medium': ''
-      },
-      {
-        name: 'canLink',
-        color: !this._item.details.permissions.canLink ? 'medium': ''
+        allowed: this._item.details.permissions.canEdit,
+        tooltip: 'Permission to edit and modify the image stack!',
       },
       {
         name: 'isGroupWrite',
-        color: !this._item.details.permissions.isGroupWrite ? 'medium': ''
+        allowed: this._item.details.permissions.isGroupWrite,
+        tooltip: 'Permission to collaboratively edit dat in an OMERO read-write group. Other users can modify and overwrite the segmentation data.'
       },
     ];
-
-    if (this.user) {
-      
-    }
   }
 
 }

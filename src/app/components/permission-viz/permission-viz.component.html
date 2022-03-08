@@ -1,1 +1,4 @@
-<ion-badge *ngFor="let perm of data" class="spacing" [color]="perm.color">{{perm.name}}</ion-badge>
+<ion-badge *ngFor="let perm of data" class="spacing" [color]="!perm.allowed ? 'medium' : ''"
+  #tooltip="matTooltip" matTooltip="{{perm.tooltip}} {{(perm.allowed ? granted : not_granted)}}">
+  {{perm.name}}
+</ion-badge>
