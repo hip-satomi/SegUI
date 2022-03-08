@@ -103,6 +103,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   // whether there have been previous pages!
   canNavigateBack = false;
 
+  loading = null;
+
   constructor(private actionSheetController: ActionSheetController,
               private route: ActivatedRoute,
               private router: Router,
@@ -290,26 +292,24 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       }
     })
 
-    let loading = null;
-
     // setup loading pipeline when we get a new imageId (also used for refreshing!)
     this.imageSetId.pipe(
       // disable all previous subscribers
       tap(() => this.ngUnsubscribe.next()),
       tap(() => {
         // create progress loader
-        loading = this.loadingCtrl.create({
+        this.loading = this.loadingCtrl.create({
           message: 'Loading data...',
-          backdropDismiss: true
+          backdropDismiss: false
         });
-        loading.then(l => l.present());
+        this.loading.then(l => l.present());
       }),
       // load the new imageId
       switchMap(id => this.loadImageSetById(id).pipe(
         map(() => id),
         finalize(() => {
           console.log('done loading');
-          loading.then(l => l.dismiss());
+          this.loading.then(l => l.dismiss());
         })
       )),
       catchError((e, caught) => {
@@ -439,6 +439,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.ngUnsubscribe.next();
     // This completes the subject properly.
     //this.ngUnsubscribe.complete();
+    if (this.loading) {
+      this.loading.then(l => l.dismiss());
+    }
   }
 
   /**
