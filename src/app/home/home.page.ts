@@ -8,17 +8,17 @@ import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged } from './../models/change';
 import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
-import { from, Observable, of, pipe, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
+import { EMPTY, from, Observable, of, pipe, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
 import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SimpleSegmentationHolder as SimpleSegmentationHolder, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
-import { ActionSheetController, AlertController, LoadingController, PopoverController, ToastController } from '@ionic/angular';
+import { ActionSheetController, AlertController, LoadingController, NavController, PopoverController, ToastController } from '@ionic/angular';
 import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContainerRef, ComponentFactoryResolver } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
 import { SegmentationComponent } from '../components/segmentation/segmentation.component';
@@ -100,6 +100,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   dataset$ = new ReplaySubject<Dataset>(1);
   project$ = new ReplaySubject<Project>(1);
 
+  // whether there have been previous pages!
+  canNavigateBack = false;
+
   constructor(private actionSheetController: ActionSheetController,
               private route: ActivatedRoute,
               private router: Router,
@@ -113,7 +116,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private resolver: ComponentFactoryResolver,
               private alertController: AlertController,
               private userQuestions: UserQuestionsService,
-              private stateService: StateService) {
+              private stateService: StateService,
+              private navCtrl: NavController) {
   }
 
   // Redirect Mouse & Touch interactions
@@ -279,6 +283,13 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     //console.log(this.stateService.navImageSetId);
     //console.log(this.stateService.imageSetId);
 
+    // record navigation history
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.canNavigateBack = true;
+      }
+    })
+
     let loading = null;
 
     // setup loading pipeline when we get a new imageId (also used for refreshing!)
@@ -301,6 +312,20 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
           loading.then(l => l.dismiss());
         })
       )),
+      catchError((e, caught) => {
+        this.userQuestions.showError("Failed loading image data! Navigate back in 5 seconds!");
+        setTimeout(() => {
+          if(this.canNavigateBack) {
+            // navigate back
+            this.navCtrl.back();
+          } else {
+            // navigate to default view
+            this.router.navigateByUrl('/omero-dashboard');
+          }
+        }, 5000);
+        throwError(new Error("Failed loding image data"));
+        return EMPTY;
+      }),
       tap(() => {
         if (this.stateService.openTool == "BrushTool" && !this.isToolActive(this.brushToolComponent)) {
           // open the brush tool if it was open before
