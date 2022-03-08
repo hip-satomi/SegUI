@@ -62,7 +62,10 @@ export class TokenInterceptorService implements HttpInterceptor {
           // authentication service redirects because of expired token
           this.relogin$.next();
           this.showAuthNotValid();
-        } else {
+        } else if(err.status == 404 && err.url.includes('webclient/action/delete/file')) {
+          // problems with deleting files are handled
+        }
+        else {
           // unknown connectivity issues
           this.unknownConErrors$.next(err);
         }
