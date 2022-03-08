@@ -8,6 +8,7 @@ import { OmeroDashboardPageRoutingModule } from './omero-dashboard-routing.modul
 
 import { OmeroDashboardPage } from './omero-dashboard.page';
 import { SharedComponentsModule } from 'src/app/shared-components-module/shared-components.module';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @NgModule({
   imports: [
@@ -15,7 +16,8 @@ import { SharedComponentsModule } from 'src/app/shared-components-module/shared-
     FormsModule,
     IonicModule,
     OmeroDashboardPageRoutingModule,
-    SharedComponentsModule
+    SharedComponentsModule,
+    MatTooltipModule
   ],
   declarations: [OmeroDashboardPage]
 })

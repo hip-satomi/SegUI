@@ -47,6 +47,13 @@ export class OmeroDashboardPage implements ViewWillEnter {
     );
   }
 
+  /**
+   * Returns True when in restricted group view.
+   */
+  get groupRestricted() {
+    return this.group !== '';
+  }
+
   ngOnInit() {
   }
 

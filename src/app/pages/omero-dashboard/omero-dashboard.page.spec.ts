@@ -1,5 +1,6 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 import { SharedComponentsModule } from 'src/app/shared-components-module/shared-components.module';
@@ -13,7 +14,7 @@ describe('OmeroDashboardPage', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ OmeroDashboardPage ],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, SharedComponentsModule, RouterTestingModule]
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, SharedComponentsModule, RouterTestingModule, MatTooltipModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(OmeroDashboardPage);

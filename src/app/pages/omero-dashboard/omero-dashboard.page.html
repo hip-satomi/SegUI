@@ -1,6 +1,11 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Omero Dashboard</ion-title>
+    <ion-title>Omero Dashboard <ng-template [ngIf]="groupRestricted">(for group {{this.group}})</ng-template></ion-title>
+    <ng-template [ngIf]="groupRestricted">
+      <ion-buttons slot="end">
+        <ion-button [routerLink]="['/omero-dashboard/']" #tooltip="matTooltip" matTooltip="Currently your dashboard is restricted to all projects in group '{{this.group}}'. Click here to see your full dashboard!">View full dashboard</ion-button>
+      </ion-buttons>
+    </ng-template>
   </ion-toolbar>
 </ion-header>
 
