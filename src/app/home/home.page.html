@@ -10,13 +10,9 @@
       <a ion-button href="https://jugit.fz-juelich.de/satomi/segtrackui/-/issues" target="_blank" #tooltip="matTooltip"
         matTooltip="Please report problems/feature requests for the software here"><ion-icon name="bug-outline"></ion-icon> ISSUES</a>
 
-      <ion-button *ngIf="isSegmentation" (click)="toggleTool(segTool)" type="button" #tooltip="matTooltip"
-        matTooltip="Advanced ML based segmentation proposals" [color]="isToolActive(segTool) ? 'primary' : ''">
-        <ion-icon name="rocket-outline"></ion-icon>ADV-SEG
-      </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(flexSegTool)" type="button" #tooltip="matTooltip"
-        matTooltip="Advanced ML based segmentation proposals" [color]="isToolActive(flexSegTool) ? 'primary' : ''">
-        <ion-icon name="rocket-outline"></ion-icon>FLX-SEG
+        matTooltip="Advanced deep-learning based segmentation proposals" [color]="isToolActive(flexSegTool) ? 'primary' : ''">
+        <ion-icon name="rocket-outline"></ion-icon>SEG
       </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(brushToolComponent)" type="button" [color]="isToolActive(brushToolComponent) ? 'primary' : ''"
         #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
@@ -44,8 +40,6 @@
 <ion-content [fullscreen]="true" appMovableArea>
   <div #toolContainer>
   </div>
-  <app-segmentation #segTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
-  </app-segmentation>
 
   <app-flexible-segmentation #flexSegTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-flexible-segmentation>

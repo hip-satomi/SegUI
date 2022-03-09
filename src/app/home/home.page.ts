@@ -21,12 +21,12 @@ import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
-import { SegmentationComponent } from '../components/segmentation/segmentation.component';
 import { BrushComponent } from '../components/brush/brush.component';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
 import { UserQuestionsService } from '../services/user-questions.service';
 import { AnnotationLabel } from '../models/segmentation-data';
 import { StateService } from '../services/state.service';
+import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
 
 
 const { Storage } = Plugins;
@@ -62,8 +62,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
 
   @ViewChild('toolContainer', { read: ViewContainerRef }) container;
-  @ViewChild('segTool') segTool: SegmentationComponent;
-  @ViewChild('flexSegTool') flexSegTool: SegmentationComponent;
+  @ViewChild('flexSegTool') flexSegTool: FlexibleSegmentationComponent;
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
   @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
 
