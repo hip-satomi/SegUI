@@ -130,6 +130,25 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   }
   
   /**
+   * Get the correct drawing color for a polygon
+   * @param uuid polygon id
+   * @param poly polygon object
+   * @returns 
+   */
+  getPolyColor(uuid, poly) {
+    const label = this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(uuid)]
+    const mode = label.color;
+
+    if (mode == 'random') {
+        // when random colors are activated use the internal polygon color
+        return poly.color;
+    } else {
+        // when a specific label color is activated use this label color
+        return label.color;
+    }
+  }
+  
+  /**
    * Draw the segmentation using the brushed view
    * @param ctx the canvas context to draw
    */
@@ -153,7 +172,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
       const ctx = pencil.canvasCtx;
 
       if (this.currentPolygon) {
-          ctx.strokeStyle = this.currentPolygon.color;
+          // get current polygon color for brush visualization
+          ctx.strokeStyle = this.getPolyColor(this.localSegModel.activePolygonId, this.currentPolygon);
       } else {
           ctx.strokeStyle = 'rgb(255, 0, 0)';
       }
@@ -172,17 +192,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             (p: [string, Polygon]) => {
                 return this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(p[0])].visible
             },
-            ({uuid, poly}) => {
-                const label = this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(uuid)]
-                const mode = label.color;
-
-                if (mode == 'random') {
-                    return poly.color;
-                } else {
-                    return label.color;
-                }
-            }
-
+            ({uuid, poly}) => this.getPolyColor(uuid, poly)
         );
         //this.segModel.drawPolygons(ctx, false);
       }
