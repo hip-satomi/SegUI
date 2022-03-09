@@ -1,6 +1,4 @@
 import { AfterViewInit, Component, Input, OnInit, ViewChild } from '@angular/core';
-import { combineLatest, Observable, of } from 'rxjs';
-import { combineAll, concatAll, concatMap, map, mergeMap, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-animated-preview',
@@ -19,7 +17,8 @@ export class AnimatedPreviewComponent implements OnInit, AfterViewInit {
     lazy: true
   }
 
-  @Input() urlList: string[] = [2,3,4].map((imageId: number) => `omero/webclient/render_thumbnail/${imageId}/?version=0`);
+  /** Urls for loading thumbnails for Omero project/dataset content */
+  @Input() urlList: string[];
 
   constructor() { }
   ngAfterViewInit(): void {
