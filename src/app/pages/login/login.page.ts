@@ -83,6 +83,10 @@ export class LoginPage implements OnInit {
     });
   }
 
+  get loggedIn$() {
+    return this.omeroAuth.loggedIn$;
+  }
+
   moveToNextPage() {
     if (this.redirectUrl) {
       // redirect if possible

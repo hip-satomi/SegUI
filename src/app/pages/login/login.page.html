@@ -11,7 +11,7 @@
     <ion-col size="12" size-sm="10" offset-sm="1" size-md="8" offset-md="2" size-lg="6" offset-lg="3" size-xl="4"
       offset-xl="4">
 
-      <ion-card *ngIf="(this.omeroAuth.loggedIn$ | async)">
+      <ion-card *ngIf="(this.loggedIn$ | async)">
         <ion-card-header>
           <ion-card-title class="ion-text-center">You are already logged in!</ion-card-title>
         </ion-card-header>
