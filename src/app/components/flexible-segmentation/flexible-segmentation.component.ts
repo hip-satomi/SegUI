@@ -26,6 +26,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   _globalSegModel: GlobalSegmentationModel;
   _segUI: SegmentationUI;
 
+  /** Name of the AI model */
   selectedModel: string;
 
 
@@ -171,10 +172,6 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
     return this.filteredDets.length;
   }
 
-  /*ngOnChanges(changes) {
-    console.log(changes);
-  }*/
-
   update(e) {
     console.log(this.showOverlay)
     if (this.oldPencil) {
@@ -242,25 +239,17 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
             return this.segmentationService.requestSegmentationProposal(image_data, services[Number(this.selectedModel)])
           })
         );
-
-        //return this.segmentationService.requestJSSegmentationProposal(data, 0.05);
       }),
       map(
         (data: ServiceResult) => {
-          console.log(`Number of proposal detections ${data.segmentation_data[0].length}`);
-  
-          // drop all segmentations with score lower 0.5
-          //const threshold = 0.4;
-          //data = data.filter(det => det.score >= threshold);
-          //console.log(`Number of filtered detections ${data.length}`);
-          console.log(data);
-
           if (data.format_version != "0.2") {
             console.warn(`Working with unsupported segmentation format: ${data.format_version}`)
           }
 
-          this.data = data.segmentation_data[0];
+          console.log(`Number of proposal detections ${data.segmentation_data[0].length}`);
 
+          // set data and create new local segmetnation model
+          this.data = data.segmentation_data[0];
           this.createLocalSegModel();
           
           return data.model;
@@ -373,14 +362,6 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
       }
     }
 
-    /*if (this.showNewOverlay) {
-      // add all the polygons here
-      for (const [uuid, poly] of this.filteredDets) {
-        // TODO: automated prediction labels?
-        addActions.push(new AddPolygon(poly, 0));
-      }
-    }*/
-
     if (this.showNewOverlay) {
       const nextFreeLabelId = this.globalSegModel.nextLabelId();
       const labels: string[] = [];
@@ -420,7 +401,6 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
     const jointAction = new JointAction(...deleteActions, ...addActions);
     const jointLocalActions = this.localSegModel.wrapAction(jointAction);
     this.globalSegModel.addAction(new JointAction(...addLabelActions, jointLocalActions));
-    //this.localSegModel.addAction(jointAction);
 
     // close the window
     this.close();
