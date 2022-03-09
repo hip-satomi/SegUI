@@ -1,18 +1,18 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
-import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
+import { LoadingController} from '@ionic/angular';
 import { of } from 'rxjs';
-import { finalize, switchMap, tap } from 'rxjs/operators';
-import { AddLabelAction, ChangeLabelActivityAction, ChangeLabelVisibilityAction, ChangePolygonPoints, JointAction, MergeLabelAction, RenameLabelAction } from 'src/app/models/action';
-import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
+import { switchMap, tap } from 'rxjs/operators';
+import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction} from 'src/app/models/action';
+import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
-import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
+import { GlobalSegmentationModel, LocalSegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { Position, Utils } from 'src/app/models/utils';
 import { SegmentationService } from 'src/app/services/segmentation.service';
 import { polygon } from 'polygon-tools';
 
-import { rotate, matrix, create, all, chain, subtract, multiply, add } from 'mathjs';
+import { rotate, create, all, subtract, multiply, add } from 'mathjs';
 const math = create(all);
 
 
@@ -21,9 +21,16 @@ const tree = require( 'tree-kit' ) ;
 // as a ES module
 import RBush from 'rbush';
 import { AnnotationLabel } from 'src/app/models/segmentation-data';
-import { stringify } from 'querystring';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
 import { BrushState, StateService } from 'src/app/services/state.service';
+
+/**
+ * Brush drawing modes
+ */
+enum BrushMode {
+    Increase,
+    Decrease
+}
 
 @Component({
   selector: 'app-brush',
@@ -32,7 +39,7 @@ import { BrushState, StateService } from 'src/app/services/state.service';
 })
 export class BrushComponent extends Tool implements Drawer, OnInit {
 
-  // input the current segmentation model and ui
+  // input the current segmentation models and ui
   @Input() localSegModel: LocalSegmentationModel;
   @Input() globalSegModel: GlobalSegmentationModel;
   _segUI: SegmentationUI;
@@ -49,9 +56,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   pointerPos: Position;
 
   brushActivated = false;
-  oldPoints: Point[];
 
-  increase = true;
+  brushMode = BrushMode.Increase;
   dirty = false;
 
   controlKeyDown = false;
@@ -258,11 +264,12 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
       }
 
       this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
-      this.oldPoints = Utils.clone(this.currentPolygon.points);
 
       if (this.currentPolygon.numPoints === 0) {
-          this.increase = true;
+          // current polygon is empty --> can only increase
+          this.brushMode = BrushMode.Increase;
       } else {
+          // measure brush intersection with current polygon
           const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
           let inter: Point[][];
           if (this.currentPolygon.numPoints === 0) {
@@ -272,12 +279,14 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
           }
           
           if (inter.length === 0 || event.button === 2) {
-              this.increase = false;
+              // no intersection with current polygon --> Decrease
+              this.brushMode = BrushMode.Decrease;
           } else {
-              this.increase = true;
+              // intersection with current polygon --> Increase
+              this.brushMode = BrushMode.Increase;
           }
       }
-      console.log('Brush mode increase?' + this.increase);
+      console.log('Brush mode increase?' + this.brushMode);
 
       // Notify change event
       this.changedEvent.emit();
@@ -344,9 +353,11 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
         // Increase/Decrease depending on selected mode
         const tube = this.smoothBrush(oldPointerPos, this.pointerPos);
-        if (this.increase) {
+        if (this.brushMode == BrushMode.Increase) {
+            // increase the current polygon
             this.currentPolygon.join(tube);
         } else {
+            // decrease the current polygon
             this.currentPolygon.subtract(tube);
         }
 
