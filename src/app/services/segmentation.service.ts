@@ -108,6 +108,12 @@ export class SegmentationService {
     );
   }
 
+  /**
+   * Request a segmentation proposal from SegServe
+   * @param imageBlob the image blob
+   * @param service_description the service definition containing git url, version, entrypoint, ...
+   * @returns a service result from the HTTP response
+   */
   public requestSegmentationProposal(imageBlob, service_description: SegmentationServiceDef): Observable<ServiceResult> {
     // put the binary image data into form data
     const fd = new FormData();
