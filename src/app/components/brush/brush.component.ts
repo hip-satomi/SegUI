@@ -1,6 +1,6 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { of } from 'rxjs';
-import { first, map, switchMap, tap } from 'rxjs/operators';
+import { switchMap, tap } from 'rxjs/operators';
 import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction} from 'src/app/models/action';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
