@@ -1,7 +1,4 @@
 .canvas {
-    border-style: solid;
-    border-color: black;
-
     // prevent image interpolation
     image-rendering: optimizeSpeed; // FireFox < 6.0
     image-rendering: -moz-crisp-edges; // FireFox
