@@ -128,7 +128,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
   get labels(): AnnotationLabel[] {
     return this.globalSegModel?.segmentationData.labels;
   }
-  
+
   /**
    * Get the correct drawing color for a polygon
    * @param uuid polygon id
@@ -452,6 +452,12 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
    */
   save() {
       this.userQuestions.activeLabel(this.localSegModel).pipe(
+          tap((label: AnnotationLabel) => {
+              if (!label.active) {
+                  // activate the label
+                  this.globalSegModel.addAction(new ChangeLabelActivityAction(label.id, true));
+              }
+          }),
           tap((label: AnnotationLabel) => {
               this.localSegModel.addNewPolygon(label.id)
           })
