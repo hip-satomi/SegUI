@@ -68,12 +68,7 @@ export class LoginPage implements OnInit {
       finalize(() => loading.then(l => l.dismiss()))
     ).subscribe(async res => {
       if (res) {
-        if (this.redirectUrl) {
-          // redirect if possible
-          this.router.navigateByUrl(this.redirectUrl);
-        } else {
-          this.router.navigateByUrl('/omero-dashboard');
-        }
+        this.moveToNextPage();
       } else {
         const alert = await this.alertCtrl.create({
           header: 'Login Failed',
@@ -86,6 +81,15 @@ export class LoginPage implements OnInit {
       console.log(err);
       this.questionService.showError(JSON.stringify(err));
     });
+  }
+
+  moveToNextPage() {
+    if (this.redirectUrl) {
+      // redirect if possible
+      this.router.navigateByUrl(this.redirectUrl);
+    } else {
+      this.router.navigateByUrl('/omero-dashboard');
+    }
   }
 
 }
