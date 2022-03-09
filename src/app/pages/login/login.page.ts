@@ -1,12 +1,12 @@
-import { OmeroAuthService } from './../services/omero-auth.service';
+import { OmeroAuthService } from '../../services/omero-auth.service';
 import { AlertController, ToastController, LoadingController } from '@ionic/angular';
-import { AuthService } from './../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { finalize, map, tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
-import { UserQuestionsService } from '../services/user-questions.service';
+import { UserQuestionsService } from '../../services/user-questions.service';
 
 @Component({
   selector: 'app-login',
