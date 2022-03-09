@@ -1,5 +1,4 @@
 import { ContentChild, Directive, ElementRef, EventEmitter, HostBinding, HostListener, Input, OnInit, Output } from '@angular/core';
-import { DomSanitizer, SafeStyle } from '@angular/platform-browser';
 
 import { DraggableHelperDirective } from './draggable-helper';
 

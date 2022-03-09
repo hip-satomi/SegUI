@@ -54,7 +54,7 @@ export class TokenInterceptorService implements HttpInterceptor {
     .pipe(
       tap(() => console.log(this.router.url)),
       catchError(err => {
-        if ([401, 403].includes(err.status) && this.omeroAuthService.user) {
+        if ([401, 403].includes(err.status) && this.omeroAuthService.loggedIn) {
           // auto logout if 401 or 403 response returned from api
           this.relogin$.next();
           this.showAuthNotValid();
