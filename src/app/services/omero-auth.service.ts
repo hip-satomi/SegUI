@@ -70,12 +70,21 @@ export class OmeroAuthService {
   public loggedIn = false;
   private initialCheck = false;
 
-  keepAliveRequest() {
+
+  /**
+   * Sends keep-alive request to the server. If the request fails, the user is not logged into the server backend!
+   * 
+   * @returns Observable(true) when the user is logged in, otherwise Observable(false)
+   */
+  keepAliveRequest(): Observable<boolean> {
+    // send keep alive request
     return this.httpClient.get('omero/webclient/keepalive_ping/', {responseType: 'text'}).pipe(
       map((res) => {
         if(res === 'Connection Failed') {
+          // when connection fails --> we are not logged in
           return false
         }
+        // otherwise we are logged in
         return true;
       })
     );
@@ -100,7 +109,7 @@ export class OmeroAuthService {
         switchMap(() => {
           // check whether login state has been initialized
           if(!this.initialCheck) {
-            // it's not we try to request login based keep-alive
+            // it's not: we try to get login for the first time
             return this.keepAliveRequest().pipe(
               catchError(() => {
                 return of(false)
@@ -117,7 +126,8 @@ export class OmeroAuthService {
         }),
       );
 
-      interval(10000)
+      // send a keep-alive request every 60 seconds (to prevent csrf-token timeout)
+      interval(60 * 1000)
         .subscribe((val) => {
           console.log('Keep csrf-token alive');
           this.keepAliveRequest().pipe(take(1))

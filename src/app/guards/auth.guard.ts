@@ -18,6 +18,11 @@ export class AuthGuard implements CanActivate {
     next: ActivatedRouteSnapshot,
     state: RouterStateSnapshot): Observable<boolean> {
 
+    /**
+     * Returns observable(true) when the user is logged in.
+     * Otherwise observable(false) and user is shown a dialog and navigated back to login page.
+     */
+
     return this.omeroAuth.loggedIn$.pipe(
       take(1),
       map((loggedIn: boolean) => {
