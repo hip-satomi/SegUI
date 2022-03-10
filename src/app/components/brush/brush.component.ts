@@ -1,7 +1,7 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { of } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
-import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction} from 'src/app/models/action';
+import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction, SelectPolygon} from 'src/app/models/action';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { GlobalSegmentationModel, LocalSegmentationModel } from 'src/app/models/segmentation-model';
@@ -263,14 +263,50 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             return false;
         }
 
-        this.brushActivated = true;
-        this.changedPolygons = new Map<string, Polygon>();
-
         if (this.currentPolygon === null) {
             // add a new polygon if there is none selected
-            // TODO: Default label?
-            this.localSegModel.addNewPolygon(this.localSegModel.labels[0].id);
+
+            // with currently active label
+            if (this.localSegModel.activeLabels.length === 1) {
+                // we have one active label --> create a polygon there
+                this.localSegModel.addNewPolygon(this.localSegModel.activeLabels[0].id);
+            }
+            // first let the user create a label
+            else {
+                // we have no active label or multpile actives
+                this.userQuestions.askForSingleLabel(this.localSegModel).pipe(
+                    tap((annLabel: AnnotationLabel) => this.globalSegModel.addAction(new ChangeLabelActivityAction(annLabel.id, true)))
+                ).subscribe();
+                return;
+            }
         }
+
+        // check that we have active labels
+        if (this.localSegModel.activeLabels.length == 0) {
+            this.userQuestions.showInfo("Please activate a label to use the brush!")
+            return;
+        }
+        // check that we currently draw with a polygon of an active label --> otherwise switch automatically
+        else if (!this.localSegModel.getPolygonLabel(this.localSegModel.activePolygonId).active) {
+            // select a polygon from an active label
+            const polygons = this.localSegModel.getActivePolygons();
+
+            if (polygons.length == 0) {
+                this.localSegModel.addNewPolygon(this.localSegModel.activeLabels[0].id)
+            } else {
+                const emptyPolygons = polygons.filter(([id, poly]) => poly.points.length == 0);
+
+                if (emptyPolygons.length > 0) {
+                    this.localSegModel.addAction(new SelectPolygon(emptyPolygons[0][0]));
+                } else {
+                    // add an empty polygon
+                    this.localSegModel.addNewPolygon(this.localSegModel.activeLabels[0].id)
+                }
+            }
+        }
+
+        this.brushActivated = true;
+        this.changedPolygons = new Map<string, Polygon>();
 
         this.pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
 
