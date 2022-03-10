@@ -248,6 +248,11 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     this.done();
   }
 
+  @HostListener('document:keydown.a', ['$event'])
+  async saveKey2(event) {
+    this.done();
+  }
+
   @HostListener('document:keydown.arrowleft')
   moveLeft(event) {
     this.leftKeyMove$.next();
