@@ -56,7 +56,7 @@ class NoOmeroRoIError extends Error {
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
 })
-export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
+export class HomePage implements Drawer, UIInteraction{
 
   /* the canvas to display the image */
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
