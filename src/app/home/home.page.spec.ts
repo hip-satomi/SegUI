@@ -5,6 +5,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
+import { EMPTY } from 'rxjs';
 import { SharedComponentsModule } from '../shared-components-module/shared-components.module';
 import { HomePageModule } from './home.module';
 
@@ -17,6 +18,8 @@ class MockActivatedRoute {
     snapshot: {data: {title: 'myTitle ' } },
     routeConfig: { children: { filter: () => {} } }
   };
+  // Empty param map in test --> no loading of image data
+  public paramMap = EMPTY;
 }
 
 
