@@ -65,8 +65,10 @@
   <app-image-display #imageDisplay [drawer]="this" [interactor]="this" cdkOverlayOrigin #origin="cdkOverlayOrigin"></app-image-display>
 </ion-content>
 
+<!-- Label annotation manager -->
 <app-ann-manager *ngIf="globalSegModel" [globalSegModel]="globalSegModel" (redraw)="draw()"></app-ann-manager>
 
+<!-- Footer for navigating image stack and images -->
 <ion-footer *ngIf="segmentationModels.length >= 1">
   <ion-toolbar>
     <ion-buttons slot="start">
