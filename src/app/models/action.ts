@@ -461,7 +461,7 @@ export class MergeLabelAction extends Action<SegCollData> {
         new DeleteLabelAction(this.srcId).perform(data);
 
         // activate target label
-        new ChangeLabelActivityAction(this.dstId, true);
+        new ChangeLabelActivityAction(this.dstId, true).perform(data);
     }
 }
 
