@@ -203,15 +203,15 @@ export class AddPolygon extends Action<SegmentationData> {
 
 }
 
-
+/**
+ * Action to remove polygon from the segmentation
+ */
 @Serializable()
 export class RemovePolygon extends Action<SegmentationData> {
 
+    /** the polygon id for removal */
     @JsonProperty()
     polygonId: string;
-
-    @JsonProperty()
-    polygon: Polygon;
 
     constructor(polgonId: string) {
         super(ActionTypes.RemovePolygon);
@@ -220,7 +220,7 @@ export class RemovePolygon extends Action<SegmentationData> {
     }
 
     perform(segmentationData: SegmentationData) {
-        this.polygon = segmentationData.removePolygon(this.polygonId);
+        segmentationData.removePolygon(this.polygonId);
     }
 }
 
