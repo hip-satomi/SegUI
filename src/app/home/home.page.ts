@@ -1,22 +1,19 @@
 import { Dataset, OmeroAPIService, Project, RoIShape } from './../services/omero-api.service';
-import { HttpClient } from '@angular/common/http';
-import { OmeroUtils, UIUtils, Utils } from './../models/utils';
-import { Polygon, Point, BoundingBox } from './../models/geometry';
+import { OmeroUtils, Utils } from './../models/utils';
+import { Polygon, BoundingBox } from './../models/geometry';
 import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './../models/action';
-import { SegmentationService } from './../services/segmentation.service';
 import { ModelChanged } from './../models/change';
 import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
-import { EMPTY, from, Observable, of, pipe, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
+import { EMPTY, from, Observable, of, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
 import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SimpleSegmentationHolder as SimpleSegmentationHolder, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
-import { ActionSheetController, AlertController, LoadingController, NavController, PopoverController, ToastController } from '@ionic/angular';
-import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContainerRef, ComponentFactoryResolver } from '@angular/core';
+import { ActionSheetController, AlertController, LoadingController, NavController } from '@ionic/angular';
+import { Component, ViewChild, HostListener, ViewContainerRef } from '@angular/core';
 
-import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import * as dayjs from 'dayjs';
 import { BrushComponent } from '../components/brush/brush.component';
@@ -26,8 +23,6 @@ import { AnnotationLabel } from '../models/segmentation-data';
 import { StateService } from '../services/state.service';
 import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
 
-
-const { Storage } = Plugins;
 
 /**
  * Different data backend modes
@@ -120,10 +115,8 @@ export class HomePage implements Drawer, UIInteraction{
   constructor(private actionSheetController: ActionSheetController,
               private route: ActivatedRoute,
               private router: Router,
-              private segmentationService: SegmentationService,
               private omeroAPI: OmeroAPIService,
               private loadingCtrl: LoadingController,
-              private httpClient: HttpClient,
               private alertController: AlertController,
               private userQuestions: UserQuestionsService,
               private stateService: StateService,
