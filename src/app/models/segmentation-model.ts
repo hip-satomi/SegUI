@@ -588,6 +588,10 @@ export class LocalSegmentationModel {
     getPolygonLabelId(id: string): number {
         return this.segmentationData.labels.get(id);
     }
+
+    getPolygonLabel(id: string)  {
+        return this.parent.labels[this.segmentationData.labels.get(id)];
+    }
 }
 
 /**
