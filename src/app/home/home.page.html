@@ -1,3 +1,4 @@
+<!-- Header items-->
 <ion-header [translucent]="true">
   <ion-toolbar>
     <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
@@ -37,7 +38,10 @@
   </ion-toolbar>
 </ion-header>
 
+<!-- Middle content-->
 <ion-content [fullscreen]="true" appMovableArea>
+
+  <!-- Tools -->
   <div #toolContainer>
   </div>
 
@@ -57,9 +61,9 @@
 
   </ion-header>
 
+  <!-- Image Display-->
   <app-image-display #imageDisplay [drawer]="this" [interactor]="this" cdkOverlayOrigin #origin="cdkOverlayOrigin"></app-image-display>
-  <!--<app-image-view #imageView [imageUrl]="url" [enabled]="activeView === i" [segmentationModel]="segmentationModels[i]" [segmentationUI]="segmentationUIs[i]" *ngFor="let url of urls; let i = index"></app-image-view>-->
-</ion-content>
+  ion-content>
 
 <app-ann-manager *ngIf="globalSegModel" [globalSegModel]="globalSegModel" (redraw)="draw()"></app-ann-manager>
 
