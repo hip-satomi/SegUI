@@ -1,3 +1,7 @@
+/**
+ * The place for all geometry models and functionality
+ */
+
 import { Position, pairwiseDistanceMin, dotLineLength, UIUtils, Utils } from './utils';
 const inside = require('point-in-polygon');
 import { mean } from 'mathjs';
@@ -6,12 +10,22 @@ import { polygon } from 'polygon-tools';
 
 export type Point = [number, number];
 
+/**
+ * Bounding box class
+ */
 export class BoundingBox {
     x: number;
     y: number;
     w: number;
     h: number;
 
+    /**
+     * Create a bounding box class with upper left (x, y) and width (to right) and height (downwards)
+     * @param x 
+     * @param y 
+     * @param w 
+     * @param h 
+     */
     constructor(x: number, y: number, w: number, h: number) {
         this.x = x;
         this.y = y;
@@ -31,51 +45,80 @@ export class BoundingBox {
     }
 }
 
+/**
+ * Polygon class. Usually used for RoI handling.
+ */
 @Serializable()
 export class Polygon {
+    /** point list that defines the polygon (no holes allowed) */
     @JsonProperty({name: 'points', postDeserialize: Utils.checkPoints})
     _points: Point[] = [];
 
+    /** color */
     @JsonProperty()
     color: string;
 
-    _cached_bounding_box: BoundingBox;
+    // cached bounding box
+    _cached_bounding_box: BoundingBox = null;
 
+    /**
+     * Create a polygon based on a point list
+     * @param points 
+     */
     constructor(...points: Point[]) {
         this.points = points;
         this.color = UIUtils.randomBrightColor();
     }
 
+    /**
+     * Fast method the check whether point is inside this polygon
+     * @param pos position of the point
+     * @returns true if the point is inside, false otherwise
+     */
     isInside(pos: Point): boolean {
         // first check if it is inside bouding box
         if (!this.boundingBox.isInside(pos)) {
+            // point is not in bouding box -> can also not be in the polygon
             return false;
         }
+
+        // point is in bbox --> go to more detailed check (point-in-polygon library)
         return inside(pos, this.points);
     }
 
-    isInsideBBox(pos: Point): boolean {
-        return pos[0] >= this.boundingBox.x && pos[0] <= (this.boundingBox.x + this.boundingBox.w) && pos[1] >= this.boundingBox.y && pos[1] <= (this.boundingBox.y + this.boundingBox.h);
-    }
-
+    /**
+     * Update the polygon color
+     * @param color new color
+     */
     setColor(color: string) {
         this.color = color;
     }
 
+    /**
+     * 
+     * @returns the current polygon color
+     */
     getColor(): string {
         return this.color;
     }
 
+    /**
+     * Modifies just a single point
+     * @param index index of the point
+     * @param point new point coordinates
+     */
     setPoint(index: number, point: Point) {
         this.points[index][0] = point[0];
         this.points[index][1] = point[1];
 
+        // invalidate cached bounding box
         this._cached_bounding_box = null;
     }
 
     set points(points: Point[]) {
-        this._points = points;
+        this._points = Utils.clone(points);
 
+        // invalidate bouding box
         this._cached_bounding_box = null;
     }
 
@@ -83,39 +126,61 @@ export class Polygon {
         return this._points;
     }
 
-    setPoints(points: Point[]) {
-        this.points = Utils.clone(points);
-    }
-
-    addPoint(index: number, point: Point) {
-        this.points.splice(index, 0, point);
-
-        this._cached_bounding_box = null;
-    }
-
-    removePoint(index: number) {
-        this.points.splice(index, 1);
-
-        this._cached_bounding_box = null;
-    }
-
     getPoint(index: number): Point {
         return this.points[index];
     }
 
-    closestPointDistanceInfo(point: Point) {
-        return pairwiseDistanceMin(point, this.points);
-
+    setPoints(points: Point[]) {
+        this.points = Utils.clone(points);
     }
 
+    /**
+     * Insert a new point into the polygon
+     * @param index index to insert
+     * @param point new point coordinates
+     */
+    addPoint(index: number, point: Point) {
+        this.points.splice(index, 0, point);
+
+        // invalidate bbox
+        this._cached_bounding_box = null;
+    }
+
+    /**
+     * Remove a single point
+     * @param index of the point
+     */
+    removePoint(index: number) {
+        this.points.splice(index, 1);
+
+        // invalidate bbox
+        this._cached_bounding_box = null;
+    }
+
+    /**
+     * Closest distance between point and polygon
+     * @param point coordinates
+     * @returns index and distance of the closest point
+     */
+    closestPointDistanceInfo(point: Point) {
+        return pairwiseDistanceMin(point, this.points);
+    }
+
+    /**
+     * get the bouding box of the polygon
+     */
     get boundingBox() {
         if(!this._cached_bounding_box) {
+            // if it is not cached --> create it
             this.updateBoundingBox();
         }
 
         return this._cached_bounding_box
     }
 
+    /**
+     * Create the bouding box
+     */
     private updateBoundingBox() {
         let minx = Number.MAX_VALUE;
         let maxx = Number.MIN_VALUE;
@@ -187,6 +252,7 @@ export class Polygon {
         };
     }
 
+    // drawing methods
     draw(ctx, active = false) {
         UIUtils.drawSingle(this.points, active, ctx, this.color);
     }
@@ -203,6 +269,9 @@ export class Polygon {
         return this.points.length;
     }
 
+    /**
+     * Returns the center coordinates of the polygon
+     */
     get center(): Point {
         if (this.numPoints === 0) {
             return [0, 0];
@@ -233,12 +302,17 @@ export class Polygon {
         }
     }
 
+    /**
+     * Checks intersection with another polygon
+     * @param other polygon
+     * @returns true if there are intersections, otherwise false
+     */
     isIntersecting(other: Polygon) {
         return polygon.intersection(this.points, other.points).length > 0;
     }
 
     /**
-     * Subtracts the other polygon from the current
+     * Subtracts the other polygon from the current and take the largest result
      * @param other polygon
      */
     subtract(other: Polygon) {
@@ -280,6 +354,12 @@ export class Polygon {
     }
 }
 
+/**
+ * Rectangle base class    getPoint(index: number): Point {
+        return this.points[index];
+    }
+
+ */
 export class Rectangle extends Polygon {
     constructor(x: number, y: number, width: number, height: number) {
         super([x, y], [x + width, y], [x + width, y + height], [x, y + height]);

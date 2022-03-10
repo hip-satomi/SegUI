@@ -1,8 +1,13 @@
 import { Observable, ReplaySubject } from 'rxjs';
 import { UIUtils } from './utils';
 
+/**
+ * Wrapper class for canvas
+ */
 export class Pencil {
+    /** drawing context */
     canvasCtx;
+    /** canvas html element */
     canvasElement;
 
     constructor(canvasCtx, canvasElement) {
@@ -10,6 +15,9 @@ export class Pencil {
         this.canvasElement = canvasElement;
     }
 
+    /**
+     * Clear the canvas (white)
+     */
     clear() {
         UIUtils.clearCanvas(this.canvasElement, this.canvasCtx);
     }
@@ -21,9 +29,19 @@ export interface Drawer {
      * Prepare all resources for drawing and return when finished
      */
     prepareDraw(): Observable<Drawer>;
+
+    /**
+     * Draw the content
+     * @param pencil to use for drawing
+     */
     draw(pencil: Pencil): void;
 }
 
+/**
+ * Interface for typical UI interactions
+ * 
+ * false return means not consumed --> handed over to the next (higher) entity
+ */
 export class UIInteraction {
 
     onTap(event): boolean {
@@ -58,6 +76,9 @@ export class UIInteraction {
     }
 }
 
+/**
+ * A tool with UI that can be opened and closed
+ */
 export class Tool extends UIInteraction {
     show = false;
     visibilityChange = new ReplaySubject<boolean>(1);
@@ -78,8 +99,4 @@ export class Tool extends UIInteraction {
         this.visibilityChange.next(this.show);
     }
 
-}
-
-export interface Deletable {
-    delete(): boolean;
 }
