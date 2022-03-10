@@ -529,6 +529,9 @@ export class ChangeLabelActivityAction extends Action<SegCollData> {
 
 }
 
+/**
+ * Action to change visibility of a label
+ */
 @Serializable()
 export class ChangeLabelVisibilityAction extends Action<SegCollData> {
     @JsonProperty() labelId: number;
@@ -541,7 +544,12 @@ export class ChangeLabelVisibilityAction extends Action<SegCollData> {
     }
 
     perform(data: SegCollData): void {
-        data.getLabelById(this.labelId).visible = this.visible;
+        const label = data.getLabelById(this.labelId)
+        label.visible = this.visible;
+
+        if (label.visible == false) {
+            new ChangeLabelActivityAction(this.labelId, false).perform(data);
+        }
     }
 }
 
