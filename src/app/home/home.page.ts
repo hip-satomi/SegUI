@@ -1,6 +1,5 @@
 import { Dataset, OmeroAPIService, Project, RoIShape } from './../services/omero-api.service';
 import { HttpClient } from '@angular/common/http';
-import { AuthService } from './../services/auth.service';
 import { OmeroUtils, UIUtils, Utils } from './../models/utils';
 import { Polygon, Point, BoundingBox } from './../models/geometry';
 import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './../models/action';
@@ -19,7 +18,6 @@ import { Component, ViewChild, OnInit, AfterViewInit, HostListener, ViewContaine
 
 import { Plugins } from '@capacitor/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
-import { SegRestService } from '../services/seg-rest.service';
 import * as dayjs from 'dayjs';
 import { BrushComponent } from '../components/brush/brush.component';
 import { MultiSelectToolComponent } from '../components/multi-select-tool/multi-select-tool.component';
@@ -39,12 +37,14 @@ enum BackendMode {
   OMERO
 }
 
+/**User canceled import action */
 class UserCanceledImportError extends Error {
   constructor() {
     super("User canceled import!")
   }
 }
 
+/** No OmeroRoIs are available */
 class NoOmeroRoIError extends Error {
   constructor() {
     super("No Omero RoIs to import!")
@@ -58,23 +58,34 @@ class NoOmeroRoIError extends Error {
 })
 export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
-  // the canvas to display the image
+  /* the canvas to display the image */
   @ViewChild(ImageDisplayComponent) imageDisplay: ImageDisplayComponent;
 
+  /** Container for tools */
   @ViewChild('toolContainer', { read: ViewContainerRef }) container;
+
+  // the different segmentation tools
   @ViewChild('flexSegTool') flexSegTool: FlexibleSegmentationComponent;
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
   @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
 
+  /** the currently active tool */
+  tool = null;
+
+
+  /** segmentation user interface */
   segmentationUIs: SegmentationUI[] = [];
 
+  // segmentation data holders (they take care for automatic updates to backend)
   simpleSegHolder: SimpleSegmentationHolder;
   globalSegModel: GlobalSegmentationModel;
 
   justTapped = false;
 
+  /** backend storage mode */
   backendMode = BackendMode.OMERO;
 
+  /** active frame in image stack */
   _activeView = 0;
 
   rightKeyMove$ = new Subject<void>();
@@ -83,38 +94,36 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   // this can be used to end other pipelines using takeUntil(ngUnsubscribe)
   protected ngUnsubscribe: Subject<void> = new Subject<void>();
 
-
-  tool = null;
-
+  /** general error handling pipeline */
   showErrorPipe = catchError(e => {this.userQuestions.showError(e); return throwError(e);});
 
+  /** current image stack omero id */
   imageSetId = new ReplaySubject<number>(1);
 
+  // drawing utilities
   pencil: Pencil;
   drawingSubscription: Subscription;
 
   drawTimer = null;
   drawLoader = null;
 
+  // dataset and project information for navigation bar
   dataset$ = new ReplaySubject<Dataset>(1);
   project$ = new ReplaySubject<Project>(1);
 
   // whether there have been previous pages!
   canNavigateBack = false;
 
+  // promise to the loading dialog
   loading = null;
 
   constructor(private actionSheetController: ActionSheetController,
               private route: ActivatedRoute,
               private router: Router,
-              private segService: SegRestService,
               private segmentationService: SegmentationService,
               private omeroAPI: OmeroAPIService,
               private loadingCtrl: LoadingController,
-              private authService: AuthService,
               private httpClient: HttpClient,
-              private popoverController: PopoverController,
-              private resolver: ComponentFactoryResolver,
               private alertController: AlertController,
               private userQuestions: UserQuestionsService,
               private stateService: StateService,
@@ -243,6 +252,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     return true;
   }
 
+  // Short-Key bindings
+
   @HostListener('document:keydown.enter', ['$event'])
   async saveKey(event) {
     this.done();
@@ -283,6 +294,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   /**
    * Important functionality to load the dataset
+   * 
+   * We reload all the data on every entry, as the page is only created once by angular and then cached.
    */
   async ionViewWillEnter() {
     console.log('Init test');
