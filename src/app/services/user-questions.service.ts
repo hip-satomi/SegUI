@@ -147,4 +147,41 @@ export class UserQuestionsService {
       map(role => role == 'confirm')
     );
   }
+
+  /**
+   * Creates an alert dialog with specific layout
+   * @param header header 
+   * @param message message (usually a question)
+   * @param cancelText text of cancel button
+   * @param confirmText text of confirm button
+   * @returns "confirm" if confirm button is clicked, otherwise error
+   */
+     alertAsk(header, message, cancelText='cancel', confirmText='confirm') {
+      // 1. Warn the user that this can overwrite data
+      return from(this.alertController.create({
+        header,
+        message,
+        buttons: [
+          {
+            text: cancelText,
+            role: 'cancel',
+          },
+          {
+            text: confirmText,
+            role: 'confirm'
+          }
+        ]
+      })).pipe(
+        tap((alert) => alert.present()),
+        switchMap(alert => alert.onDidDismiss()),
+        map(data => {
+          if (data.role !== 'confirm') {
+            throw new Error("User canceled next image movement");
+          }
+  
+          console.log(data.role);
+  
+          return data;
+        }));
+    }
 }

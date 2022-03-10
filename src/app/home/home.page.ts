@@ -1173,48 +1173,12 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     ).subscribe();
   }
 
-  /**
-   * Creates an alter dialog with specific layout
-   * @param header header 
-   * @param message message (usually a question)
-   * @param cancelText text of cancel button
-   * @param confirmText text of confirm button
-   * @returns "confirm" if confirm button is clicked, otherwise error
-   */
-  alertAsk(header, message, cancelText='cancel', confirmText='confirm') {
-    // 1. Warn the user that this can overwrite data
-    return from(this.alertController.create({
-      header,
-      message,
-      buttons: [
-        {
-          text: cancelText,
-          role: 'cancel',
-        },
-        {
-          text: confirmText,
-          role: 'confirm'
-        }
-      ]
-    })).pipe(
-      tap((alert) => alert.present()),
-      switchMap(alert => alert.onDidDismiss()),
-      map(data => {
-        if (data.role !== 'confirm') {
-          throw new Error("User canceled next image movement");
-        }
-
-        console.log(data.role);
-
-        return data;
-      }));
-  }
 
   /**
    * ask for next image sequence
    */
   askForNextImageSequence() {
-    return this.alertAsk(
+    return this.userQuestions.alertAsk(
       'Next Image Sequence?',
       'Do you want to jump to the next image sequence in the dataset?'
     );
@@ -1224,7 +1188,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    * ask for previous image sequence
    */
   askForPreviousImageSequence() {
-    return this.alertAsk(
+    return this.userQuestions.alertAsk(
       'Previous Image Sequence?',
       'Do you want to jump to the previous image sequence in the dataset?'
     )
