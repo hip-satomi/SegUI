@@ -120,6 +120,156 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
               private userQuestions: UserQuestionsService,
               private stateService: StateService,
               private navCtrl: NavController) {
+
+    // record navigation history
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.canNavigateBack = true;
+      }
+    })
+
+    // setup loading pipeline when we get a new imageId (also used for refreshing!)
+    this.imageSetId.pipe(
+      tap((id) => console.log(`imageSetID changed to ${id}`)),
+      // disable all previous subscribers
+      tap(() => this.ngUnsubscribe.next()),
+      tap(() => {
+        // create progress loader
+        this.loading = this.loadingCtrl.create({
+          message: 'Loading data...',
+          backdropDismiss: false
+        });
+        this.loading.then(l => l.present());
+      }),
+      // load the new imageId
+      switchMap(id => this.loadImageSetById(id).pipe(
+        map(() => id),
+        finalize(() => {
+          console.log('done loading');
+          this.loading.then(l => l.dismiss());
+        })
+      )),
+      catchError((e, caught) => {
+        this.userQuestions.showError("Failed loading image data! Navigate back in 5 seconds!");
+        setTimeout(() => {
+          if(this.canNavigateBack) {
+            // navigate back
+            this.navCtrl.back();
+          } else {
+            // navigate to default view
+            this.router.navigateByUrl('/omero-dashboard');
+          }
+        }, 5000);
+        throwError(new Error("Failed loding image data"));
+        return EMPTY;
+      }),
+      tap(() => {
+        if (this.stateService.openTool == "BrushTool" && !this.isToolActive(this.brushToolComponent)) {
+          // open the brush tool if it was open before
+          this.toggleTool(this.brushToolComponent);
+        }
+      }),
+      tap(() => {
+
+        const handleError = catchError(err => {
+          console.error("Error while loading image");
+          console.log(err)
+          this.userQuestions.showError(err.message);
+          return of();
+        })
+    
+        const thTime = 1500;
+        // pipeline for handling left arrow key
+        this.leftKeyMove$.pipe(
+          takeUntil(this.ngUnsubscribe),
+          map(() => {
+            if (this.canPrevImage) {
+              this.prevImage();
+              return true;
+            } else {
+              return false;
+            }    
+          }),
+          throttleTime(thTime),
+          switchMap((handeled) => {
+            if(!handeled) {
+              // TODO: manager permission questions
+              //return this.askForPreviousImageSequence()
+              return of(1).pipe(
+                switchMap(() => this.navigateToPreviousImageSequence()),
+                handleError,
+              )
+            }
+
+            return of();
+          }),
+          take(1)
+        ).subscribe();
+
+        // pipeline for handling right arrow key
+        this.rightKeyMove$.pipe(
+          takeUntil(this.ngUnsubscribe),
+          map(() => {
+            if (this.canNextImage) {
+              this.nextImage();
+              return true;
+            } else {
+              return false;
+            }    
+          }),
+          throttleTime(thTime),
+          tap(() => console.log('event')),
+          switchMap((handeled) => {
+            if(!handeled) {
+              // TODO: manager permission questions
+              //return this.askForNextImageSequence()
+              return of(1).pipe(
+                take(1),
+                switchMap(() => this.navigateToNextImageSequence()),
+                handleError
+              )
+            }
+            return of();
+          }),
+          take(1)
+        ).subscribe();
+
+        // updateding dataset and project information
+        this.imageSetId.pipe(
+          takeUntil(this.ngUnsubscribe),
+          switchMap((imageId: number) => {
+            // notify dataset change
+            return this.omeroAPI.getImageDataset(imageId).pipe(
+              tap((dataset: Dataset) => this.dataset$.next(dataset)),
+            );
+          }),
+          switchMap((dataset: Dataset) => {
+            // notfy project change
+            return this.omeroAPI.getDatasetProjects(dataset).pipe(
+              map(projects => projects[0]),
+              tap((project: Project) => this.project$.next(project))
+            );
+          }),
+        ).subscribe();
+    
+      })
+    ).subscribe(
+      (id) => console.log(`Loaded image set ${id}`),
+      (error) => this.userQuestions.showError(`Failed loading image! Error: ${error.message}`)
+    );
+
+    // get the query param and fire the image id
+    this.route.paramMap.pipe(
+      map(params => {
+        return Number(params.get('imageSetId'));
+      }),
+      //tap(imageSetId => this.stateService.imageSetId = imageSetId),
+      tap((imageSetId) => {
+        this.imageSetId.next(imageSetId)
+      }),
+    ).subscribe(
+      () => console.log('Successfully loaded!')
+    );                
   }
 
   // Redirect Mouse & Touch interactions
@@ -281,157 +431,8 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
    * Important functionality to load the dataset
    */
   async ionViewWillEnter() {
-    console.log('Init test');
-    //console.log(this.stateService.navImageSetId);
-    //console.log(this.stateService.imageSetId);
 
-    // record navigation history
-    this.router.events.subscribe((event) => {
-      if (event instanceof NavigationEnd) {
-        this.canNavigateBack = true;
-      }
-    })
 
-    // setup loading pipeline when we get a new imageId (also used for refreshing!)
-    this.imageSetId.pipe(
-      // disable all previous subscribers
-      tap(() => this.ngUnsubscribe.next()),
-      tap(() => {
-        // create progress loader
-        this.loading = this.loadingCtrl.create({
-          message: 'Loading data...',
-          backdropDismiss: false
-        });
-        this.loading.then(l => l.present());
-      }),
-      // load the new imageId
-      switchMap(id => this.loadImageSetById(id).pipe(
-        map(() => id),
-        finalize(() => {
-          console.log('done loading');
-          this.loading.then(l => l.dismiss());
-        })
-      )),
-      catchError((e, caught) => {
-        this.userQuestions.showError("Failed loading image data! Navigate back in 5 seconds!");
-        setTimeout(() => {
-          if(this.canNavigateBack) {
-            // navigate back
-            this.navCtrl.back();
-          } else {
-            // navigate to default view
-            this.router.navigateByUrl('/omero-dashboard');
-          }
-        }, 5000);
-        throwError(new Error("Failed loding image data"));
-        return EMPTY;
-      }),
-      tap(() => {
-        if (this.stateService.openTool == "BrushTool" && !this.isToolActive(this.brushToolComponent)) {
-          // open the brush tool if it was open before
-          this.toggleTool(this.brushToolComponent);
-        }
-      }),
-      tap(() => {
-
-        const handleError = catchError(err => {
-          console.error("Error while loading image");
-          console.log(err)
-          this.userQuestions.showError(err.message);
-          return of();
-        })
-    
-        const thTime = 1500;
-        // pipeline for handling left arrow key
-        this.leftKeyMove$.pipe(
-          takeUntil(this.ngUnsubscribe),
-          map(() => {
-            if (this.canPrevImage) {
-              this.prevImage();
-              return true;
-            } else {
-              return false;
-            }    
-          }),
-          throttleTime(thTime),
-          switchMap((handeled) => {
-            if(!handeled) {
-              // TODO: manager permission questions
-              //return this.askForPreviousImageSequence()
-              return of(1).pipe(
-                switchMap(() => this.navigateToPreviousImageSequence()),
-                handleError,
-              )
-            }
-
-            return of();
-          }),
-          take(1)
-        ).subscribe();
-
-        // pipeline for handling right arrow key
-        this.rightKeyMove$.pipe(
-          takeUntil(this.ngUnsubscribe),
-          map(() => {
-            if (this.canNextImage) {
-              this.nextImage();
-              return true;
-            } else {
-              return false;
-            }    
-          }),
-          throttleTime(thTime),
-          tap(() => console.log('event')),
-          switchMap((handeled) => {
-            if(!handeled) {
-              // TODO: manager permission questions
-              //return this.askForNextImageSequence()
-              return of(1).pipe(
-                take(1),
-                switchMap(() => this.navigateToNextImageSequence()),
-                handleError
-              )
-            }
-            return of();
-          }),
-          take(1)
-        ).subscribe();
-
-        // updateding dataset and project information
-        this.imageSetId.pipe(
-          takeUntil(this.ngUnsubscribe),
-          switchMap((imageId: number) => {
-            // notify dataset change
-            return this.omeroAPI.getImageDataset(imageId).pipe(
-              tap((dataset: Dataset) => this.dataset$.next(dataset)),
-            );
-          }),
-          switchMap((dataset: Dataset) => {
-            // notfy project change
-            return this.omeroAPI.getDatasetProjects(dataset).pipe(
-              map(projects => projects[0]),
-              tap((project: Project) => this.project$.next(project))
-            );
-          }),
-        ).subscribe();
-    
-      })
-    ).subscribe(
-      (id) => console.log(`Loaded image set ${id}`),
-      (error) => this.userQuestions.showError(`Failed loading image! Error: ${error.message}`)
-    )
-
-    // get the query param and fire the image id
-    this.route.paramMap.pipe(
-      map(params => {
-        return Number(params.get('imageSetId'));
-      }),
-      //tap(imageSetId => this.stateService.imageSetId = imageSetId),
-      tap((imageSetId) => this.imageSetId.next(imageSetId)),
-      take(1), // take only once --> pipe is closed immediately and finalize stuff is called
-    ).subscribe(
-      () => console.log('Successfully loaded!')
-    );
   }
 
   ionViewDidLeave() {
