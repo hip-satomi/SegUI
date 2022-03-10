@@ -564,7 +564,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     }
 
     set simplificationTolerance(tol: number) {
-        this.simplificationTolerance = tol;
+        this.brushState.simplificationTolerance = tol;
     }
 
     get showOverlay() {
