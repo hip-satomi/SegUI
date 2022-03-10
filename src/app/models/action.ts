@@ -224,27 +224,25 @@ export class RemovePolygon extends Action<SegmentationData> {
     }
 }
 
+/**
+ * Action to select a certain polygon
+ */
 @Serializable()
 export class SelectPolygon extends Action<SegmentationData> {
 
     @JsonProperty() newPolyId: string;
-    @JsonProperty() oldPolyId: string;
 
-    constructor(newPolyId: string, oldPolyId: string = null) {
+    /**
+     * 
+     * @param newPolyId unique id of the newly selected polygon
+     */
+    constructor(newPolyId: string) {
         super(ActionTypes.SelectPolygon);
 
         this.newPolyId = newPolyId;
-        if (oldPolyId) {
-            this.oldPolyId = oldPolyId;
-        } 
     }
 
     perform(segmentationData: SegmentationData) {
-        if (!this.oldPolyId) {
-            // use the currently active polygon for old id
-            this.oldPolyId = segmentationData.activePolygonId;
-        }
-
         // update selected polygon
         segmentationData.activePolygonId = this.newPolyId;
         segmentationData.activePointIndex = 0;

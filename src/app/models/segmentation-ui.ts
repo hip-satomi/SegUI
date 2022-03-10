@@ -177,8 +177,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             // match contains [uuid, Polygon] of the selected polygon
 
             // select the polygon
-            this.segModel.addAction(new SelectPolygon(match[0],
-                                                               this.segModel.activePolygonId));
+            this.segModel.addAction(new SelectPolygon(match[0]));
 
             // show action opportunities
             // TODO: Default label id?

@@ -164,9 +164,9 @@ export class SegmentationModel {
 
         // select the correct polygon
         if (allowUndo) {
-            actions.push(new SelectPolygon(uuid, this.segmentationData.activePolygonId));
+            actions.push(new SelectPolygon(uuid));
         } else {
-            actions.push(new PreventUndoActionWrapper(new SelectPolygon(uuid, this.segmentationData.activePolygonId)));
+            actions.push(new PreventUndoActionWrapper(new SelectPolygon(uuid)));
         }
 
         return actions;
@@ -204,7 +204,7 @@ export class SegmentationModel {
      * sets the currently active polygon index
      */
     set activePolygonId(activePolygonId: string) {
-        this.addAction(new SelectPolygon(activePolygonId, this.segmentationData.activePolygonId));
+        this.addAction(new SelectPolygon(activePolygonId));
     }
 
     /**
@@ -552,9 +552,9 @@ export class LocalSegmentationModel {
 
         // select the correct polygon
         if (allowUndo) {
-            actions.push(new SelectPolygon(uuid, this.segmentationData.activePolygonId));
+            actions.push(new SelectPolygon(uuid));
         } else {
-            actions.push(new PreventUndoActionWrapper(new SelectPolygon(uuid, this.segmentationData.activePolygonId)));
+            actions.push(new PreventUndoActionWrapper(new SelectPolygon(uuid)));
         }
 
         return actions;
