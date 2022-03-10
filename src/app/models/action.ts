@@ -318,13 +318,14 @@ export class RemovePointAction extends Action<SegmentationData> {
 
 }
 
+/**
+ * Action to move a single point (changing coordinates) of a polygon
+ */
 @Serializable()
 export class MovePointAction extends Action<SegmentationData> {
 
     @JsonProperty()
     private newPoint: [number, number];
-    @JsonProperty()
-    private oldPoint: [number, number];
     @JsonProperty()
     private polygonId: string;
     @JsonProperty()
@@ -338,13 +339,16 @@ export class MovePointAction extends Action<SegmentationData> {
 
         // newPoint can be null -> on deserialization
         if (newPoint) {
-            this.newPoint = Utils.clone([...newPoint]);
+            this.newPoint = Utils.clone([...newPoint]); // clone is important so that later changes do not change this action
         }
     }
 
+    /**
+     * Move the point in the polygon of the segmentation data
+     * @param segmentationData 
+     */
     perform(segmentationData: SegmentationData) {
         const point = segmentationData.getPolygon(this.polygonId).getPoint(this.pointIndex)
-        this.oldPoint = Utils.clone(point);
 
         point[0] = this.newPoint[0];
         point[1] = this.newPoint[1];
