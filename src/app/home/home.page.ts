@@ -266,6 +266,7 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       (error) => this.userQuestions.showError(`Failed loading image! Error: ${error.message}`)
     );
 
+    // set up navigation pipeline
     // get the query param and fire the image id
     this.route.paramMap.pipe(
       map(params => {
@@ -436,27 +437,28 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
-  ngOnInit() {
+  @HostListener('document:keydown.control.z')
+  async undo() {
+    if (this.canUndo) {
+      if (this.curSegModel) {
+        this.globalSegModel.undo();
+      }
+    }
   }
 
-  async ngAfterViewInit() {
-  }
-
-  /**
-   * Important functionality to load the dataset
-   * 
-   * We reload all the data on every entry, as the page is only created once by angular and then cached.
-   */
-  async ionViewWillEnter() {
-
-
+  @HostListener('document:keydown.control.y')
+  async redo() {
+    if (this.canRedo) {
+      if (this.curSegModel) {
+        this.globalSegModel.redo();
+      }
+    }
   }
 
   ionViewDidLeave() {
-    // This aborts all HTTP requests.
+    // This aborts all auto savings.
     this.ngUnsubscribe.next();
-    // This completes the subject properly.
-    //this.ngUnsubscribe.complete();
+    // close loading if needed
     if (this.loading) {
       this.loading.then(l => l.dismiss());
     }
@@ -600,15 +602,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
 
-  /*get segHolder() {
-    return this.stateService.holder;
-  }
-
-  set segHolder(segHolder: SegmentationHolder) {
-    this.stateService.holder = segHolder;
-  }*/
-
-  get segmentationModels() {
+  /**
+   * get the individual local segmentatoin model per frame
+   */
+  get segmentationModels(): Array<LocalSegmentationModel> {
     if (this.globalSegModel) {
       return this.globalSegModel.segmentationModels;
     } else {
@@ -616,14 +613,23 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
+  /**
+   * is the view in segmentation mode. It always is as tracking is not yet supported.
+   */
   get isSegmentation() {
     return true;
   }
 
+  /**
+   * get the user interface for the current active image view
+   */
   get curSegUI(): SegmentationUI {
     return this.segmentationUIs[this.activeView];
   }
 
+  /**
+   * get the current active image segmentation model
+   */
   get curSegModel(): LocalSegmentationModel {
     if (this.globalSegModel) {
       return this.globalSegModel.getLocalModel(this.activeView);//segmentationModels[this.activeView];
@@ -632,29 +638,15 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
+  /**
+   * Reacts on segmentation model changes.
+   * @param segModelChangedEvent the change event
+   */
   segModelChanged(segModelChangedEvent: ModelChanged<GlobalSegmentationModel>) {
-    //if (this.curSegModel === segModelChangedEvent.model) {
-      this.draw();
-    //}
+    // redraw to update visualized content  
+    this.draw();
   }
 
-  @HostListener('document:keydown.control.z')
-  async undo() {
-    if (this.canUndo) {
-      if (this.curSegModel) {
-        this.globalSegModel.undo();
-      }
-    }
-  }
-
-  @HostListener('document:keydown.control.y')
-  async redo() {
-    if (this.canRedo) {
-      if (this.curSegModel) {
-        this.globalSegModel.redo();
-      }
-    }
-  }
 
   get canSave() {
     if (this.tool) {
@@ -737,8 +729,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
   }
 
   onSliderChanged(event) {
-    console.log('slider changed');
-    console.log(event);
     this.setImageIndex(event.detail.value);
   }
 
@@ -752,6 +742,10 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     ).subscribe();
   }
 
+  /**
+   * Preparse the currently active drawer for draing
+   * @returns observable on the drawer
+   */
   prepareDraw(): Observable<Drawer> {
     if (this.activeTool) {
       return this.tool.prepareDraw();
@@ -765,6 +759,9 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     }
   }
 
+  /**
+   * Draw the current content
+   */
   draw() {
     if (this.drawingSubscription) {
       this.drawingSubscription.unsubscribe();
@@ -784,7 +781,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
       })
     ).subscribe(
       () => {
-        //console.log('Home: Successful draw');
       },
       (e) => {
         console.log('Error during drawing process!');
@@ -797,113 +793,6 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
 
   get ctx() {
     return this.imageDisplay.ctx;
-  }
-
-  // TODO: Removable code? Should not be used anymore!
-  /**
-   * Get and apply proposal segmentations
-   */
-  async doSegment(type: string, imageIndices = null) {
-    // create progress loader
-    const loading = this.loadingCtrl.create({
-      message: 'Please wait while AI is doing the job...',
-      backdropDismiss: true,
-    });
-
-    if (imageIndices === null) {
-      imageIndices = [this.activeView];
-    }
-
-    console.log('show loading');
-    loading.then(l => l.present());
-
-    for (const imageIdx of imageIndices) {
-
-      const segUI = this.segmentationUIs[imageIdx];
-      const segModel = this.segmentationModels[imageIdx];
-
-      // start http request --> get image urls
-      const sub = of(segUI.imageUrl).pipe(
-        tap(() => {
-        }),
-        // read the image in binary format
-        switchMap((url: string) => {console.log(url); return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'}); }),
-        switchMap(data => {
-          console.log('have the binary data!');
-          console.log(data);
-
-          // send the image to a segmentation REST backend
-          if (type === 'cs') {
-            return this.segmentationService.requestCSSegmentationProposal(data);
-          } else {
-            return this.segmentationService.requestJSSegmentationProposal(data);
-          }
-        }),
-        tap(
-          (data) => {
-            console.log(`Number of proposal detections ${data.length}`);
-    
-            // drop all segmentations with score lower 0.5
-            const threshold = 0.4;
-            data = data.filter(det => det.score >= threshold);
-            console.log(`Number of filtered detections ${data.length}`);
-            console.log(data);
-    
-            const actions: AddPolygon[] = [];
-    
-            // loop over every detection
-            for (const det of data) {
-              const label = det.label; // Should be cell
-              const bbox = det.bbox;
-              const contours = det.contours;
-    
-              // loop over all contours
-              for (const cont of contours) {
-                const points: Point[] = [];
-    
-                // merge x and y point lists into [x, y] list
-                cont.x.map((xItem, i) => {
-                  const yItem = cont.y[i];
-                  points.push([xItem, yItem]);
-                });
-    
-                const simplifiedPoints = Utils.simplifyPointList(points, 0.1);
-    
-                // create a polygon from points and set random color
-                const poly = new Polygon(...simplifiedPoints);
-                poly.setColor(UIUtils.randomBrightColor());
-    
-                // collection new polygon actions
-                // TODO: Default label id?
-                actions.push(new AddPolygon(poly, 0));
-              }
-            }
-    
-            // join all the new polygon actions
-            const finalAction = new JointAction(...actions);
-    
-            // apply the actions to the current segmentation model
-            segModel.addAction(finalAction);
-          }
-        ),
-        finalize(() => loading.then(l => l.dismiss()))
-      ).subscribe(
-        () => {
-          this.userQuestions.showInfo('Successfully requested segmentation proposals');
-        },
-        (error) => console.error(error),
-      );
-    }
-  }
-
-  segmentAll() {
-    const type = 'js';
-    const indices = [];
-    for (const [index, segUI] of this.segmentationUIs.entries()) {
-      indices.push(index);
-    }
-
-    this.doSegment(type, indices);
   }
 
   /**
@@ -1224,17 +1113,21 @@ export class HomePage implements OnInit, AfterViewInit, Drawer, UIInteraction{
     );
   }
 
+  /**
+   * Is called when the button of a tool is clicked
+   * @param tool the tool associated with the button
+   */
   toggleTool(tool) {
-    // TODO: close all other tools
     of(1).pipe(
       map(() => {
         if (this.tool == tool && this.tool.show) {
-          // close tool
+          // tool is active and shown --> close tool
           this.stateService.openTool = "";
           tool.close();
           this.tool = null;
         } else {
-          // close other tool
+          // we want to open a new tool
+          // close current active tool tool
           if (this.tool) {
             this.tool.close();
           }
