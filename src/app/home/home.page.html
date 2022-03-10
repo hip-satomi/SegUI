@@ -63,7 +63,7 @@
 
   <!-- Image Display-->
   <app-image-display #imageDisplay [drawer]="this" [interactor]="this" cdkOverlayOrigin #origin="cdkOverlayOrigin"></app-image-display>
-  ion-content>
+</ion-content>
 
 <app-ann-manager *ngIf="globalSegModel" [globalSegModel]="globalSegModel" (redraw)="draw()"></app-ann-manager>
 
