@@ -1,6 +1,9 @@
 import { Pipe, PipeTransform } from '@angular/core';
 import { Dataset, OmeroAPIService, Project } from '../services/omero-api.service';
 
+/**
+ * pipe to extract thumbnail urls for omero projects or datasets
+ */
 @Pipe({
   name: 'thumbnails'
 })
