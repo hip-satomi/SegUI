@@ -6,17 +6,12 @@ const routes: Routes = [
   {
     path: 'seg-track',
     loadChildren: () => import('./home/home.module').then( m => m.HomePageModule),
-    //canActivate: [AuthGuard]
+    canActivate: [AuthGuard]
   },
   {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'
-  },
-  {
-    path: 'list',
-    loadChildren: () => import('./pages/image-set-list/image-set-list.module').then( m => m.ImageSetListPageModule),
-    canActivate: [AuthGuard]
   },
   {
     path: 'login',
