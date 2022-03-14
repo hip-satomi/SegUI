@@ -10,20 +10,21 @@ import { Subscription, Observable, combineLatest, Subject } from 'rxjs';
 import { map, takeUntil } from 'rxjs/operators';
 
 /**
- * Segmentation model contains all the information of the segmentation
+ * Segmentation model contains all the information of the segmentation bringing together the ActionManager and the underlying SegmentationData
  * 
  * 
  */
 @Serializable()
 export class SegmentationModel {
 
-    // action Manager that contains the actions forming the segmentation
+    /** action Manager that contains the actions forming the segmentation */
     @JsonProperty()
     private actionManager: ActionManager<SegmentationData>;
 
+    /** event when segmentation data changes */
     onModelChange = new EventEmitter<ModelChanged<SegmentationModel>>();
 
-    // this is the raw data for segmentation
+    /** this is the raw data for segmentation  */
     segmentationData: SegmentationData = new SegmentationData();
 
 
@@ -287,29 +288,48 @@ export class SegCollData implements ClearableStorage {
     /** Annotation labels */
     labels: AnnotationLabel[] = [];
 
+    /**
+     * Create a new segmentation data collection with a specific parent model.
+     * @param parent the owning parent model
+     */
     constructor(parent: GlobalSegmentationModel) {
         this.parent = parent;
     }
 
+    /**
+     * Clear all data including segmentation, views and labels
+     */
     clear() {
         this.segData = [];
         this.localModels = [];
         this.labels = [];
     }
 
-    get(index: number) {
+    /**
+     * Get the segmentation data for a specific frame
+     * @param index frame index
+     * @returns segmentation data for the current frame
+     */
+    get(index: number): SegmentationData {
         return this.segData[index];
     }
 
+    /**
+     * Add a segmentation data frame (e.g. adding new image into stack)
+     * @param segData new segmentation data
+     */
     addSegmentationData(segData: SegmentationData) {
         this.segData.push(segData);
         this.localModels.push(new LocalSegmentationModel(this.parent, this.segData.length - 1));
     }
 
-    addLabel(label: AnnotationLabel) {//(labelName: string, visible = true, color = 'random', active = true) {
+    /**
+     * add a new label for segmentation
+     * @param label new label
+     */
+    addLabel(label: AnnotationLabel) {
         this.labels.push(label);
 
-        // TODO: check activity
         // make sure only a single label is active
         if (label.active) {
             for (const l of this.labels) {
@@ -319,7 +339,12 @@ export class SegCollData implements ClearableStorage {
         }
     }
 
-    getLabelById(labelId: number) {
+    /**
+     * Retrieve label by its id
+     * @param labelId 
+     * @returns label with that id or null
+     */
+    getLabelById(labelId: number): AnnotationLabel {
         const filteredLabels = this.labels.filter(l => l.id == labelId)
         if (filteredLabels.length == 1) {
             return filteredLabels[0];
@@ -336,22 +361,26 @@ export class SegCollData implements ClearableStorage {
 
 }
 
+/**
+ * Segmentation model for the full image stack containing ActionManager and segmentation data.
+ */
 @Serializable()
 export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentationModel> implements ChangableModel<GlobalSegmentationModel> {
+    /** The action manager containing all the actions to construct the segmentation models for the image stack */
     @JsonProperty()
     private actionManager: ActionManager<SegCollData>;
 
+    /** format version */
     @JsonProperty()
     private _formatVersion: string;
 
     // TODO: change this if version changes (especially for breaks)
-    static currentFormatVersion = '0.1';
+    static defaultFormatVersion = '0.1';
 
+    /** the segmentation data for all images */
     segmentationData: SegCollData;
-    private subscriptions: Subscription[] = [];
 
-    _modelChanged = new EventEmitter<ModelChanged<GlobalSegmentationModel>>();
-
+    /** singal to stop processing pipelines */
     protected destroySignal: Subject<void>;
 
     get formatVersion(): string {
@@ -377,17 +406,21 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
         return this.segmentationData.labels;
     }
 
+    /**
+     * Creates a global segmentation model for an image stack
+     * @param destroySignal distroy signal to stop processing pipelines when necessary (e.g. when another model is used)
+     * @param numSegmentationLayers number of frames in the image stack
+     * @returns 
+     */
     constructor(destroySignal, numSegmentationLayers: number) {
         super();
         this.destroySignal = destroySignal;
 
+        // create new segmentation data
         this.segmentationData = new SegCollData(this);
 
+        // create new action manager and link to data
         this.actionManager = new ActionManager(this.segmentationData);
-
-        /*this.actionManager.onDataChanged.subscribe((actionManager: ActionManager<SegmentationData>) => {
-            this.notfiyModelChanged();
-        });*/
 
         if (numSegmentationLayers === undefined) {
             // we are only deserializing
@@ -395,38 +428,45 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
         }
 
         // set creation format version
-        this._formatVersion = GlobalSegmentationModel.currentFormatVersion;
+        this._formatVersion = GlobalSegmentationModel.defaultFormatVersion;
 
+        // create the segmentation frames in the data
         this.actionManager.addAction(new CreateSegmentationLayersAction(numSegmentationLayers));
 
+        // create default label
         this.actionManager.addAction(new AddLabelAction(new AnnotationLabel(0, 'Cell', true, 'random', true)));
     }
 
+    /**
+     * Take action after deserialization
+     * @param destroySignal the signal to destroy processing pipelines
+     */
     onDeserialized(destroySignal: Subject<void>) {
         this.destroySignal = destroySignal;
 
+        // link (empty) segmentation data to action manager
         this.actionManager.data = this.segmentationData;
-        // reapply the actions of the action manager
+        // reapply the actions of the action manager to recreate the segmentation data
         this.actionManager.reapplyActions(this.segmentationData);
     }
 
-    /*notfiyModelChanged() {
-        this._modelChanged.emit(new ModelChanged<GlobalSegmentationModel>(this, ChangeType.HARD));
-    }*/
-
-    clearSegmentations() {
-        //this.subscriptions.forEach(sub => sub.unsubscribe());
-        this.segmentationData.clear();
-    }
-
-    addAction(a: Action<SegCollData>, toPerform = true) {
-        this.actionManager.addAction(a, toPerform);
+    /**
+     * Add an action to the global segmentation model
+     * @param action to perform
+     * @param toPerform if true the action is performed and stored in action manager, if false the action is only stored in action manager
+     */
+    addAction(action: Action<SegCollData>, toPerform = true) {
+        this.actionManager.addAction(action, toPerform);
     }
 
     getLocalModel(position: number) {
         return new LocalSegmentationModel(this, position);
     }
 
+    /**
+     * 
+     * @returns next highest free label id
+     */
     nextLabelId(): number {
         return Math.max(...this.segmentationData.labels.map(l => l.id), 0) + 1;
     }
@@ -439,29 +479,57 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
         return this.actionManager.canRedo;
     }
 
+    /**
+     * Redo the last action
+     */
     redo() {
         this.actionManager.redo();
     }
 
+    /**
+     * Undo the last action
+     */
     undo() {
         this.actionManager.undo();
     }  
 }
 
+/**
+ * Segmentation model for a single image (of an image stack).
+ * 
+ * This is basically a wrapper class for the global segmentation model that provides a view on the segmentation data for a single frame.
+ */
 export class LocalSegmentationModel {
+    /** the parent segmentation model for the full stack */
     parent: GlobalSegmentationModel;
+    /** frame index */
     position: number;
 
+    /**
+     * 
+     * @param parent the global segmentation model
+     * @param position the frame index
+     */
     constructor(parent: GlobalSegmentationModel, position: number) {
         this.parent = parent;
         this.position = position;
     }
 
+    /**
+     * Add an action operating on the single image data to the action manager
+     * @param action to perform on the segmentation data of the image frame.
+     * @param toPerform if true, the action is performed and added, if false the action is only added
+     */
     addAction(action: Action<SegmentationData>, toPerform = true) {
         this.parent.addAction(this.wrapAction(action), toPerform);
     }
 
-    wrapAction(action: Action<SegmentationData>) {
+    /**
+     * Wrap an action on single image data to make it work with the global action manager
+     * @param action to wrap
+     * @returns wrapped action
+     */
+    wrapAction(action: Action<SegmentationData>): LocalAction {
         return new LocalAction(action, this.position);
     }
 
@@ -471,9 +539,9 @@ export class LocalSegmentationModel {
 
     /**
      * Only get the polygons of active labels
-     * @returns 
+     * @returns a list of [id, poly] tuples
      */
-    getActivePolygons() {
+    getActivePolygons(): Array<[string, Polygon]> {
         const activeLabelIds: Array<number> = this.parent.segmentationData.labels.filter(l => l.active).map(l => l.id);
         return this.getVisiblePolygons().filter(([id, poly]) => {
             return activeLabelIds.includes(this.getPolygonLabelId(id));
@@ -482,9 +550,9 @@ export class LocalSegmentationModel {
 
     /**
      * Returns polygons of visible labels
-     * @returns 
+     * @returns a list of [id, poly] tuples
      */
-    getVisiblePolygons() {
+    getVisiblePolygons(): Array<[string, Polygon]> {
         const visibleLabelIds: Array<number> = this.parent.segmentationData.labels.filter(l => l.visible).map(l => l.id);
         return [...this.segmentationData.getPolygons().entries()].filter(([id, poly]) => {
             return visibleLabelIds.includes(this.getPolygonLabelId(id));
@@ -496,7 +564,6 @@ export class LocalSegmentationModel {
     }
 
     set activePolygonId(polyId: string) {
-        //assert(this.segmentationData.contains(polyId));
         this.segmentationData.activePolygonId = polyId;
     }
 
@@ -512,6 +579,11 @@ export class LocalSegmentationModel {
         this.segmentationData.activePointIndex = activePointIndex;
     }
 
+    /**
+     * Create actions to add a new or select an empty polygon with this labelId
+     * @param labelId 
+     * @returns A list of actions to provide an active empty polygon with that label id
+     */
     addNewPolygonActions(labelId: number): Action<SegmentationData>[] {
         let uuid = '';
         // do not allow undo for the first segment (it should be always present)
@@ -594,62 +666,10 @@ export class LocalSegmentationModel {
     }
 }
 
+
 /**
- * Holds a set of segmentation models and adds json serialization functionality
+ * Interface for a single segmentation contour
  */
-@Serializable()
-export class SegmentationHolder extends SynchronizedObject<SegmentationHolder> implements ChangableModel<SegmentationModel> {
-
-    @JsonProperty({type: SegmentationModel})
-    segmentations: SegmentationModel[] = [];
-
-    private subscriptions: Subscription[] = [];
-
-    _modelChanged = new EventEmitter<ModelChanged<SegmentationModel>>();
-
-    protected destroySignal: Subject<void>;
-
-    get modelChanged() {
-        return this._modelChanged.pipe(
-            takeUntil(this.destroySignal)
-        );
-    }
-
-    constructor(destroySignal) {
-        super();
-        this.destroySignal = destroySignal;
-    }
-
-    onDeserialized(destroySignal: Subject<void>) {
-        const tmpSegs = this.segmentations;
-        this.clearSegmentations();
-
-        this.destroySignal = destroySignal;
-
-        // notify all submodels
-        for (const segModel of tmpSegs) {
-            segModel.onDeserialized();
-        }
-
-        // register all the submodels
-        for (const segModel of tmpSegs) {
-            this.addSegmentation(segModel);
-        }
-    }
-
-    addSegmentation(model: SegmentationModel) {
-        this.segmentations.push(model);
-        this.subscriptions.push(model.onModelChange.pipe(takeUntil(this.destroySignal)).subscribe((event: ModelChanged<SegmentationModel>) => {
-        this._modelChanged.emit(new ModelChanged(event.model, event.changeType));
-        }));
-    }
-
-    clearSegmentations() {
-        this.subscriptions.forEach(sub => sub.unsubscribe());
-        this.segmentations = [];
-    }
-}
-
 export interface SimpleDetection {
     label: string;
     contour: Array<Point>;
