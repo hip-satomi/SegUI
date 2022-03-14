@@ -8,7 +8,7 @@ import { EventEmitter } from '@angular/core';
 import { ModelChanged, ChangeType } from './change';
 import { debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/operators';
 import { SimpleSegmentationView, GlobalSegmentationModel } from './segmentation-model';
-import { Observable, of, zip, empty, Subject } from 'rxjs';
+import { Observable, of, zip, empty, Subject, EMPTY } from 'rxjs';
 import { StorageConnector } from './storage';
 
 
@@ -148,7 +148,8 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
                     catchError((err) => {
                         console.error('Error while updating Simple segmentation backend!');
                         console.error(err);
-                        return empty();
+                        // do not throw the error because simple segmentation is not critical for work
+                        return EMPTY;
                     })
                 );
             })
