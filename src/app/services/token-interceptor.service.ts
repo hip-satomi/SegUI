@@ -1,5 +1,4 @@
 import { catchError, switchMap, tap, throttleTime} from 'rxjs/operators';
-import { AuthService } from './auth.service';
 import { HttpClient, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, Subject, throwError } from 'rxjs';

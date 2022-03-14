@@ -1,6 +1,5 @@
 import { OmeroAuthService } from '../../services/omero-auth.service';
 import { AlertController, ToastController, LoadingController } from '@ionic/angular';
-import { AuthService } from '../../services/auth.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -28,7 +27,6 @@ export class LoginPage implements OnInit {
   version$: Observable<string>;
 
   constructor(
-    private auth: AuthService,
     private omeroAuth: OmeroAuthService,
     private router: Router,
     private alertCtrl: AlertController,
