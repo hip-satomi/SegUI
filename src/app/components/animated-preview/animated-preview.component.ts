@@ -1,6 +1,5 @@
 import { AfterViewInit, Component, Input, OnInit, ViewChild } from '@angular/core';
 
-import { dummyLogger, Logger } from "ts-log";
 @Component({
   selector: 'app-animated-preview',
   templateUrl: './animated-preview.component.html',
