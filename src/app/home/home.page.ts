@@ -278,7 +278,7 @@ export class HomePage implements Drawer, UIInteraction{
       }),
     ).subscribe(
       () => console.log('Successfully loaded!')
-    );                
+    );
   }
 
   // Redirect Mouse & Touch interactions

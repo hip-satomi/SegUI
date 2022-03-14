@@ -5,12 +5,17 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
-import { EMPTY } from 'rxjs';
+import { EMPTY, of } from 'rxjs';
+import { OmeroAuthService } from '../services/omero-auth.service';
 import { SharedComponentsModule } from '../shared-components-module/shared-components.module';
 import { HomePageModule } from './home.module';
 
 import { HomePage } from './home.page';
 
+class MockAuthService {
+  // mock the loggedIn behavior
+  public loggedIn$ = of(true);
+}
 class MockActivatedRoute {
   // here you can add your mock objects, like snapshot or parent or whatever
   // example:
@@ -31,7 +36,16 @@ describe('HomePage', () => {
     TestBed.configureTestingModule({
       declarations: [ HomePage ],
       imports: [IonicModule.forRoot(), RouterTestingModule, HttpClientTestingModule, MatTooltipModule, OverlayModule, SharedComponentsModule],
-      providers: [{provide: ActivatedRoute, useClass: MockActivatedRoute }]
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useClass: MockActivatedRoute
+        },
+        {
+          provide: OmeroAuthService,
+          useClass: MockAuthService
+        }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(HomePage);
