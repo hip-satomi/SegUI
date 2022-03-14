@@ -79,7 +79,7 @@ export class LoginPage implements OnInit {
     }, (err) => {
       // show the error
       console.log(err);
-      this.questionService.showError(JSON.stringify(err));
+      this.questionService.showError(JSON.stringify(err), 5000);
     });
   }
 
