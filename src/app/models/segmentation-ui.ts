@@ -187,6 +187,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                     // clicke inside a non active polygon
                     this.segModel.addAction(new SelectPolygon(index));
 
+                    // TODO: this should not be necessary when handling of local actions is begin updated
                     if(!this.segModel.activeLabels.map(l => l.id).includes(this.segModel.getPolygonLabelId(index))) {
                         // activate the label if necessary
                         this.segModel.parent.addAction(new ChangeLabelActivityAction(this.segModel.getPolygonLabelId(index), true));
@@ -346,10 +347,8 @@ export class SegmentationUI implements UIInteraction, Drawer {
         if (this.segModel.activePolygon) {
             const removalId = this.segModel.activePolygonId;
 
-            // TODO: Default label id ?
             const jointAction = 
                 new JointAction(
-                    //...this.segModel.addNewPolygonActions(0),
                     new RemovePolygon(removalId));
 
             this.segModel.addAction(jointAction);
@@ -362,7 +361,6 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
     save() {
         if (this.canSave) {
-            // TODO: Default label id?
             this.userQuestions.activeLabel(this.segModel).pipe(
                 tap(label => this.segModel.addNewPolygon(label.id))
             ).subscribe();
@@ -424,6 +422,13 @@ export class SegmentationUI implements UIInteraction, Drawer {
         }
     }
 
+    /**
+     * Draws polygons onto canvas
+     * @param ctx canvas context
+     * @param markActive mark the active polygon (by drawing points with squares around them)
+     * @param polyFilter filter function to display only specific polygons
+     * @param polyColor function to compute the polygon color
+     */
     drawPolygonsAdv(ctx, markActive = true, polyFilter: (p: [string, Polygon]) => boolean = p => true, polyColor: ({uuid: string, poly: Polygon}) => string = ({uuid, poly}) => poly.getColor()) {
         for (const [index, polygon] of Array.from(this.segModel.segmentationData.getPolygonEntries()).filter(polyFilter)) {
             if (markActive) {
@@ -432,24 +437,6 @@ export class SegmentationUI implements UIInteraction, Drawer {
                 UIUtils.drawSingle(polygon.points, false, ctx, polyColor({uuid: index, poly: polygon}));
             }
         }
-    }
-
-    drawAdvanced(ctx, colorGenerator: (polygon: Polygon) => string = (poly: Polygon) => poly.getColor()) {
-        const markActive = false;
-
-        for (const [index, polygon] of this.segModel.segmentationData.getPolygonEntries()) {
-            if (polygon.numPoints === 0) {
-                continue;
-            }
-
-            if (markActive) {
-                UIUtils.drawSingle(polygon.points, index === this.segModel.activePolygonId, ctx, colorGenerator(polygon));
-            } else {
-                UIUtils.drawSingle(polygon.points, false, ctx, colorGenerator(polygon));
-            }
-            //UIUtils.drawCircle(ctx, polygon.center, 4, '#00FF00');
-        }
-        //ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
     }
 
     /**
