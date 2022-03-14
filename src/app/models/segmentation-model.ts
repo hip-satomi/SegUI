@@ -701,7 +701,7 @@ export class SimpleSegmentationView
     /** the simplified segmentation content */
     private _content: Array<SimpleSegmentation>;
 
-    private dirty = false;
+    private dirty = true;
     
     /**
      * Create a simple segmentation 
@@ -754,6 +754,8 @@ export class SimpleSegmentationView
 
             this._content.push(ss);
         }
+
+        this.dirty = false;
     }
 
 }
