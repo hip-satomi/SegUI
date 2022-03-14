@@ -15,13 +15,16 @@ import { UserQuestionsService } from '../../services/user-questions.service';
 })
 export class LoginPage implements OnInit {
 
+  /** login credentials */
   credentials = {
     username: '',
     password: ''
   };
 
+  /** redirection url after login */
   redirectUrl = '';
 
+  /** pipeline for software version */
   version$: Observable<string>;
 
   constructor(
@@ -35,6 +38,7 @@ export class LoginPage implements OnInit {
     private httpClient: HttpClient,
     private questionService: UserQuestionsService,
   ) {
+    // get the software version from assets
     this.version$ = this.httpClient.get('assets/info.json').pipe(
       tap(data => console.log(data)),
       map(data => data['version']),
@@ -43,14 +47,19 @@ export class LoginPage implements OnInit {
   }
 
   ngOnInit() {
+    // try to prefill credentials from url
     this.route.queryParams.subscribe(
       params => {
         console.log(params);
 
+        // u --> sepcifies user name
         this.credentials.username = params['u'] || '';
+        // p --> can specify password (possibly unsafe)
         this.credentials.password = params['p'] || '';
-        this.redirectUrl = params['r'] || null;
+        // r --> specifies redirection route
+        this.redirectUrl = params['r'] || '';
 
+        // if both password and username are specified we directly try to login
         if(this.credentials.username !== '' && this.credentials.password !== '') {
           this.login();
         }
@@ -58,6 +67,9 @@ export class LoginPage implements OnInit {
     )
   }
 
+  /**
+   * Login with specified user credentials and move forward
+   */
   login() {
     // create progress loader
     const loading = this.loadingCtrl.create({
@@ -66,16 +78,9 @@ export class LoginPage implements OnInit {
     
     this.omeroAuth.login(this.credentials).pipe(
       finalize(() => loading.then(l => l.dismiss()))
-    ).subscribe(async res => {
-      if (res) {
+    ).subscribe(() => {
+        // successfully logged in --> move to next page
         this.moveToNextPage();
-      } else {
-        const alert = await this.alertCtrl.create({
-          header: 'Login Failed',
-          message: 'Wrong username or password.',
-          buttons: ['OK']
-        });
-      }
     }, (err) => {
       // show the error
       console.log(err);
@@ -87,11 +92,15 @@ export class LoginPage implements OnInit {
     return this.omeroAuth.loggedIn$;
   }
 
+  /**
+   * Moves to the next page in line. If no redirect is specified that is the dashboard. Otherwise try to redirect to specified url.
+   */
   moveToNextPage() {
-    if (this.redirectUrl) {
+    if (this.redirectUrl != '') {
       // redirect if possible
       this.router.navigateByUrl(this.redirectUrl);
     } else {
+      // redirect to dashboard
       this.router.navigateByUrl('/omero-dashboard');
     }
   }
