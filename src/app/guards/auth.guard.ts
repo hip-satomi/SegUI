@@ -30,10 +30,14 @@ export class AuthGuard implements CanActivate {
           this.alertCtrl.create({
             header: 'Unauthorized',
             message: 'You are not allowed to access that page! Please login first',
-            buttons: ['OK']
+            buttons: [{
+              text: 'OK',
+              handler: () => {
+                this.router.navigateByUrl('/');
+              }
+            }]
           }).then(alert => alert.present());
 
-          this.router.navigateByUrl('/');
           return false;
         } else {
           return true;
