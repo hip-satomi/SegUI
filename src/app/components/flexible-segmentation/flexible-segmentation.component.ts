@@ -1,18 +1,16 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { Component, Input } from '@angular/core';
 import { LoadingController, ToastController } from '@ionic/angular';
 import { of, ReplaySubject } from 'rxjs';
 import { finalize, map, switchMap, take, tap } from 'rxjs/operators';
-import { AddLabelAction, AddPolygon, JointAction, LocalAction, RemovePolygon } from 'src/app/models/action';
-import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
-import { Point, Polygon } from 'src/app/models/geometry';
+import { AddLabelAction, AddPolygon, JointAction, RemovePolygon } from 'src/app/models/action';
+import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
+import { Polygon } from 'src/app/models/geometry';
 import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { UIUtils, Utils } from 'src/app/models/utils';
-import { Detection, SegmentationData, SegmentationService, SegmentationServiceDef, ServiceResult } from 'src/app/services/segmentation.service';
-import { threadId } from 'worker_threads';
+import { SegmentationData, SegmentationService, SegmentationServiceDef, ServiceResult } from 'src/app/services/segmentation.service';
 
 @Component({
   selector: 'app-flexible-segmentation',
