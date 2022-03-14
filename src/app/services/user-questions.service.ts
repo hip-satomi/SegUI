@@ -3,7 +3,7 @@ import { ActionSheetButton, ActionSheetController, AlertController, ToastControl
 import { from, Observable, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { AnnotationLabel } from '../models/segmentation-data';
-import { GlobalSegmentationModel, LocalSegmentationModel } from '../models/segmentation-model';
+import { LocalSegmentationModel } from '../models/segmentation-model';
 
 @Injectable({
   providedIn: 'root'
@@ -14,6 +14,11 @@ export class UserQuestionsService {
     private alertController: AlertController,
     private toastController: ToastController) { }
 
+    /**
+     * Ask the user for a label
+     * @param localSegModel local segmentation model used for obtaining labels
+     * @returns observable to selected label
+     */
   askForSingleLabel(localSegModel: LocalSegmentationModel): Observable<AnnotationLabel> {
 
     const buttons = localSegModel.labels.map((l): ActionSheetButton => {
@@ -52,6 +57,11 @@ export class UserQuestionsService {
     )
   }
 
+  /**
+   * Obtain the currently active label in a safe way. If no label is active, ask the user to select one
+   * @param localSegModel local segementation model
+   * @returns observable to label label
+   */
   activeLabel(localSegModel: LocalSegmentationModel): Observable<AnnotationLabel> {
     const activeLabels = localSegModel.activeLabels;
     if (activeLabels.length == 1) {
@@ -61,6 +71,12 @@ export class UserQuestionsService {
     }
   }
 
+  /**
+   * Ask to merge two labels
+   * @param srcName source label (will be merged and deleted)
+   * @param dstName target label (will stay)
+   * @returns observable to the user's decision
+   */
   mergeLabels(srcName: string, dstName: string): Observable<boolean> {
     return from(this.alertController.create({
       cssClass: 'my-custom-class',
@@ -118,6 +134,9 @@ export class UserQuestionsService {
     }).then(toast => toast.present());
   }
   
+  /**
+   * Ask the user to create new segmentation data for the image stack (mainly due to failure of loading existing).
+   */
   createNewData(): Observable<boolean> {
     return from(this.alertController.create({
       cssClass: 'over-loading',
