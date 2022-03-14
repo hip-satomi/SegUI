@@ -10,7 +10,7 @@ import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SimpleSegmentationHolder as SimpleSegmentationHolder, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
+import { SimpleSegmentationView as SimpleSegmentationView, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
 import { ActionSheetController, AlertController, LoadingController, NavController } from '@ionic/angular';
 import { Component, ViewChild, HostListener, ViewContainerRef } from '@angular/core';
 
@@ -72,7 +72,7 @@ export class HomePage implements Drawer, UIInteraction{
   segmentationUIs: SegmentationUI[] = [];
 
   // segmentation data holders (they take care for automatic updates to backend)
-  simpleSegHolder: SimpleSegmentationHolder;
+  simpleSegHolder: SimpleSegmentationView;
   globalSegModel: GlobalSegmentationModel;
 
   justTapped = false;
@@ -529,7 +529,7 @@ export class HomePage implements Drawer, UIInteraction{
           map((content) => {
             // add the simple model
             // TODO the construction here is a little bit weird
-            const derived = new SimpleSegmentationHolder(content.srsc.getModel());
+            const derived = new SimpleSegmentationView(content.srsc.getModel());
             const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, content.srsc);
             // if we create a new segmentation -> update also the simple storage
             //if (created) {
@@ -578,7 +578,7 @@ export class HomePage implements Drawer, UIInteraction{
    * @param simpleSegHolder holder of simple segmentation 
    * @param imageUrls omero urls of the images
    */
-  async importSegmentation(globalSegModel: GlobalSegmentationModel, simpleSegHolder: SimpleSegmentationHolder, imageUrls: string[]) {
+  async importSegmentation(globalSegModel: GlobalSegmentationModel, simpleSegHolder: SimpleSegmentationView, imageUrls: string[]) {
     // now that we have a holder we can start using it
     this.globalSegModel = globalSegModel;
     this.globalSegModel.modelChanged.subscribe((event: ModelChanged<GlobalSegmentationModel>) => {

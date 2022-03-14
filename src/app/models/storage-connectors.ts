@@ -7,9 +7,7 @@ import { deserialize, serialize } from 'typescript-json-serializer';
 import { EventEmitter } from '@angular/core';
 import { ModelChanged, ChangeType } from './change';
 import { debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/operators';
-import { GUISegmentation, GUITracking, SimpleSegmentationREST } from './../services/seg-rest.service';
-import { SegRestService } from 'src/app/services/seg-rest.service';
-import { SegmentationModel, SegmentationHolder, SimpleSegmentationHolder, GlobalSegmentationModel } from './segmentation-model';
+import { SimpleSegmentationView, GlobalSegmentationModel } from './segmentation-model';
 import { Observable, of, zip, empty, Subject } from 'rxjs';
 import { StorageConnector } from './storage';
 
@@ -35,7 +33,7 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
     public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number, destroySignal: Subject<void>): GlobalSegmentationOMEROStorageConnector {
         const model = deserialize<GlobalSegmentationModel>(segmentation, GlobalSegmentationModel);
 
-        if(model.formatVersion != GlobalSegmentationModel.currentFormatVersion) {
+        if(model.formatVersion != GlobalSegmentationModel.defaultFormatVersion) {
             throw new Error("Segmentation format incompatability!");
         }
 
@@ -120,10 +118,9 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
  * 
  * Synchronizes with the GUI {@link SegmentationOMEROStorageConnector} such that simple segmentation is always in sync with GUI Segmentation.
  */
-export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<SimpleSegmentationHolder> {
+export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<SimpleSegmentationView> {
 
     omeroAPI: OmeroAPIService;
-    restRecord: SimpleSegmentationREST;
     parentOMERO: GlobalSegmentationOMEROStorageConnector;
 
     updateEvent: EventEmitter<SimpleSegmentationOMEROStorageConnector> = new EventEmitter();
@@ -134,7 +131,7 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
      * @param imageId optional image id (the image id can only be missing if we are using an existing REST record)
      */
     constructor(omeroAPI: OmeroAPIService,
-                model: SimpleSegmentationHolder,
+                model: SimpleSegmentationView,
                 parentOMERO: GlobalSegmentationOMEROStorageConnector) {
         super(model);
 

@@ -671,45 +671,72 @@ export class LocalSegmentationModel {
  * Interface for a single segmentation contour
  */
 export interface SimpleDetection {
+    /** label name */
     label: string;
+    /** contour defined as list of points */
     contour: Array<Point>;
+    /** unique id */
     id: string;
 }
 
+/** segmentation of a full frame */
 export interface SimpleSegmentation {
+    /** frame index */
     frame: number;
+    /** list of countours that are belonging to that frame */
     detections: Array<SimpleDetection>;
 }
 
 /**
- * Attaches to a normal {@link SegmentationHolder} instance and converts its state to the simple segmentation format.
+ * Attaches to a normal {@link GlobalSegmentationModel} instance and converts its state to the simple segmentation format.
  */
-export class SimpleSegmentationHolder
-    implements ChangableModel<SimpleSegmentationHolder> {
+export class SimpleSegmentationView
+    implements ChangableModel<SimpleSegmentationView> {
 
-    modelChanged = new EventEmitter<ModelChanged<SimpleSegmentationHolder>>();
+    /** event when changes occur */
+    modelChanged = new EventEmitter<ModelChanged<SimpleSegmentationView>>();
+    /** the base model */
     baseHolder: GlobalSegmentationModel;
 
-    content: Array<SimpleSegmentation>;
+    /** the simplified segmentation content */
+    private _content: Array<SimpleSegmentation>;
+
+    private dirty = false;
     
+    /**
+     * Create a simple segmentation 
+     * @param baseHolder the global segmentation model
+     */
     constructor(baseHolder: GlobalSegmentationModel) {
         this.baseHolder = baseHolder;
         this.baseHolder.modelChanged.subscribe((changedEvent: ModelChanged<GlobalSegmentationModel>) => {
             if (changedEvent.changeType === ChangeType.HARD) {
                 // update the models simple representation
-                this.update();
+                //this.update();
+                this.dirty = true;
+                this.modelChanged.emit(new ModelChanged(this, ChangeType.HARD));
             }
         });
 
         // initially updated the json representation
-        this.update();
+        //this.update();
+        this.dirty = true;
+    }
+
+    get content(): Array<SimpleSegmentation> {
+        if (this.dirty) {
+            this.update();
+            this.dirty = false;
+        }
+
+        return this._content;
     }
 
     /**
      * Updates the simple segmentation representation
      */
-    update() {
-        this.content = [];
+    private update() {
+        this._content = [];
         // iterate over models and collect simple segmentation
         for (const [frameId, segData] of this.baseHolder.segmentations.entries()) {
             const detections: SimpleDetection[] = [];
@@ -723,11 +750,10 @@ export class SimpleSegmentationHolder
                 detections.push({label: 'cell', contour: poly.points, id: uuid});
             }
 
-            const ss = {frame: frameId, detections};
+            const ss: SimpleSegmentation = {frame: frameId, detections};
 
-            this.content.push(ss);
+            this._content.push(ss);
         }
-        this.modelChanged.emit(new ModelChanged(this, ChangeType.HARD));
     }
 
 }
