@@ -35,6 +35,9 @@ export class SegmentationUI implements UIInteraction, Drawer {
 
     image_loading$;
 
+    /** enables single polygon point editing mode: individual points can be moved. Is disabled by default in favor of the brush tool */
+    singlePolygonPointEditing = false;
+
     /**
      * Create a new segmentation visualizer
      * @param segModel the frame segmentation model
@@ -198,6 +201,11 @@ export class SegmentationUI implements UIInteraction, Drawer {
         return false;
     }
 
+    /**
+     * Handle on press action: shows an action sheet
+     * @param event 
+     * @returns 
+     */
     onPress(event): boolean {
         event.preventDefault();
         let match: [string, Polygon] = null;
@@ -216,7 +224,6 @@ export class SegmentationUI implements UIInteraction, Drawer {
             this.segModel.addAction(new SelectPolygon(match[0]));
 
             // show action opportunities
-            // TODO: Default label id?
             const actionSheet = this.actionSheetController.create({
                 header: 'Cell Actions',
                 buttons: [{
@@ -226,8 +233,6 @@ export class SegmentationUI implements UIInteraction, Drawer {
                   handler: () => {
                     // create an action to remove the polygon
                     const removeAction = new RemovePolygon(match[0]);
-                    // add another polygon for safety
-                    //this.segModel.addNewPolygon(0);
                     // execute the remove action
                     this.segModel.addAction(removeAction);
                   }
@@ -246,73 +251,89 @@ export class SegmentationUI implements UIInteraction, Drawer {
         return true;
     }
 
-    onPanStart(event): boolean {
-        console.log('pan start');
+    /**
+     * Decides whether to go into dragging mode
+     * @param event 
+     * @returns 
+     */
+     onPanStart(event): boolean {
+        if (this.singlePolygonPointEditing) {
+            console.log('pan start');
 
-        const poly = this.segModel.activePolygon;
-        if(poly == null) {
-            // TODO add a polygon here
-            return false;
+            const poly = this.segModel.activePolygon;
+            if(poly == null) {
+                // TODO add a polygon here
+                return false;
+            }
+            // check whether we will drag something
+            const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+            const x = mousePos.x;
+            const y = mousePos.y;
+
+
+            // compute closest distance to the polygon (in case of dragging a point)
+            const distanceInfo = poly.closestPointDistanceInfo([x, y]);
+            const minDis = distanceInfo.distance;
+            const minDisIndex = distanceInfo.index;
+            if (minDis < 50 && minDisIndex >= 0) {
+                // activate dragging by setting the point index
+                this.draggingPointIndex = minDisIndex;
+
+                this.segModel.activePointIndex = minDisIndex;
+            }
+            return true;
         }
-        // check whether we will drag something
-        const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
-        const x = mousePos.x;
-        const y = mousePos.y;
-
-
-        // compute closest distance to the polygon (in case of dragging a point)
-        const distanceInfo = poly.closestPointDistanceInfo([x, y]);
-        const minDis = distanceInfo.distance;
-        const minDisIndex = distanceInfo.index;
-        if (minDis < 50 && minDisIndex >= 0) {
-            // activate dragging by setting the point index
-            this.draggingPointIndex = minDisIndex;
-
-            this.segModel.activePointIndex = minDisIndex;
-        }
-        return true;
+        return false;
     }
 
-    onPan(event): boolean {
-        if(this.segModel.activePolygonId == null) {
-            return false;
-        }
-        if (this.draggingPointIndex !== -1) {
-            console.log("drag");
+    /**
+     * Handles panning start, e.g. dragging an individual polygon point
+     * @param event 
+     * @returns 
+     */
+     onPan(event): boolean {
+        if (this.singlePolygonPointEditing) {
+            if(this.segModel.activePolygonId == null) {
+                return false;
+            }
+            if (this.draggingPointIndex !== -1) {
+                console.log("drag");
 
-            const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+                const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
 
-            const polygon = this.segModel.activePolygon;
-            // change the point temporarily
-            polygon.points[this.segModel.activePointIndex] = [mousePos.x, mousePos.y];
+                const polygon = this.segModel.activePolygon;
+                // change the point temporarily
+                polygon.points[this.segModel.activePointIndex] = [mousePos.x, mousePos.y];
 
-            return true;
+                return true;
+            }
         }
 
         return false;
     }
 
     onPanEnd(event): boolean {
-        if(this.segModel.activePolygonId == null) {
-            return false;
+        if (this.singlePolygonPointEditing) {
+            if(this.segModel.activePolygonId == null) {
+                return false;
+            }
+
+            console.log('pan end');
+
+            if (this.draggingPointIndex !== -1) {
+                this.draggingPointIndex = -1;
+
+                // record final drag position
+                const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+
+                const polygon = this.segModel.activePolygon;
+                this.segModel.addAction(new MovePointAction([mousePos.x, mousePos.y],
+                                                    this.segModel.activePointIndex,
+                                                    this.segModel.activePolygonId));
+
+                return true;
+            }
         }
-
-        console.log('pan end');
-
-        if (this.draggingPointIndex !== -1) {
-            this.draggingPointIndex = -1;
-
-            // record final drag position
-            const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
-
-            const polygon = this.segModel.activePolygon;
-            this.segModel.addAction(new MovePointAction([mousePos.x, mousePos.y],
-                                                this.segModel.activePointIndex,
-                                                this.segModel.activePolygonId));
-
-            return true;
-        }
-
         return false;
     }
 
