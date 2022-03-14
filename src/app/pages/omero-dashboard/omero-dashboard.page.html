@@ -2,6 +2,7 @@
   <ion-toolbar>
     <ion-title>
       <ion-label>Omero Dashboard</ion-label>
+      <!-- show chip when group is restricted to inform user-->
       <ion-chip *ngIf="groupRestricted" color="danger" [routerLink]="['/omero-dashboard/']" #tooltip="matTooltip" matTooltip="Currently you only see projects in group {{this.group}}. Click to see your full dashboard!"><ion-label>group restricted</ion-label></ion-chip>
     </ion-title>
   </ion-toolbar>
@@ -9,16 +10,22 @@
 
 <ion-content>
 
+  <!-- create a card for every-->
   <ion-grid>
     <ion-row>
-      <ion-col *ngFor="let project of projects$ | async" size-sm="6" size-xl="3">
+      <!-- column with responsive sizes-->
+      <ion-col *ngFor="let project of projects$ | async" size-sm="6" size-lg="3" size-xl="2">
+        <!-- create card for the project -->
         <ion-card [routerLink]="['/omero-project/', {id: project.id}]">
           <ion-card-header >
             <h1>{{ project.name }}</h1>
           </ion-card-header>
           <ion-card-content>
+            <!-- visualize permissions -->
             <app-permission-viz [item]="project"></app-permission-viz>
+            <!-- visualize previews -->
             <app-animated-preview [urlList]="(project | thumbnails) | async"></app-animated-preview>
+            <!-- show project description -->
             <p>{{ project.description }}</p>
           </ion-card-content>
         </ion-card>
@@ -46,7 +53,7 @@
     </ion-row>
   </ion-grid>
 
-  <!-- No content in the group-->
+  <!-- No content with this group restriction group-->
   <ion-grid class="ion-text-center" *ngIf="(projects$ | async)?.length == 0 && this.group !== ''">
     <ion-row>
       <ion-col size="12" size-sm="10" offset-sm="1" size-md="8" offset-md="2" size-lg="6" offset-lg="3" size-xl="4"
