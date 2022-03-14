@@ -1,5 +1,5 @@
 import { OmeroAPIService, Project, Dataset } from './../../services/omero-api.service';
-import { switchMap, map } from 'rxjs/operators';
+import { switchMap, map, share } from 'rxjs/operators';
 import { ActivatedRoute } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -16,8 +16,9 @@ export class OmeroProjectPage implements ViewWillEnter {
               private omeroAPI: OmeroAPIService) { }
 
   projectId$: Observable<number>;
+  /** project information */
   project$: Observable<Project>;
-
+  /** datasets inside the project */
   datasets$: Observable<Array<Dataset>>;
 
   ionViewWillEnter() {
@@ -26,11 +27,13 @@ export class OmeroProjectPage implements ViewWillEnter {
     );
 
     this.project$ = this.projectId$.pipe(
-      switchMap(id => this.omeroAPI.getProject(id))
+      switchMap(id => this.omeroAPI.getProject(id)),
+      share()
     );
 
     this.datasets$ = this.project$.pipe(
-      switchMap((project: Project) => this.omeroAPI.getDatasetsByProjectId(project.id))
+      switchMap((project: Project) => this.omeroAPI.getDatasetsByProjectId(project.id)),
+      share()
     );
   }
 
