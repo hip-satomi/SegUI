@@ -1,9 +1,14 @@
+/**
+ * This service provides access to omero web JSON API (https://docs.openmicroscopy.org/omero/5.6.0/developers/json-api.html)
+ * including functionality for requests but also JSON serialization interfaces.
+ */
+
 import { Point } from './../models/geometry';
 import { Serializable, JsonProperty, deserialize } from 'typescript-json-serializer';
-import { map, tap, mergeMap, switchMap, combineAll, catchError, concatAll, mergeAll } from 'rxjs/operators';
-import { DataListResponse, DataResponse } from './omero-auth.service';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, empty, forkJoin, of, combineLatest, from, Subject, BehaviorSubject, ReplaySubject, EMPTY } from 'rxjs';
+import { map, tap, mergeMap, switchMap, combineAll, catchError } from 'rxjs/operators';
+import { DataResponse } from './omero-auth.service';
+import { HttpClient} from '@angular/common/http';
+import { Observable, of, combineLatest, from } from 'rxjs';
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
 import { UserQuestionsService } from './user-questions.service';
@@ -11,8 +16,9 @@ import { SegCollData } from '../models/segmentation-model';
 import { OmeroUtils } from '../models/utils';
 
 /**
- * Rewrite omero api urls into our urls (they get redirected again)
- * @param url 
+ * Rewrite omero api urls into our urls (they get redirected again).
+ * This is to make sure that urls stays simple and we can decide when to switch api version.
+ * @param url the url
  * @returns new url
  */
 const rewriteOmeroUrl = (url: string): string => {
@@ -24,12 +30,18 @@ const rewriteOmeroUrl = (url: string): string => {
   return url;
 };
 
+/**
+ * Base class for omero type information.
+ */
 @Serializable()
 export class Type {
   @JsonProperty({name: '@type'})
   type: string;
 }
 
+/**
+ * Class for Omero permissions
+ */
 @Serializable()
 export class Permissions extends Type {
   @JsonProperty()
@@ -69,12 +81,14 @@ export class Permissions extends Type {
   isUserRead: boolean;
 }
 
+/** wrapper for permissions */
 @Serializable()
 export class PermissionDetails extends Type {
   @JsonProperty()
   permissions: Permissions;
 }
 
+/** Omero Owner information */
 export class Owner extends Type {
   @JsonProperty({name: '@id'})
   id: number;
@@ -90,6 +104,7 @@ export class Owner extends Type {
   userName: string;
 }
 
+/** Omero Grop information */
 export class Group extends Type {
   @JsonProperty({name: '@id'})
   id: number;
@@ -101,6 +116,7 @@ export class Group extends Type {
   name: string
 }
 
+/** Omero details information */
 @Serializable()
 export class Details {
   @JsonProperty()
@@ -113,6 +129,7 @@ export class Details {
   permissions: Permissions;
 }
 
+/** Omero id information */
 @Serializable()
 export class Id {
   @JsonProperty({name: '@id'})
@@ -122,6 +139,7 @@ export class Id {
   details: Details;
 }
 
+/** Base class to encapsulate repeating Omero information */
 @Serializable()
 export class Base extends Id {
   @JsonProperty({name: 'Name'})
@@ -131,6 +149,7 @@ export class Base extends Id {
 }
 
 
+/** Omero project information */
 @Serializable()
 export class Project extends Base {
   @JsonProperty({name: 'omero:details'})
@@ -142,6 +161,7 @@ export class Project extends Base {
   urlDatasets: string;
 }
 
+/** Omero dataset information */
 @Serializable()
 export class Dataset extends Base {
   @JsonProperty({name: 'url:dataset', onDeserialize: rewriteOmeroUrl})
@@ -152,6 +172,7 @@ export class Dataset extends Base {
   urlProjects: string;
 }
 
+/** Omero information about the physical size of an image */
 @Serializable()
 export class PhysicalSize {
   @JsonProperty({name: 'Symbol'})
@@ -164,6 +185,7 @@ export class PhysicalSize {
   unit: string;
 }
 
+/** Omero Pixel information (gives information about a single image stack)  */
 @Serializable()
 export class Pixel extends Id {
   @JsonProperty({name: 'SizeX'})
@@ -188,6 +210,9 @@ export class Pixel extends Id {
   significantBits: number;
 }
 
+/** Page meta is information provided by API to limit the number of entries per http request and distribute the content onto multiple pages (https://docs.openmicroscopy.org/omero/5.6.0/developers/json-api.html#pagination).
+ *  E.g. loading RoIs from the API may require multiple calls.
+ */
 @Serializable()
 export class PageMeta {
   @JsonProperty()
@@ -209,6 +234,7 @@ export class DatasetResult {
   meta: PageMeta;
 }
 
+/** General response for paged data */
 @Serializable()
 export class PagedResponse<T> {
 
@@ -219,7 +245,7 @@ export class PagedResponse<T> {
   meta: PageMeta;
 }
 
-
+/** Omero information about image stack */
 @Serializable()
 export class Image {
   @JsonProperty({name: '@id'})
@@ -336,6 +362,11 @@ export class RenderInfos {
   channels: Array<ChannelInfo>;
 }
 
+/**
+ * Convert point list to Omero string froamt
+ * @param points point list
+ * @returns a string in Omero format
+ */
 export const pointsToString = (points: Array<Point>): string => {
   return points.map(point => point.join(',')).join(' ');
 }
@@ -373,6 +404,7 @@ export const stringToPoints = (pointList: string): Array<Point> => {
   return points;
 }
 
+/** Omero information about a single shape in a RoI */
 @Serializable()
 export class RoIShape {
   @JsonProperty({name: '@id'})
@@ -393,6 +425,8 @@ export class RoIShape {
   @JsonProperty({name: 'Points', onDeserialize: stringToPoints, onSerialize: pointsToString})
   points: Array<Point>;
 }
+
+/** Omero information about a single RoI (can contain multiple shapes) */
 @Serializable()
 export class RoIData {
   @JsonProperty({name: '@id'})
@@ -402,15 +436,9 @@ export class RoIData {
   shapes: Array<RoIShape>;
 }
 
-@Serializable()
-export class RoIResult {
-  @JsonProperty({type: RoIData})
-  data: Array<RoIData>;
-
-  @JsonProperty()
-  meta: PageMeta;
-}
-
+/**
+ * Our representation of a polygon shape
+ */
 export class ShapePolygon {
 
   constructor(points: Array<Point>, t: number, z: number) {
@@ -448,6 +476,9 @@ export interface RenderChannel {
   color: string;
 }
 
+/**
+ * This service bundles functionality to access the Omero web JSON API (https://docs.openmicroscopy.org/omero/5.6.0/developers/json-api.html)
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -458,61 +489,52 @@ export class OmeroAPIService {
   constructor(private httpClient: HttpClient,
       public userQuestionService: UserQuestionsService) {
 
-    // pipe to list all omero projects
+    // create pipe to list all omero projects
     this.projects$ = this.getPagedData('omero/api/m/projects/', Project);
   }
 
   /**
-   * returns the project corresponding to the id
+   * Request project information
    * @param id project omero id
+   * @returns returns the project corresponding to the id
    */
   getProject(id: number): Observable<Project> {
     return this.getData(`omero/api/m/projects/${id}/`, Project);
-    /*return this.httpClient.get(`omero/api/m/projects/${id}/`).pipe(
-      map((r: DataResponse<any>) => deserialize(r.data, Project))
-    );*/
-  }
-
-  getProjectByUrl(url: string): Observable<Project> {
-    return this.getData(url, Project);
-    /*return this.httpClient.get(url).pipe(
-      map((r: DataResponse<any>) => deserialize(r.data, Project))
-    );*/
-  }
-
-  getDatasetProjects(dataset: Dataset): Observable<Array<Project>> {
-    return this.getPagedData(dataset.urlProjects, Project);
-    /*return this.httpClient.get(dataset.urlProjects).pipe(
-      map((r: DataListResponse<any>) => r.data),
-      map(rawProjects => {
-        return rawProjects.map(p => deserialize(p, Project));
-      })
-    );*/
   }
 
   /**
-   * returns all the datasets within the project
-   * @param projectId project id
+   * 
+   * @param dataset 
+   * @returns parent project of the dataset
    */
-  getDatasetsByProjectId(projectId: number): Observable<Dataset[]> {
-    const fullUrl = `omero/api/m/projects/${projectId}/datasets/`;
-
-    return this.getPagedData(fullUrl, Dataset);
-
-    /*return this.httpClient.get(fullUrl).pipe(
-      map((r: DataListResponse<any>) => r.data.map(rawDataset => deserialize(rawDataset, Dataset)))
-    );*/
+  getDatasetProjects(dataset: Dataset): Observable<Array<Project>> {
+    return this.getPagedData(dataset.urlProjects, Project);
   }
 
+  /**
+   * @param projectId unique project id
+   * @returns all the datasets within the project
+   */
+  getDatasetsByProjectId(projectId: number): Observable<Dataset[]> {
+    return this.getPagedData(`omero/api/m/projects/${projectId}/datasets/`, Dataset);
+  }
+
+  /**
+   * 
+   * @param datasetId unique dataset id
+   * @returns list of images in that dataset
+   */
   getImagesFromDataset(datasetId: number): Observable<Image[]> {
     return this.getPagedData(`omero/api/m/images/`, Image, 500, {dataset : '' + datasetId});
   }
 
+  /**
+   * 
+   * @param imageId unique image id
+   * @returns specific information about the image
+   */
   getImage(imageId: number): Observable<Image> {
     return this.getData(`omero/api/m/images/${imageId}/`, Image);
-    /*return this.httpClient.get(`omero/api/m/images/${imageId}/`).pipe(
-      map((r: DataResponse<any>) => deserialize(r.data, Image))
-    );*/
   }
 
   /**
@@ -521,8 +543,8 @@ export class OmeroAPIService {
    * @returns parent dataset
    */
   getImageDataset(imageId: number): Observable<Dataset> {
-    return this.httpClient.get(`omero/api/m/images/${imageId}/`).pipe(
-      map((r: DataResponse<any>) => deserialize(r.data, Image).datasetUrl),
+    return this.getImage(imageId).pipe(
+      map(image => image.datasetUrl),
       switchMap(dsUrl => this.httpClient.get(dsUrl)),
       map((r: DataResponse<any>) => {
         console.log(r);
@@ -531,28 +553,38 @@ export class OmeroAPIService {
     );
   };
 
+  /**
+   * 
+   * @param datasetId unique dataset id
+   * @returns dataset information
+   */
   getDataset(datasetId: number): Observable<Dataset> {
     return this.getData(`omero/api/m/datasets/${datasetId}/`, Dataset);
-    /*return this.httpClient.get(`omero/api/m/datasets/${datasetId}/`).pipe(
-      map((r: DataResponse<any>) => {
-        console.log(r);
-        return deserialize(r.data, Dataset);
-      })
-    );*/
   }
 
+  /**
+   * 
+   * @param datasetId unique dataset id
+   * @returns thumbnail urls for all images in the dataset
+   */
   getDatasetThumbnailUrls(datasetId: number): Observable<string[]> {
     return this.getImagesFromDataset(datasetId)
       .pipe(
-        tap(() => console.log('get dataset urls ' + datasetId)),
+        //tap(() => console.log('get dataset urls ' + datasetId)),
         map(images => images.map(image => this.getThumbnailUrl(image.id))),
-        tap(data => console.log(data))
+        //tap(data => console.log(data))
       );
   }
 
+  /**
+   * 
+   * @param projectId unique project id
+   * @returns thumbnail urls for all images in the project
+   */
   getProjectThumbnailUrls(projectId: number): Observable<string[]> {
     return this.getDatasetsByProjectId(projectId).pipe(
       switchMap(datasets => of(...datasets.map(ds => this.getDatasetThumbnailUrls(ds.id)))),
+      // combine for all datasets
       combineAll(),
       map(imgUrls => {
         return imgUrls.reduce((a,b) => a.concat(b), [])
@@ -560,13 +592,17 @@ export class OmeroAPIService {
     );
   }
 
-
+  /**
+   * Uses webclient API to render thumbnails
+   * @param imageId unique image id
+   * @returns the thumbnail url for this image
+   */
   getThumbnailUrl(imageId: number) {
     return `omero/webclient/render_thumbnail/${imageId}/?version=0`;
   }
 
   /**
-   * Generates a url for viewing a specific image
+   * Generates a url for rendering a specific image from the image stack
    * @param imageId image set id
    * @param z z channel index
    * @param t t channel index
@@ -650,11 +686,13 @@ export class OmeroAPIService {
     );
   }
 
+  /**
+   * 
+   * @param imageId unique image id
+   * @returns data for all RoIs associated with the image
+   */
   getPagedRoIData(imageId: number): Observable<Array<RoIData>> {
     return this.getPagedData(`omero/api/m/images/${imageId}/rois/`, RoIData);
-    /*return this.httpClient.get(`omero/api/m/images/${imageId}/rois/`, {params}).pipe(
-      map(r => deserialize(r, RoIResult))
-    );*/
   }
 
   /**
@@ -742,10 +780,20 @@ export class OmeroAPIService {
     );
   }
 
+  /**
+   * Used to update RoI data
+   * @param modificationData describin all the modifications 
+   * @returns Observable to the http post request
+   */
   modifyRois(modificationData: RoIModData) {
     return this.httpClient.post('omero/iviewer/persist_rois/', modificationData);
   }
 
+  /**
+   * Convert array [el1, el2, el3, el4, ...] to dictionary {el1: el2, el3: el4, ...}
+   * @param data input array
+   * @returns generate dictionary
+   */
   arrayToDict(data: Array<any>) {
     const result_data = {}
     data.forEach(element => {
@@ -755,9 +803,14 @@ export class OmeroAPIService {
     return result_data;
   }
 
-  deleteRois(imageSetId, roiList, max=1000) {
-
-
+  /**
+   * 
+   * @param imageSetId 
+   * @param roiList list [(roi id, shape id), ...] of shapes to delete
+   * @param max the maximum amount of deletion requests bundeled. If too large API might reject due to size of request.
+   * @returns 
+   */
+  deleteRois(imageSetId, roiList: Array<[number, number]>, max=1000) {
     const list = []
 
     for(let i = 0; i < Math.ceil(roiList.length / max); i++) {
@@ -845,9 +898,10 @@ export class OmeroAPIService {
   }
 
   /**
-   * Get data of certain type
+   * Get unpaged data of certain serialization type
    * @param url endpoint url
    * @param c the type (must be serializable)
+   * @param inData whether the data to serialize is wrapped into the "data" element in the json. Default is true.
    * @returns returns the deserialize object instance
    */
   getData<T>(url: string, c: new () => T, inData = true) {
@@ -857,8 +911,10 @@ export class OmeroAPIService {
     return this.httpClient.get(url).pipe(
       map((r: DataResponse<any>) => {
         if (inData) {
+          // deserialize from data
           return deserialize(r.data, c);
         } else {
+          // deserialize from raw response
           return deserialize(r, c);
         }
       })
@@ -868,8 +924,8 @@ export class OmeroAPIService {
   /**
    * Loads all pages of the backend and combines the result in array
    * @param url backend url
-   * @param c class type
-   * @param limit the limit you request with first api call (later automatically max limit)
+   * @param c class type for deserialization
+   * @param limit the limit you request with first api call (later adapts automatically to max limit provided by API)
    * @returns an array of obtained data items
    */
   getPagedData<T>(url, c: new () => T, limit=500, params?: { [param: string]: string | string[]}): Observable<Array<T>> {
@@ -914,7 +970,7 @@ export class OmeroAPIService {
   /**
    * 
    * @param imageSetId current imageset id
-   * @returns next imageset id in the same dataset (according to omero sorting)
+   * @returns observable for next imageset id in the same dataset (according to omero sorting) and failes with error if there is no next sequence.
    */
   nextImageSequence(imageSetId): Observable<number> {
     return this.getImageDataset(imageSetId).pipe(
@@ -935,7 +991,7 @@ export class OmeroAPIService {
   /**
    * 
    * @param imageSetId current imageset id
-   * @returns previous imageset id in the same dataset (according to omero sorting)
+   * @returns observable for previous imageset id in the same dataset (according to omero sorting) and failes with error if there is no next sequence
    */
    previousImageSequence(imageSetId): Observable<number> {
     return this.getImageDataset(imageSetId).pipe(
@@ -953,6 +1009,11 @@ export class OmeroAPIService {
     )
   }
 
+  /**
+   * 
+   * @param imageSetId unique image id
+   * @returns specialized image information
+   */
   getImageInfo(imageSetId: number): Observable<ImageInfo> {
     return this.getData(`omero/iviewer/image_data/${imageSetId}/`, ImageInfo, false);
   }
