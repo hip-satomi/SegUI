@@ -22,6 +22,7 @@ import { UserQuestionsService } from '../services/user-questions.service';
 import { AnnotationLabel } from '../models/segmentation-data';
 import { StateService } from '../services/state.service';
 import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
+import { OmeroAuthService } from '../services/omero-auth.service';
 
 
 /**
@@ -120,7 +121,8 @@ export class HomePage implements Drawer, UIInteraction{
               private alertController: AlertController,
               private userQuestions: UserQuestionsService,
               private stateService: StateService,
-              private navCtrl: NavController) {
+              private navCtrl: NavController,
+              private omeroAuth: OmeroAuthService) {
 
     // record navigation history
     this.router.events.subscribe((event) => {
@@ -151,18 +153,23 @@ export class HomePage implements Drawer, UIInteraction{
         })
       )),
       catchError((e, caught) => {
-        this.userQuestions.showError("Failed loading image data! Navigate back in 5 seconds!");
-        setTimeout(() => {
-          if(this.canNavigateBack) {
-            // navigate back
-            this.navCtrl.back();
-          } else {
-            // navigate to default view
-            this.router.navigateByUrl('/omero-dashboard');
-          }
-        }, 5000);
-        throwError(new Error("Failed loding image data"));
-        return EMPTY;
+        return this.omeroAuth.loggedIn$.pipe(
+          map((logInState: boolean) => {
+            if (logInState) {
+              this.userQuestions.showError("Failed loading image data! Navigate back in 5 seconds!");
+              setTimeout(() => {
+                if(this.canNavigateBack) {
+                  // navigate back
+                  this.navCtrl.back();
+                } else {
+                  // navigate to default view
+                  this.router.navigateByUrl('/omero-dashboard');
+                }
+              }, 5000);
+            }
+            return throwError(new Error("Failed loding image data"));
+          })
+        );
       }),
       tap(() => {
         if (this.stateService.openTool == "BrushTool" && !this.isToolActive(this.brushToolComponent)) {
@@ -532,9 +539,7 @@ export class HomePage implements Drawer, UIInteraction{
             const derived = new SimpleSegmentationView(content.srsc.getModel());
             const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, content.srsc);
             // if we create a new segmentation -> update also the simple storage
-            //if (created) {
-            derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'));
-            //}
+            derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'), () => console.error("Failed to create or"));
 
             return {...content, derived};
           }),
