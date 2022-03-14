@@ -148,7 +148,7 @@ export class HomePage implements Drawer, UIInteraction{
       switchMap(id => this.loadImageSetById(id).pipe(
         map(() => id),
         finalize(() => {
-          console.log('done loading');
+          // console.log('done loading');
           this.loading.then(l => l.dismiss());
         })
       )),
@@ -181,7 +181,7 @@ export class HomePage implements Drawer, UIInteraction{
 
         const handleError = catchError(err => {
           console.error("Error while loading image");
-          console.log(err)
+          // console.log(err);
           this.userQuestions.showError(err.message);
           return of();
         })
@@ -226,7 +226,7 @@ export class HomePage implements Drawer, UIInteraction{
             }    
           }),
           throttleTime(thTime),
-          tap(() => console.log('event')),
+          // tap(() => console.log('event')),
           switchMap((handeled) => {
             if(!handeled) {
               // TODO: manager permission questions
@@ -277,7 +277,7 @@ export class HomePage implements Drawer, UIInteraction{
         this.imageSetId.next(imageSetId)
       }),
     ).subscribe(
-      () => console.log('Successfully loaded!')
+      //() => console.log('Successfully loaded!')
     );
   }
 
@@ -569,7 +569,7 @@ export class HomePage implements Drawer, UIInteraction{
         this.imageDisplay.centerFixedBox(new BoundingBox(xOffset, yOffset, width, height));
       }),
       tap(() => {
-        console.log('Draw');
+        // console.log('Draw');
         this.draw();
       },
       take(1))
@@ -1022,7 +1022,7 @@ export class HomePage implements Drawer, UIInteraction{
       // get the image id
       switchMap(() => this.imageSetId),
       // 2. Fetch all the rois from omero
-      tap(() => console.log("Get RoI Data...")),
+      //tap(() => console.log("Get RoI Data...")),
       switchMap((imageSetId: number) => this.omeroAPI.getPagedRoIData(imageSetId).pipe(
         map(rawData => {
           return {"roiData": rawData, "imageSetId": imageSetId}
@@ -1034,13 +1034,13 @@ export class HomePage implements Drawer, UIInteraction{
         this.userQuestions.showInfo(`Will have to delete ${allItemCount} rois`);
       }),
       // 3. compose request (delete all existing, add all new) & send
-      tap(() => console.log("Start deleting/adding ...")),
+      //tap(() => console.log("Start deleting/adding ...")),
       switchMap((data) => {
         return of(this.omeroAPI.deleteRois(data.imageSetId, OmeroUtils.createRoIDeletionList(data.roiData)), this.omeroAPI.createRois(data.imageSetId, this.globalSegModel.segmentationData)).pipe(combineAll());
       }),
       take(1),
-      tap(() => console.log('Finished deleting/adding!')),
-      tap(x => console.log(x)),
+      //tap(() => console.log('Finished deleting/adding!')),
+      //tap(x => console.log(x)),
       // update last modification date
       switchMap(() => this.imageSetId),
       take(1),

@@ -38,9 +38,9 @@ export class LoginPage implements OnInit {
   ) {
     // get the software version from assets
     this.version$ = this.httpClient.get('assets/info.json').pipe(
-      tap(data => console.log(data)),
+      //tap(data => console.log(data)),
       map(data => data['version']),
-      tap(version => console.log(version))
+      //tap(version => console.log(version))
     );
   }
 
@@ -48,7 +48,7 @@ export class LoginPage implements OnInit {
     // try to prefill credentials from url
     this.route.queryParams.subscribe(
       params => {
-        console.log(params);
+        //console.log(params);
 
         // u --> sepcifies user name
         this.credentials.username = params['u'] || '';
@@ -81,7 +81,7 @@ export class LoginPage implements OnInit {
         this.moveToNextPage();
     }, (err) => {
       // show the error
-      console.log(err);
+      console.error(err);
       this.questionService.showError(JSON.stringify(err), 5000);
     });
   }

@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, Input, OnInit, ViewChild } from '@angular/core';
 
+import { dummyLogger, Logger } from "ts-log";
 @Component({
   selector: 'app-animated-preview',
   templateUrl: './animated-preview.component.html',
@@ -30,12 +31,12 @@ export class AnimatedPreviewComponent implements OnInit, AfterViewInit {
 
   startAutoPlay() {
     this.slider.startAutoplay();
-    console.log('start auto');
+    //console.log('start auto');
   }
 
   stopAutoPlay() {
     this.slider.stopAutoplay();
-    console.log('stop auto');
+    //console.log('stop auto');
   }
 
 }

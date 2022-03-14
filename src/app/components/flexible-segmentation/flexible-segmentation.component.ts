@@ -173,7 +173,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   }
 
   update(e) {
-    console.log(this.showOverlay)
+    //console.log(this.showOverlay)
     if (this.oldPencil) {
       // if we have a cached pencil, we can redraw
       this.draw(this.oldPencil);
@@ -206,7 +206,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
    */
   requestProposals() {
     if (!this.selectedModel) {
-      console.log('Select model first');
+      //console.log('Select model first');
       return;
     }
 
@@ -216,7 +216,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
       backdropDismiss: true,
     });
 
-    console.log('show loading');
+    //console.log('show loading');
     loading.then(l => l.present());
 
     const segUI = this.segUI;
@@ -228,10 +228,13 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
       tap(() => {
       }),
       // read the image in binary format
-      switchMap((url: string) => {console.log(url); return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'}); }),
+      switchMap((url: string) => {
+        // console.log(url);
+        return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'});
+      }),
       switchMap(image_data => {
-        console.log('have the binary data!');
-        console.log(image_data);
+        // console.log('have the binary data!');
+        // console.log(image_data);
 
         return this.segmentationModels$.pipe(
           take(1),
@@ -246,7 +249,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
             console.warn(`Working with unsupported segmentation format: ${data.format_version}`)
           }
 
-          console.log(`Number of proposal detections ${data.segmentation_data[0].length}`);
+          // console.log(`Number of proposal detections ${data.segmentation_data[0].length}`);
 
           // set data and create new local segmetnation model
           this.data = data.segmentation_data[0];
@@ -340,7 +343,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   }
 
   simplifyErrorChanged() {
-    console.log('simplify');
+    // console.log('simplify');
     this.createLocalSegModel();
     this.draw(this.oldPencil);
   }

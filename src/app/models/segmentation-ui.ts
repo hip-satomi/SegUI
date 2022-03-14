@@ -99,7 +99,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                                     this.imageIsLoading = false;
                                     this.imageLoaded = true;
                     
-                                    console.log('Image truly loaded!');
+                                    //console.log('Image truly loaded!');
                                     
                                     clearTimeout(timer);
                                     // successfuly loaded!
@@ -145,7 +145,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     onTap(event) {
-        console.log("onTap");
+        //console.log("onTap");
         const e = event;
 
         e.preventDefault();
@@ -242,7 +242,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                   icon: 'close',
                   role: 'cancel',
                   handler: () => {
-                    console.log('Cancel clicked');
+                    //console.log('Cancel clicked');
                   }
                 }]
               });
@@ -259,7 +259,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
      */
      onPanStart(event): boolean {
         if (this.singlePolygonPointEditing) {
-            console.log('pan start');
+            //console.log('pan start');
 
             const poly = this.segModel.activePolygon;
             if(poly == null) {
@@ -298,7 +298,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                 return false;
             }
             if (this.draggingPointIndex !== -1) {
-                console.log("drag");
+                //console.log("drag");
 
                 const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
 
@@ -319,7 +319,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                 return false;
             }
 
-            console.log('pan end');
+            //console.log('pan end');
 
             if (this.draggingPointIndex !== -1) {
                 this.draggingPointIndex = -1;
@@ -461,7 +461,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
                 // draw image
                 ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height);
             },
-            () => {console.log('Error while loading image');}
+            () => {console.error('Error while loading image');}
         )
     }
 }

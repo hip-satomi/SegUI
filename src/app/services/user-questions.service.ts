@@ -31,7 +31,7 @@ export class UserQuestionsService {
         icon: 'close',
         role: 'cancel',
         handler: () => {
-          console.log('Cancel clicked');
+          //console.log('Cancel clicked');
         }
       }]
     })).pipe(
@@ -39,7 +39,7 @@ export class UserQuestionsService {
       switchMap(as => from(as.onDidDismiss())),
       map((result): string => result['role']),
       tap((role) => {
-        console.log(role)
+        //console.log(role)
       }),
       map((role: string) => {
         if (['cancel', 'backdrop'].includes(role)) {
@@ -179,7 +179,7 @@ export class UserQuestionsService {
             throw new Error("User canceled next image movement");
           }
   
-          console.log(data.role);
+          // console.log(data.role);
   
           return data;
         }));

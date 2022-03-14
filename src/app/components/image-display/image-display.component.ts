@@ -260,7 +260,7 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     // update transform
     this.ctx.setTransform(transform);
 
-    console.log('zoomToShowFixedBox');
+    // console.log('zoomToShowFixedBox');
   }
 
   /**
@@ -295,7 +295,7 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     // update transform
     this.ctx.setTransform(transform);
 
-    console.log('zoomToShowFixedBox');
+    // console.log('zoomToShowFixedBox');
   }
 
     /**
