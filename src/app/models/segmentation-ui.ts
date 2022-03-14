@@ -1,31 +1,45 @@
 import { ActionSheetController } from '@ionic/angular';
 import { Polygon } from 'src/app/models/geometry';
 import { UIInteraction, Drawer, Pencil } from './drawing';
-import { AddPointAction, ChangeLabelActivityAction, JointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
+import { ChangeLabelActivityAction, JointAction, MovePointAction, RemovePolygon, SelectPolygon } from './action';
 import { UIUtils, Utils } from './utils';
-import { LocalSegmentationModel, SegmentationModel } from './segmentation-model';
-import { from, Observable, of, ReplaySubject } from 'rxjs';
-import { map, switchMap, take, tap } from 'rxjs/operators';
-import { SegmentationData } from './segmentation-data';
+import { LocalSegmentationModel} from './segmentation-model';
+import { from, Observable, of, pipe, ReplaySubject, throwError } from 'rxjs';
+import { catchError, delay, map, retryWhen, share, shareReplay, switchMap, take, tap } from 'rxjs/operators';
 import { UserQuestionsService } from '../services/user-questions.service';
+
+
+/**
+ * Class for visualizing single-frame segmentation
+ */
 export class SegmentationUI implements UIInteraction, Drawer {
 
+    /** the frame segmentation model */
     segModel: LocalSegmentationModel;
+    // drawing variables
     canvasElement;
     ctx;
+
     distanceThreshold: number = 25;
     draggingPointIndex = -1;
+    /** Url of the underlying image */
     imageUrl: string;
-    imageLoaded: boolean;
+    /** true when image has been successfuly loaded  */
+    imageLoaded: boolean = false;
+    /** true when image is currently loading */
     imageIsLoading = false;
+    /** the html image */
     image = null;
 
-    image$ = new ReplaySubject<any>(1);
+    image$: Observable<any>;
+
+    image_loading$;
 
     /**
-     * 
-     * @param segModel 
-     * @param canvasElement native canvas element
+     * Create a new segmentation visualizer
+     * @param segModel the frame segmentation model
+     * @param imageUrl the url for the frame image
+     * @param canvasElement native canvas element for rendering
      */
     constructor(segModel: LocalSegmentationModel,
                 imageUrl: string, canvasElement,
@@ -35,64 +49,86 @@ export class SegmentationUI implements UIInteraction, Drawer {
         this.canvasElement = canvasElement;
         this.ctx = canvasElement.getContext('2d');
         this.imageUrl = imageUrl;
+
+        this.image$ = this.loadImage();
     }
 
     get imageHeight() {
-        return this.image.height;
+        return this.image?.height;
     }
 
     get imageWidth() {
-        return this.image.width;
+        return this.image?.width;
     }
 
     /**
      * Loads the image. Promise resolves when the image is fully loaded.
      * Promise rejects when the timeout finishes first!
      */
-    loadImage(timeout = 10000): Observable<any> {
-        if (this.image && this.image.complete && this.image.naturalWidth !== 0) {
-            // image is already loaded
-            return of(this.image);
-        }
-
-        if (!this.image || !this.imageIsLoading) {
-            // image loading not started or failed
-            this.image = new Image();
-
-            // catch when the image comes in
-            from(new Promise((resolve, reject) => {
-                // reject the image request when running out of time
-                const timer = setTimeout(() => {
-                    reject();
-                    console.error(`Timeout loading image! ${this.imageUrl}`);
-                }, timeout);
-
-                this.image.onload = () => {
-                    this.imageIsLoading = false;
-                    this.imageLoaded = true;
-    
-                    console.log('Image truly loaded!');
-                    
-                    clearTimeout(timer);
-                    resolve(this.image);
-                };
-                this.image.onerror = () => {
-                    this.imageIsLoading = false;
-                    clearTimeout(timer);
-                    reject();
+    loadImage(timeout = 10000, numRetries=5): Observable<any> {
+        return of(1).pipe(
+            switchMap(() => {
+                if (this.image && this.image.complete && this.image.naturalWidth !== 0) {
+                    // image is already loaded
+                    return of(this.image);
                 }
-            })).pipe(
-                take(1),
-                map(img => this.image$.next(img))
-            ).subscribe();
-            
 
-            // start loading the image by giving it a url
-            this.image.src = this.imageUrl;
-            this.imageIsLoading = true;
-        }
+                if (!this.image || !this.imageIsLoading) {
+                    // image loading has not started or failed
+                    this.image = new Image();
+        
+                    // catch when the image comes in
+                    this.image_loading$ = of(1).pipe(
+                        tap(() => {
+                            // start loading the image by giving it a url
+                            this.image.src = this.imageUrl;
+                            this.imageIsLoading = true;
+                        }),
+                        switchMap(() => {
+                            return from(new Promise((resolve, reject) => {
+                                // reject the image request when running out of time
+                                const timer = setTimeout(() => {
+                                    reject();
+                                    console.error(`Timeout loading image! ${this.imageUrl}`);
+                                }, timeout);
+                
+                                this.image.onload = () => {
+                                    this.imageIsLoading = false;
+                                    this.imageLoaded = true;
+                    
+                                    console.log('Image truly loaded!');
+                                    
+                                    clearTimeout(timer);
+                                    // successfuly loaded!
+                                    resolve(this.image);
+                                };
+                                this.image.onerror = () => {
+                                    this.imageIsLoading = false;
+                                    clearTimeout(timer);
+                                    reject();
+                                }
+                            })).pipe(
+                                take(1),
+                            );
+                        }),
+                        retryWhen(errors => errors.pipe(delay(1000), take(numRetries))),
+                        catchError(e => {
+                            this.imageIsLoading = false;
+                            this.imageLoaded = false;
 
-        return this.image$;
+                            return throwError(e);
+                        }),
+                        shareReplay()
+                    );
+
+                    return this.image_loading$;
+               }
+
+               else if(this.imageIsLoading)  {
+                   return this.image_loading$;
+               }
+            })
+        );
     }
 
     onPointerDown(event: any): boolean {
