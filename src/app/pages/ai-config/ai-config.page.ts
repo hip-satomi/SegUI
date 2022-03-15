@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ViewWillEnter } from '@ionic/angular';
 import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
@@ -16,6 +16,8 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   constructor(private configService: AIConfigService,
     private route: ActivatedRoute,
     private userQuestion: UserQuestionsService) { }
+
+  @ViewChild('content') private content: any;
 
   _selectedLine: string = "Default";
 
@@ -93,7 +95,8 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
       tap((line: Line) => {
         line.services.push(
           new AIService("", "", "", "", "", {})
-        );    
+        );
+        setTimeout(() => this.content.scrollToBottom(300), 250)    
       })
     ).subscribe();
   }
