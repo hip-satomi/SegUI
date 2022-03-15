@@ -46,7 +46,7 @@
         },
         "Custom": {
             "name": "Custom",
-            "read-only": true,
+            "read-only": false,
             "services": []
         }
     }
