@@ -25,6 +25,7 @@
         <app-ai-service *ngFor="let service of (services$ | async)" [service]="service" [readonly]="readonly$ | async"></app-ai-service>
         <ion-item *ngIf="(services$ | async)?.length == 0">
           <ion-label class="ion-text-center">No services configured in this line!</ion-label>
+          <ion-button (click)="addService()">Add service</ion-button>
         </ion-item>
       </ion-col>
     </ion-row>
