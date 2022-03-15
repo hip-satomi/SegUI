@@ -1,90 +1,41 @@
-import { HttpClient } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { ViewWillEnter } from '@ionic/angular';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
-import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
-
-@Serializable()
-export class SegmentationServiceDef {
-  /** name of the segmentation method as displayed to the user */
-  @JsonProperty()
-  name: string;
-
-  /** description of the segmentation method displayed to the user */
-  @JsonProperty()
-  description: string;
-
-  /** git repository url where to find the code */
-  @JsonProperty()
-  repo_url: string;
-
-  /** entrypoint of the git repo. */
-  @JsonProperty()
-  repo_entry_point: string;
-
-  /** Repo version/branch */
-  @JsonProperty()
-  repo_version: string;
-
-  /** additional parameters specified by the approach */
-  @JsonProperty()
-  additional_parameters: { [name: string]: string }
-}
-
-@Serializable()
-export class AIService {
-  @JsonProperty()
-  name: string;
-  @JsonProperty()
-  description: string;
-  @JsonProperty()
-  repo_url: string;
-  @JsonProperty()
-  repo_entry_point: string;
-  @JsonProperty()
-  repo_version: string;
-  @JsonProperty()
-  additional_parameters: {[name: string]: string};
-}
-
-@Serializable()
-export class Line {
-  @JsonProperty()
-  name: string;
-  @JsonProperty()
-  description: string;
-  @JsonProperty({type: AIService})
-  services: Array<AIService>;
-  @JsonProperty({name: "read-only"})
-  readonly: boolean;
-};
-
-@Serializable()
-export class AIConfig {
-  @JsonProperty({ isDictionary: true, type: Line })
-  lines: {[name: string]: Line}
-}
+import { AIConfig, AIConfigService, AIService, Line } from 'src/app/services/aiconfig.service';
+import { UserQuestionsService } from 'src/app/services/user-questions.service';
 
 @Component({
   selector: 'app-ai-config',
   templateUrl: './ai-config.page.html',
   styleUrls: ['./ai-config.page.scss'],
 })
-export class AiConfigPage implements OnInit {
+export class AiConfigPage implements OnInit, ViewWillEnter {
 
-  constructor(private httpClient: HttpClient) { }
+  constructor(private configService: AIConfigService,
+    private route: ActivatedRoute,
+    private userQuestion: UserQuestionsService) { }
 
   _selectedLine: string = "Default";
 
   set selectedLine(name: string) {
-    this._selectedLine = name;
-    this.lineName$.next(this._selectedLine);
+    this.lineNames$.subscribe((names) => {
+      if (names.includes(name)) {
+        this._selectedLine = name;
+        this.lineName$.next(this._selectedLine);
+      } else {
+        this.userQuestion.showError(`Cannot select line ${name}. It is not in the database!`)
+      }
+    });
   }
+
   get selectedLine(): string {
     return this._selectedLine;
   }
 
   lineName$ = new BehaviorSubject<string>(this._selectedLine);
+  cachedConfig$ = new BehaviorSubject<AIConfig>(null);
 
   lineNames$: Observable<string[]>;
   line$: Observable<Line>;
@@ -92,24 +43,18 @@ export class AiConfigPage implements OnInit {
   readonly$: Observable<boolean>;
 
   ngOnInit() {
-    //this.httpClient.get('assets/ai-lines.json').subscribe((res) => console.log(res))
-
-    this.lineNames$ = this.httpClient.get('assets/ai-lines.json').pipe(
+    this.lineNames$ = this.configService.getConfig().pipe(
       map(res => Object.keys(res['lines']))
     );
 
     this.line$ = this.lineName$.pipe(
       switchMap((lineName: string) => {
-        return this.httpClient.get('assets/ai-lines.json').pipe(
-          map((res) => {
-            console.log(res)
-            return {response: res, lineName}
+        return this.configService.getConfig().pipe(
+          map((config) => {
+            return config.lines[lineName]
           })
         )
       }),
-      map(({response, lineName}) => {
-        return deserialize(response['lines'][lineName], Line);
-      })
     );
 
     this.readonly$ = this.line$.pipe(
@@ -124,6 +69,15 @@ export class AiConfigPage implements OnInit {
         return line.services;
       })      
     );
+  }
+
+  ionViewWillEnter() {
+    this.route.queryParams.subscribe(params => {
+      console.log(params);
+      if ("line" in params) {
+        this.selectedLine = params["line"];
+      }
+    });
   }
 
 }

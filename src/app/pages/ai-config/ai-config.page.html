@@ -1,6 +1,10 @@
 <ion-header>
   <ion-toolbar>
     <ion-title>Configure your AI endpoints</ion-title>
+    <ion-buttons slot="end">
+      <ion-button>Save</ion-button>
+      <ion-button>Discard</ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -25,5 +29,11 @@
       </ion-col>
     </ion-row>
   </ion-grid>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button>
+      <ion-icon name="add-circle-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 
 </ion-content>

@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { AIService } from 'src/app/pages/ai-config/ai-config.page';
+import { AIService } from 'src/app/services/aiconfig.service';
 
 @Component({
   selector: 'app-ai-service',
