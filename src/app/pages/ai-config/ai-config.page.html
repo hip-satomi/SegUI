@@ -23,8 +23,8 @@
           </ion-select>
         </ion-item>
         <app-ai-service *ngFor="let service of (services$ | async)" [service]="service" [readonly]="readonly$ | async"></app-ai-service>
-        <ion-item>
-          <ion-label class="ion-text-center" *ngIf="(services$ | async)?.length == 0">No services configured in this line!</ion-label>
+        <ion-item *ngIf="(services$ | async)?.length == 0">
+          <ion-label class="ion-text-center">No services configured in this line!</ion-label>
         </ion-item>
       </ion-col>
     </ion-row>
