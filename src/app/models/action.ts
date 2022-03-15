@@ -258,7 +258,7 @@ export class SelectPolygon extends Action<SegmentationData> {
 
     join(action: Action<SegmentationData>): boolean {
         if (action instanceof SelectPolygon) {
-            console.log('Joining Select polygon');
+            //console.log('Joining Select polygon');
             const selectAction = action as SelectPolygon;
 
             this.newPolyId = selectAction.newPolyId;
@@ -876,7 +876,7 @@ export class ActionManager<T extends ClearableStorage> {
      * @param toPerform if true action is performed before adding to list
      */
     addAction(action: Action<T>, toPerform: boolean = true) {
-        console.log('Add action: ' + action.constructor.name);
+        //console.log('Add action: ' + action.constructor.name);
 
         if (toPerform) {
             action.perform(this.data);
@@ -904,8 +904,8 @@ export class ActionManager<T extends ClearableStorage> {
             return;
         }
 
-        console.log('Undo:');
-        console.log(this.lastAction.constructor.name);
+        //console.log('Undo:');
+        //console.log(this.lastAction.constructor.name);
 
         // undo last action by remove one action from pointer
         this.currentActionPointer -= 1;
@@ -925,8 +925,8 @@ export class ActionManager<T extends ClearableStorage> {
         }
         const nextAction = this.actions[this.currentActionPointer];
 
-        console.log('Redo:');
-        console.log(nextAction.constructor.name);
+        //console.log('Redo:');
+        //console.log(nextAction.constructor.name);
 
         // perform action
         nextAction.perform(this.data);

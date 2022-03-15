@@ -331,7 +331,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
                 this.brushMode = BrushMode.Increase;
             }
         }
-        console.log('Brush mode increase?' + this.brushMode);
+        //console.log('Brush mode increase?' + this.brushMode);
 
         // Notify change event
         this.changedEvent.emit();

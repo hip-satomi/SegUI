@@ -52,7 +52,7 @@ export class SegmentationModel {
      * Has to reconstruct the polygons from actions
      */
     onDeserialized() {
-        console.log(this);
+        //console.log(this);
         // after deserialization load the image
         //this.loadImage();
 

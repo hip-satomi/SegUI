@@ -547,7 +547,7 @@ export class OmeroAPIService {
       map(image => image.datasetUrl),
       switchMap(dsUrl => this.httpClient.get(dsUrl)),
       map((r: DataResponse<any>) => {
-        console.log(r);
+        //console.log(r);
         return deserialize(r, DatasetResult).data[0];
       })
     );

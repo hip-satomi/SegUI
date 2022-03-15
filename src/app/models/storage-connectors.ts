@@ -97,7 +97,7 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
                 );
             }))
         .subscribe((val) => {
-            console.log('Updated REST model!');
+            //console.log('Updated REST model!');
         }, err => { console.error(err); });
     }
 
@@ -154,7 +154,7 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
                 );
             })
         ).subscribe(() => {
-            console.log('Updated SimpleSegmentation backend!');
+            //console.log('Updated SimpleSegmentation backend!');
         });
     }
 

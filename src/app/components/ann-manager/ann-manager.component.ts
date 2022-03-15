@@ -40,11 +40,11 @@ export class AnnManagerComponent implements OnInit {
   }
 
   beginHover(label: AnnotationLabel) {
-    console.log(`begin Hover: ${label}.name`);
+    //console.log(`begin Hover: ${label}.name`);
   }
 
   endHover(label: AnnotationLabel) {
-    console.log(`end Hover ${label}.name`);
+    //console.log(`end Hover ${label}.name`);
   }
 
   changeVisibility(label: AnnotationLabel, visible: boolean) {

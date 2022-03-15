@@ -129,7 +129,7 @@ export class OmeroAuthService {
       // send a keep-alive request every 60 seconds (to prevent csrf-token timeout)
       interval(60 * 1000)
         .subscribe((val) => {
-          console.log('Keep csrf-token alive');
+          // console.log('Keep csrf-token alive');
           this.keepAliveRequest().pipe(take(1))
             .subscribe((result) => this.loggedIn = result, () => this.loggedIn = false)
         });      

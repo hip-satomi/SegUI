@@ -57,14 +57,14 @@ export class AnnLabelChipComponent implements OnInit {
 
   toggleActivity() {
     // ignore clicks during editing
-    console.log('Edit');
+    //console.log('Edit label');
     if(!this.edit) {
       this.activeChange.emit(!this.active);
     }
   }
 
   toggleVisibility(event) {
-    console.log('Visibility');
+    //console.log('Visibility of');
     this.visibleChange.emit(!this.visible);
 
     event.stopPropagation();
@@ -100,35 +100,35 @@ export class AnnLabelChipComponent implements OnInit {
         role: 'delete',
         icon: 'trash',
         handler: () => {
-          console.log('Delete clicked');
+          //console.log('Delete clicked');
         }
       }, {
         text: 'EditName',
         icon: 'create-outline',
         role: 'rename',
         handler: () => {
-          console.log('Share clicked');
+          //console.log('Share clicked');
         }
       }, {
         text: 'Change Color',
         icon: 'color-palette-outline',
         role: 'color',
         handler: () => {
-          console.log('Play clicked');
+          //console.log('Play clicked');
         }
       }, {
         text: 'Cancel',
         icon: 'close',
         role: 'cancel',
         handler: () => {
-          console.log('Cancel clicked');
+          //console.log('Cancel clicked');
         }
       }]
     });
     await actionSheet.present();
 
     const { role } = await actionSheet.onDidDismiss();
-    console.log('onDidDismiss resolved with role', role);
+    //console.log('onDidDismiss resolved with role', role);
 
     switch(role) {
       case 'delete':
@@ -172,8 +172,8 @@ export class AnnLabelChipComponent implements OnInit {
 
     // await the results
     const { data, role } = await popover.onDidDismiss();
-    console.log('onDidDismiss resolved with role', role);
-    console.log('Data', data);
+    //console.log('onDidDismiss resolved with role', role);
+    //console.log('Data', data);
 
     // notify the result
     if (role == 'ok') {
