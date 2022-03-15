@@ -1,7 +1,6 @@
 <ion-card>
   <ion-card-header>
-    <ion-card-title class="ion-text-center">{{service.name}}</ion-card-title>
-    <ion-chip color="warning" #tooltip="matTooltip"
+    <ion-chip *ngIf="readonly" color="warning" #tooltip="matTooltip"
       matTooltip="This service is read-only! You cannot change any settings. But you can customize!">
       Read-only
     </ion-chip>
