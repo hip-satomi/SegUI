@@ -26,10 +26,6 @@ export class AppComponent {
     this.platform.ready().then(() => {
       this.statusBar.styleDefault();
       this.splashScreen.hide();
-
-      // send a keep-alive signal for CSRF, every minute
-      interval(60000)
-        .subscribe((val) => { console.log('Keep csrf-token alive'); this.httpClient.get('omero/webclient/keepalive_ping/', {responseType: 'text'}).subscribe() });
     });
   }
 }

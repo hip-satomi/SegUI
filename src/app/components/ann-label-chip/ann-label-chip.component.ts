@@ -9,16 +9,22 @@ import { ColorPickerComponent } from '../color-picker/color-picker.component';
 })
 export class AnnLabelChipComponent implements OnInit {
 
+  /** Annotation label name */
   _name: string;
+  /** Temporary annotation label name (e.g. used for change the name) */
   tempName: string;
+  /** Color of the annotation label */
   _color: string;
+
   @Input() set color(color: string) {
     this._color = color;
   }
   get color() {
     return this._color;
   }
+  /** notify color change for a specific label */
   @Output() colorLabelChange = new EventEmitter<string>();
+
   @Input() set name(name: string) {
     this._name = name;
     this.tempName = name;
@@ -27,15 +33,21 @@ export class AnnLabelChipComponent implements OnInit {
     return this._name;
   }
   @Output() nameChange = new EventEmitter<string>();
+  
+  /** active state of the annotation label */
   @Input() active: boolean = false;
   @Output() activeChange = new EventEmitter<boolean>();
   @ViewChild('nameInput', {static: false}) nameInput: IonInput;
   @ViewChild('chip', {static: false}) chip: IonChip;
 
+  /** is the label currently edited */
   edit: boolean = false;
+
+  /** annotation label visibility */
   @Input() visible: boolean = false;
   @Output() visibleChange = new EventEmitter<boolean>();
 
+  /** handle deletion action */
   @Output() deleteLabel = new EventEmitter<void>();
 
   constructor(private actionSheetController: ActionSheetController,
@@ -79,6 +91,7 @@ export class AnnLabelChipComponent implements OnInit {
   }
 
   async showMenu() {
+    // show action sheet to manipulate the annotation label
     const actionSheet = await this.actionSheetController.create({
       header: 'Annotation Label',
       cssClass: 'my-custom-class',
@@ -125,7 +138,7 @@ export class AnnLabelChipComponent implements OnInit {
         this.toggleEdit();
         break;
       case 'color':
-        const color = await this.presentPopover();
+        const color = await this.presentColorPopover();
 
         if (color) {
           this.colorLabelChange.emit(color);
@@ -136,7 +149,7 @@ export class AnnLabelChipComponent implements OnInit {
     }
   }
 
-  async presentPopover() {
+  async presentColorPopover() {
     let mode, color;
 
     if (this.color == 'random') {

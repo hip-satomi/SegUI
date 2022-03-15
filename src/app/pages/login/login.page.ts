@@ -1,12 +1,11 @@
-import { OmeroAuthService } from './../services/omero-auth.service';
+import { OmeroAuthService } from '../../services/omero-auth.service';
 import { AlertController, ToastController, LoadingController } from '@ionic/angular';
-import { AuthService } from './../services/auth.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { finalize, map, tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
-import { UserQuestionsService } from '../services/user-questions.service';
+import { UserQuestionsService } from '../../services/user-questions.service';
 
 @Component({
   selector: 'app-login',
@@ -15,17 +14,19 @@ import { UserQuestionsService } from '../services/user-questions.service';
 })
 export class LoginPage implements OnInit {
 
+  /** login credentials */
   credentials = {
     username: '',
     password: ''
   };
 
+  /** redirection url after login */
   redirectUrl = '';
 
+  /** pipeline for software version */
   version$: Observable<string>;
 
   constructor(
-    private auth: AuthService,
     private omeroAuth: OmeroAuthService,
     private router: Router,
     private alertCtrl: AlertController,
@@ -35,22 +36,28 @@ export class LoginPage implements OnInit {
     private httpClient: HttpClient,
     private questionService: UserQuestionsService,
   ) {
+    // get the software version from assets
     this.version$ = this.httpClient.get('assets/info.json').pipe(
-      tap(data => console.log(data)),
+      //tap(data => console.log(data)),
       map(data => data['version']),
-      tap(version => console.log(version))
+      //tap(version => console.log(version))
     );
   }
 
   ngOnInit() {
+    // try to prefill credentials from url
     this.route.queryParams.subscribe(
       params => {
-        console.log(params);
+        //console.log(params);
 
+        // u --> sepcifies user name
         this.credentials.username = params['u'] || '';
+        // p --> can specify password (possibly unsafe)
         this.credentials.password = params['p'] || '';
-        this.redirectUrl = params['r'] || null;
+        // r --> specifies redirection route
+        this.redirectUrl = params['r'] || '';
 
+        // if both password and username are specified we directly try to login
         if(this.credentials.username !== '' && this.credentials.password !== '') {
           this.login();
         }
@@ -58,6 +65,9 @@ export class LoginPage implements OnInit {
     )
   }
 
+  /**
+   * Login with specified user credentials and move forward
+   */
   login() {
     // create progress loader
     const loading = this.loadingCtrl.create({
@@ -66,26 +76,31 @@ export class LoginPage implements OnInit {
     
     this.omeroAuth.login(this.credentials).pipe(
       finalize(() => loading.then(l => l.dismiss()))
-    ).subscribe(async res => {
-      if (res) {
-        if (this.redirectUrl) {
-          // redirect if possible
-          this.router.navigateByUrl(this.redirectUrl);
-        } else {
-          this.router.navigateByUrl('/omero-dashboard');
-        }
-      } else {
-        const alert = await this.alertCtrl.create({
-          header: 'Login Failed',
-          message: 'Wrong username or password.',
-          buttons: ['OK']
-        });
-      }
+    ).subscribe(() => {
+        // successfully logged in --> move to next page
+        this.moveToNextPage();
     }, (err) => {
       // show the error
-      console.log(err);
-      this.questionService.showError(JSON.stringify(err));
+      console.error(err);
+      this.questionService.showError(JSON.stringify(err), 5000);
     });
+  }
+
+  get loggedIn$() {
+    return this.omeroAuth.loggedIn$;
+  }
+
+  /**
+   * Moves to the next page in line. If no redirect is specified that is the dashboard. Otherwise try to redirect to specified url.
+   */
+  moveToNextPage() {
+    if (this.redirectUrl != '') {
+      // redirect if possible
+      this.router.navigateByUrl(this.redirectUrl);
+    } else {
+      // redirect to dashboard
+      this.router.navigateByUrl('/omero-dashboard');
+    }
   }
 
 }

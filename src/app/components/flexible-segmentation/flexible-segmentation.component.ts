@@ -1,18 +1,16 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { Component, Input } from '@angular/core';
 import { LoadingController, ToastController } from '@ionic/angular';
 import { of, ReplaySubject } from 'rxjs';
 import { finalize, map, switchMap, take, tap } from 'rxjs/operators';
-import { AddLabelAction, AddPolygon, JointAction, LocalAction, RemovePolygon } from 'src/app/models/action';
-import { Drawer, Pencil, Tool, UIInteraction } from 'src/app/models/drawing';
-import { Point, Polygon } from 'src/app/models/geometry';
+import { AddLabelAction, AddPolygon, JointAction, RemovePolygon } from 'src/app/models/action';
+import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
+import { Polygon } from 'src/app/models/geometry';
 import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { UIUtils, Utils } from 'src/app/models/utils';
-import { Detection, SegmentationData, SegmentationService, SegmentationServiceDef, ServiceResult } from 'src/app/services/segmentation.service';
-import { threadId } from 'worker_threads';
+import { SegmentationData, SegmentationService, SegmentationServiceDef, ServiceResult } from 'src/app/services/segmentation.service';
 
 @Component({
   selector: 'app-flexible-segmentation',
@@ -26,6 +24,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   _globalSegModel: GlobalSegmentationModel;
   _segUI: SegmentationUI;
 
+  /** Name of the AI model */
   selectedModel: string;
 
 
@@ -171,12 +170,8 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
     return this.filteredDets.length;
   }
 
-  /*ngOnChanges(changes) {
-    console.log(changes);
-  }*/
-
   update(e) {
-    console.log(this.showOverlay)
+    //console.log(this.showOverlay)
     if (this.oldPencil) {
       // if we have a cached pencil, we can redraw
       this.draw(this.oldPencil);
@@ -209,7 +204,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
    */
   requestProposals() {
     if (!this.selectedModel) {
-      console.log('Select model first');
+      //console.log('Select model first');
       return;
     }
 
@@ -219,7 +214,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
       backdropDismiss: true,
     });
 
-    console.log('show loading');
+    //console.log('show loading');
     loading.then(l => l.present());
 
     const segUI = this.segUI;
@@ -231,10 +226,13 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
       tap(() => {
       }),
       // read the image in binary format
-      switchMap((url: string) => {console.log(url); return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'}); }),
+      switchMap((url: string) => {
+        // console.log(url);
+        return this.httpClient.get<Blob>(url, {responseType: 'blob' as 'json'});
+      }),
       switchMap(image_data => {
-        console.log('have the binary data!');
-        console.log(image_data);
+        // console.log('have the binary data!');
+        // console.log(image_data);
 
         return this.segmentationModels$.pipe(
           take(1),
@@ -242,25 +240,17 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
             return this.segmentationService.requestSegmentationProposal(image_data, services[Number(this.selectedModel)])
           })
         );
-
-        //return this.segmentationService.requestJSSegmentationProposal(data, 0.05);
       }),
       map(
         (data: ServiceResult) => {
-          console.log(`Number of proposal detections ${data.segmentation_data[0].length}`);
-  
-          // drop all segmentations with score lower 0.5
-          //const threshold = 0.4;
-          //data = data.filter(det => det.score >= threshold);
-          //console.log(`Number of filtered detections ${data.length}`);
-          console.log(data);
-
           if (data.format_version != "0.2") {
             console.warn(`Working with unsupported segmentation format: ${data.format_version}`)
           }
 
-          this.data = data.segmentation_data[0];
+          // console.log(`Number of proposal detections ${data.segmentation_data[0].length}`);
 
+          // set data and create new local segmetnation model
+          this.data = data.segmentation_data[0];
           this.createLocalSegModel();
           
           return data.model;
@@ -351,7 +341,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   }
 
   simplifyErrorChanged() {
-    console.log('simplify');
+    // console.log('simplify');
     this.createLocalSegModel();
     this.draw(this.oldPencil);
   }
@@ -372,14 +362,6 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
         deleteActions.push(new RemovePolygon(uuid));
       }
     }
-
-    /*if (this.showNewOverlay) {
-      // add all the polygons here
-      for (const [uuid, poly] of this.filteredDets) {
-        // TODO: automated prediction labels?
-        addActions.push(new AddPolygon(poly, 0));
-      }
-    }*/
 
     if (this.showNewOverlay) {
       const nextFreeLabelId = this.globalSegModel.nextLabelId();
@@ -420,7 +402,6 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
     const jointAction = new JointAction(...deleteActions, ...addActions);
     const jointLocalActions = this.localSegModel.wrapAction(jointAction);
     this.globalSegModel.addAction(new JointAction(...addLabelActions, jointLocalActions));
-    //this.localSegModel.addAction(jointAction);
 
     // close the window
     this.close();

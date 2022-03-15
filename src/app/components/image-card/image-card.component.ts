@@ -1,7 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { Observable, ReplaySubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { Image, ImageInfo, OmeroAPIService } from 'src/app/services/omero-api.service';
+import { Image, OmeroAPIService } from 'src/app/services/omero-api.service';
 
 @Component({
   selector: 'app-image-card',
@@ -17,6 +16,7 @@ export class ImageCardComponent implements OnInit {
   constructor(public omeroAPI: OmeroAPIService) { }
 
   ngOnInit() {
+    // request the roiCount
     this.omeroAPI.getImageInfo(this.image.id).pipe(
       tap(info => {
         this.roiCount = info.roiCount;
@@ -25,6 +25,7 @@ export class ImageCardComponent implements OnInit {
   }
 
   get numImages() {
+    // consider all image planes
     return this.image.pixels.sizeZ * this.image.pixels.sizeT;
   }
 

@@ -1,62 +1,72 @@
+/** Service to request segmentations from seg-serve via http */
+
 import { map, take, tap } from 'rxjs/operators';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
-/**
- * Contour REST structure
- */
-export interface Contour {
-  x: Array<number>;
-  y: Array<number>;
-}
+import { HttpParameterCodec } from '@angular/common/http';import { Point } from '../models/geometry';
+import { Observable, ReplaySubject } from 'rxjs';
+import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
 
 /**
- * Detection REST structure
+ * Config for a segementation service call via seg serve.
  */
-export interface Detection {
-  label: string;
-  bbox: [number, number, number, number];
-  contours: Array<Contour>;
-  score: number;
-}
-
 @Serializable()
 export class SegmentationServiceDef {
+  /** name of the segmentation method as displayed to the user */
   @JsonProperty()
   name: string;
+
+  /** description of the segmentation method displayed to the user */
   @JsonProperty()
   description: string;
+
+  /** git repository url where to find the code */
   @JsonProperty()
   repo_url: string;
+
+  /** entrypoint of the git repo. */
   @JsonProperty()
   repo_entry_point: string;
+
+  /** Repo version/branch */
   @JsonProperty()
   repo_version: string;
+
+  /** additional parameters specified by the approach */
   @JsonProperty()
   additional_parameters: { [name: string]: string }
 }
 
+/** All services */
 @Serializable()
 class SegServiceStore {
   @JsonProperty({type: SegmentationServiceDef})
   services: Array<SegmentationServiceDef>;
 }
 
+/** A single detection in an automated segmentation */
 export interface SegmentationData {
+  /** label of the detection */
   label: string;
+  /** list of countour coordinates */
   contour_coordinates: Point[];
+  /** type of the detection (e.g. polygon) */
   type: string;
+  /** score (e.g. when using method with confidence) */
   score: number;
 }
+
+/** Result of a service call to seg serve */
 export interface ServiceResult {
+  /** name of the used model */
   model: string;
+  /** version of the return format */
   format_version: string;
-  segmentation_data: Array<Array<SegmentationData>>
+  /** segmentation data */
+  segmentation_data: Array<Array<SegmentationData>>;
 }
 
-import { HttpParameterCodec } from '@angular/common/http';import { Point } from '../models/geometry';
-import { Observable, ReplaySubject } from 'rxjs';
-import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
 export class CustomHttpParamEncoder implements HttpParameterCodec {  encodeKey(key: string): string {
   return encodeURIComponent(key);
 }  encodeValue(value: string): string {
@@ -75,6 +85,7 @@ export class SegmentationService {
   services$ = new ReplaySubject<Array<SegmentationServiceDef>>(1);
 
   constructor(private httpClient: HttpClient) {
+    // load the default services from assets json file
     this.httpClient.get('assets/segmentation-services.json').pipe(
       map(res => {
         return deserialize(res, SegServiceStore).services;
@@ -85,29 +96,12 @@ export class SegmentationService {
     ).subscribe();
   }
 
-  public requestCSSegmentationProposal(imageBlob) {
-    // put the binary image data into form data
-    const fd = new FormData();
-    fd.append('data', imageBlob);
-
-    // post this to a segmentation service
-    return this.httpClient.post('/tf/predictions/cellcmaskrcnn/', fd).pipe(
-      map(data => data as Array<Detection>)
-    );
-  }
-
-  public requestJSSegmentationProposal(imageBlob, score_thr = 0.4) {
-    // put the binary image data into form data
-    const fd = new FormData();
-    fd.append('data', imageBlob);
-    fd.append('test_cfg.rcnn.score_thr', `${score_thr}`)
-
-    // post this to a segmentation service
-    return this.httpClient.post('/pt/predictions/htc/', fd).pipe(
-      map(data => data as Array<Detection>)
-    );
-  }
-
+  /**
+   * Request a segmentation proposal from SegServe
+   * @param imageBlob the image blob
+   * @param service_description the service definition containing git url, version, entrypoint, ...
+   * @returns a service result from the HTTP response
+   */
   public requestSegmentationProposal(imageBlob, service_description: SegmentationServiceDef): Observable<ServiceResult> {
     // put the binary image data into form data
     const fd = new FormData();

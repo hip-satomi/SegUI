@@ -13,7 +13,7 @@
         </ion-col>
         <ion-col>
           <p>Num images: {{numImages}}</p>
-          <p>Omero RoIs: {{roiCount}}</p>
+          <ng-template [ngIf]="roiCount != -1"><p>Omero RoIs: {{roiCount}}</p></ng-template>
         </ion-col>
       </ion-row>
     </ion-grid>

@@ -1,5 +1,4 @@
 import { catchError, switchMap, tap, throttleTime} from 'rxjs/operators';
-import { AuthService } from './auth.service';
 import { HttpClient, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, Subject, throwError } from 'rxjs';
@@ -39,10 +38,16 @@ export class TokenInterceptorService implements HttpInterceptor {
     ).subscribe();
   }
 
+  /**
+   * Intercept all http requests
+   * @param req http request
+   * @param next http handler
+   * @returns observable for the http result
+   */
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     if (!this.cookieService.check('csrftoken') && !req.url.startsWith('omero/api/token/')) {
-      console.log('We do not have a valid csrf token yet');
-      // TODO: /api/v0/token/
+      // We do not have a valid csrf token yet --> get one first
+      // console.log('We do not have a valid csrf token yet');
       return this.httpClient.get('omero/api/token/').pipe(
         switchMap(() => {
           return next.handle(req);
@@ -50,11 +55,12 @@ export class TokenInterceptorService implements HttpInterceptor {
       )
     }
 
+    // handle errrors in http requests
     return next.handle(req)
     .pipe(
-      tap(() => console.log(this.router.url)),
+      tap(() => console.log(`Intercepted request from route: ${this.router.url} --> ${req.url}`)),
       catchError(err => {
-        if ([401, 403].includes(err.status) && this.omeroAuthService.user) {
+        if ([401, 403].includes(err.status) && this.omeroAuthService.loggedIn) {
           // auto logout if 401 or 403 response returned from api
           this.relogin$.next();
           this.showAuthNotValid();
@@ -76,6 +82,9 @@ export class TokenInterceptorService implements HttpInterceptor {
       }));
   }
 
+  /**
+   * Show the user a message that he is not authenticated.
+   */
   showAuthNotValid() {
     this.userQuestionService.showError('Your authentication has expired! Please login again!', 5000);
   }

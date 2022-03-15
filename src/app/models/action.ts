@@ -1,3 +1,7 @@
+/**
+ * Implementation for all undo/redo actions modifying the underlying data model
+ */
+
 import { Utils } from './utils';
 import { Point } from './geometry';
 import 'reflect-metadata';
@@ -8,9 +12,9 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
 import { SegCollData } from './segmentation-model';
-import { LabelOptions } from '@angular/material/core';
 import * as dayjs from 'dayjs';
 
+/** List of different action types */
 enum ActionTypes {
     AddEmptyPolygon = "AddEmptyPolygon",
     AddPolygon = "AddPolygon",
@@ -24,8 +28,6 @@ enum ActionTypes {
     JointAction = "JointAction",
     PreventUndoActionWrapper = "PreventUndoActionWrapper",
 
-
-    // end
     LocalAction = "LocalAction",
     CreateSegmentationLayersAction = "CreateSegmentationLayersAction",
 
@@ -62,18 +64,26 @@ const dateToString = (stamp: dayjs.Dayjs): string => {
    return stamp.format('YYYY-MM-DDTHH:mm:ss.SSS Z[Z]');
 }
 
+/**
+ * Abstrac Action class that operates on some data of type T
+ */
 @Serializable()
 export abstract class Action<T> {
 
+    /** The action class: This is necessary for serialization */
     @JsonProperty()
     type: ActionTypes;
 
+    /** A timestamp for th first execution of this action */
     @JsonProperty({
         onDeserialize: stringToDate, onSerialize: dateToString, predicate: () => dayjs.Dayjs
     })
     timeStamp;
+
+    /** Perform the underlying action logic on the data */
     abstract perform(data: T): void;
 
+    /** create this abstract action */
     constructor(type: ActionTypes) {
         this.type = type;
         this.timeStamp = dayjs();
@@ -83,88 +93,77 @@ export abstract class Action<T> {
         return false;
     }
 
-    allowUndo() {
+    /** does this action allow undo */
+    allowUndo(): boolean {
         return true;
     }
 
-    allowRedo() {
+    /** does this action allow redo */
+    allowRedo(): boolean {
         return true;
     }
 }
 
-//@Serializable()
-//export abstract class DataAction extends Action {
-//    abstract setData(info): void;
-//}
-
-/*@Serializable()
-export abstract class SegmentationAction extends Action<SegmentationData> {
-
-    protected segmentationData: SegmentationData;
-
-    constructor(type: ActionTypes, segmentationData: SegmentationData) {
-        super(type);
-        this.segmentationData = segmentationData;
-    }
-
-    /*setData(info) {
-        const segData = info.segmentationData;
-
-        if (!segData) {
-            throw new Error('Illegal relinking of segmentation action! No segmentation data available!');
-        }
-
-        this.segmentationData = info.segmentationData;
-    }
-
-    /*protected get polygonList() {
-        return this.segmentationData.polygons;
-    }
-
-    getPolygon(polygonId: string) {
-        return this.segmentationData.getPolygon(polygonId);
-    }
-}*/
-
+/** Action to setup the segmentation data structure including a local segmentation data for every image. */
 @Serializable()
-
 export class CreateSegmentationLayersAction extends Action<SegCollData> {
     @JsonProperty() numSegLayers: number;
 
+    /**
+     * 
+     * @param numSegLayers the number of segmentation layers (e.g. images)
+     */
     constructor(numSegLayers: number) {
         super(ActionTypes.CreateSegmentationLayersAction);
         this.numSegLayers = numSegLayers;
     }
 
     perform(data: SegCollData): void {
+        // clear all data
         data.clear();
+        // add new segmentation for every layer
         for(let i = 0; i < this.numSegLayers; i++) {
             data.addSegmentationData(new SegmentationData());
         }
-        //data.segData = new SegmentationData[this.numSegLayers];
     }
 }
 
+/**
+ * Action for adding an empty polygon to the segmentation data
+ */
 @Serializable()
 export class AddEmptyPolygon extends Action<SegmentationData> {
 
+    /** Color of the polygon */
     @JsonProperty()
     color: string;
 
+    /** unique identifier for the polygon */
     @JsonProperty()
     uuid: string;
 
+    /** id of the label */
     @JsonProperty()
     labelId: number;
 
+    /**
+     * 
+     * @param labelId id of the parent label
+     * @param color color of the polygon
+     */
     constructor(labelId: number, color: string) {
         super(ActionTypes.AddEmptyPolygon);
 
         this.color = color;
         this.labelId = labelId;
+        // generate unique id
         this.uuid = uuidv4();
     }
 
+    /**
+     * Adds the new polygon to an image segmentation data
+     * @param segmentationData the segmentation data of the image
+     */
     perform(segmentationData: SegmentationData) {
         const poly = new Polygon();
         poly.setColor(this.color);
@@ -175,11 +174,12 @@ export class AddEmptyPolygon extends Action<SegmentationData> {
 }
 
 /**
- * Action to add a full polygon
+ * Action to add a full Polygon (already filled with ponits)
  */
 @Serializable()
 export class AddPolygon extends Action<SegmentationData> {
 
+    /** unique id for the polygon */
     @JsonProperty()
     uuid: string;
 
@@ -197,21 +197,25 @@ export class AddPolygon extends Action<SegmentationData> {
         this.poly = poly;
     }
 
+    /**
+     * Add the polygon to the segmentation data
+     * @param segmentationData 
+     */
     perform(segmentationData: SegmentationData) {
         segmentationData.addPolygon(this.uuid, Utils.clone(this.poly), this.labelId);
     }
 
 }
 
-
+/**
+ * Action to remove polygon from the segmentation
+ */
 @Serializable()
 export class RemovePolygon extends Action<SegmentationData> {
 
+    /** the polygon id for removal */
     @JsonProperty()
     polygonId: string;
-
-    @JsonProperty()
-    polygon: Polygon;
 
     constructor(polgonId: string) {
         super(ActionTypes.RemovePolygon);
@@ -219,32 +223,34 @@ export class RemovePolygon extends Action<SegmentationData> {
         this.polygonId = polgonId;
     }
 
+    /**
+     * Removes the polygon based on its id from the segmentation data
+     * @param segmentationData 
+     */
     perform(segmentationData: SegmentationData) {
-        this.polygon = segmentationData.removePolygon(this.polygonId);
+        segmentationData.removePolygon(this.polygonId);
     }
 }
 
+/**
+ * Action to select a certain polygon
+ */
 @Serializable()
 export class SelectPolygon extends Action<SegmentationData> {
 
     @JsonProperty() newPolyId: string;
-    @JsonProperty() oldPolyId: string;
 
-    constructor(newPolyId: string, oldPolyId: string = null) {
+    /**
+     * 
+     * @param newPolyId unique id of the newly selected polygon
+     */
+    constructor(newPolyId: string) {
         super(ActionTypes.SelectPolygon);
 
         this.newPolyId = newPolyId;
-        if (oldPolyId) {
-            this.oldPolyId = oldPolyId;
-        } 
     }
 
     perform(segmentationData: SegmentationData) {
-        if (!this.oldPolyId) {
-            // use the currently active polygon for old id
-            this.oldPolyId = segmentationData.activePolygonId;
-        }
-
         // update selected polygon
         segmentationData.activePolygonId = this.newPolyId;
         segmentationData.activePointIndex = 0;
@@ -264,6 +270,7 @@ export class SelectPolygon extends Action<SegmentationData> {
     }
 }
 
+/** Action for adding a single point to a polygon */
 @Serializable()
 export class AddPointAction extends Action<SegmentationData> {
 
@@ -274,6 +281,13 @@ export class AddPointAction extends Action<SegmentationData> {
     @JsonProperty()
     private polygonId: string;
 
+    /**
+     * 
+     * @param point 2D point to add to the polygon
+     * @param index index in the polygon point list
+     * @param polygonId unique polygon id
+     * @returns 
+     */
     constructor(point: [number, number], index: number, polygonId: string) {
         super(ActionTypes.AddPointAction);
 
@@ -281,11 +295,15 @@ export class AddPointAction extends Action<SegmentationData> {
             return;
         }
 
-        this.point = Utils.clone(point);
+        this.point = Utils.clone(point);  // clone is important so that later modifications do not change this action
         this.index = index;
         this.polygonId = polygonId;
     }
 
+    /**
+     * Add a point to the polygon in the segmentation data
+     * @param segmentationData 
+     */
     perform(segmentationData: SegmentationData) {
         segmentationData.getPolygon(this.polygonId).addPoint(this.index, Utils.clone(this.point));
 
@@ -293,6 +311,9 @@ export class AddPointAction extends Action<SegmentationData> {
     }
 }
 
+/**
+ * Action to remove a single point from segmentation data
+ */
 @Serializable()
 export class RemovePointAction extends Action<SegmentationData> {
 
@@ -304,6 +325,11 @@ export class RemovePointAction extends Action<SegmentationData> {
     @JsonProperty()
     point: [number, number];
 
+    /**
+     * 
+     * @param polygonId polygon id
+     * @param pointIndex point index in polygon point list to be removed
+     */
     constructor(polygonId: string, pointIndex: number) {
         super(ActionTypes.RemovePointAction);
 
@@ -311,6 +337,10 @@ export class RemovePointAction extends Action<SegmentationData> {
         this.pointIndex = pointIndex;
     }
 
+    /**
+     * Remove the point from the polygon in the segmentation data
+     * @param segmentationData 
+     */
     perform(segmentationData: SegmentationData) {
         // store point data
         this.point = segmentationData.getPolygon(this.polygonId).getPoint(this.pointIndex);
@@ -320,13 +350,14 @@ export class RemovePointAction extends Action<SegmentationData> {
 
 }
 
+/**
+ * Action to move a single point (changing coordinates) of a polygon
+ */
 @Serializable()
 export class MovePointAction extends Action<SegmentationData> {
 
     @JsonProperty()
     private newPoint: [number, number];
-    @JsonProperty()
-    private oldPoint: [number, number];
     @JsonProperty()
     private polygonId: string;
     @JsonProperty()
@@ -340,13 +371,16 @@ export class MovePointAction extends Action<SegmentationData> {
 
         // newPoint can be null -> on deserialization
         if (newPoint) {
-            this.newPoint = Utils.clone([...newPoint]);
+            this.newPoint = Utils.clone([...newPoint]); // clone is important so that later changes do not change this action
         }
     }
 
+    /**
+     * Move the point in the polygon of the segmentation data
+     * @param segmentationData 
+     */
     perform(segmentationData: SegmentationData) {
         const point = segmentationData.getPolygon(this.polygonId).getPoint(this.pointIndex)
-        this.oldPoint = Utils.clone(point);
 
         point[0] = this.newPoint[0];
         point[1] = this.newPoint[1];
@@ -367,6 +401,9 @@ export class MovePointAction extends Action<SegmentationData> {
     }
 }
 
+/**
+ * Action to change to points of a polygon
+ */
 @Serializable()
 export class ChangePolygonPoints extends Action<SegmentationData> {
 
@@ -375,6 +412,11 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
     @JsonProperty()
     private polygonId: string;
 
+    /**
+     * 
+     * @param newPoints new point list for the polygon
+     * @param polygonId the unique polygon id
+     */
     constructor(newPoints: Point[], polygonId: string) {
         super(ActionTypes.ChangePolygonPoints);
 
@@ -384,30 +426,48 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
         }
 
         this.polygonId = polygonId;
-        this.newPoints = Utils.clone(newPoints);
+        this.newPoints = Utils.clone(newPoints); // clone is important to make action independet of later changes in the point array
     }
 
+    /**
+     * Apply new polygon points in the segmentation data
+     * @param segmentationData 
+     */
     perform(segmentationData: SegmentationData) {
         segmentationData.getPolygon(this.polygonId).setPoints(Utils.clone(this.newPoints));
     }
 }
 
+/**
+ * Action to add a new label to the global segmentation model
+ */
 @Serializable()
 export class AddLabelAction extends Action<SegCollData> {
 
     @JsonProperty()
     label: AnnotationLabel;
 
+    /**
+     * 
+     * @param label new annotation label
+     */
     constructor(label: AnnotationLabel) {
         super(ActionTypes.AddLabelAction);
         this.label = label;
     }
 
+    /**
+     * Add the annotation label
+     * @param data 
+     */
     perform(data: SegCollData): void {
         data.addLabel(this.label);
     }
 }
 
+/**
+ * Action to rename an annotation label
+ */
 @Serializable()
 export class RenameLabelAction extends Action<SegCollData> {
     @JsonProperty()
@@ -415,25 +475,42 @@ export class RenameLabelAction extends Action<SegCollData> {
     @JsonProperty()
     labelName: string;
 
+    /**
+     * 
+     * @param id of the annotation label
+     * @param name new name for the annotation label
+     */
     constructor(id: number, name: string) {
         super(ActionTypes.RenameLabelAction);
         this.id = id;
         this.labelName = name;
     }
 
+    /**
+     * Rename annotation label
+     * @param data 
+     */
     perform(data: SegCollData): void {
         data.getLabelById(this.id).name = this.labelName;
     }
-    
 }
 
+/**
+ * merge two annotation labels
+ */
 @Serializable()
 export class MergeLabelAction extends Action<SegCollData> {
     @JsonProperty()
     srcId: number;
+
     @JsonProperty()
     dstId: number;
 
+    /**
+     * 
+     * @param srcId source annotation label (gets merged)
+     * @param dstId destination annotation label (gets all the polygons from source)
+     */
     constructor(srcId: number, dstId: number) {
         super(ActionTypes.MergeLabelAction);
         this.srcId = srcId;
@@ -451,7 +528,6 @@ export class MergeLabelAction extends Action<SegCollData> {
             // switch labels
             for (const pId of polyIds) {
                 segData.labels.set(pId, this.dstId);
-                //segData.labels[pId] = this.dstId;
             }
         }
 
@@ -459,20 +535,31 @@ export class MergeLabelAction extends Action<SegCollData> {
         new DeleteLabelAction(this.srcId).perform(data);
 
         // activate target label
-        new ChangeLabelActivityAction(this.dstId, true);
+        new ChangeLabelActivityAction(this.dstId, true).perform(data);
     }
 }
 
+/**
+ * Action to delete a label (and all its associated segmentation polygons)
+ */
 @Serializable()
 export class DeleteLabelAction extends Action<SegCollData> {
     @JsonProperty()
     labelId: number;
 
+    /**
+     * 
+     * @param labelId label id of the label to delete
+     */
     constructor(labelId: number) {
         super(ActionTypes.DeleteLabelAction);
         this.labelId = labelId;
     }
 
+    /**
+     * Delete label and all its associated polygons
+     * @param data 
+     */
     perform(data: SegCollData): void {
         // delete label
         data.labels.splice(data.labels.indexOf(data.getLabelById(this.labelId)), 1);
@@ -499,18 +586,30 @@ export class DeleteLabelAction extends Action<SegCollData> {
     }
 }
 
+/**
+ * Action to change the label activity. Only the segmentation of an active label can be changed.
+ */
 @Serializable()
 export class ChangeLabelActivityAction extends Action<SegCollData> {
 
     @JsonProperty() labelId: number;
     @JsonProperty() active: boolean;
 
+    /**
+     * 
+     * @param labelId id of the label
+     * @param active new activity state
+     */
     constructor(labelId: number, active: boolean) {
         super(ActionTypes.ChangeLabelActivityAction)
         this.labelId = labelId;
         this.active = active;
     }
 
+    /**
+     * apply the new label activity state
+     * @param data 
+     */
     perform(data: SegCollData): void {
         if (this.active) {
             // disable all others
@@ -518,6 +617,7 @@ export class ChangeLabelActivityAction extends Action<SegCollData> {
                 label.active = false;
             }
         }
+        // set new activity state
         data.getLabelById(this.labelId).active = this.active;
         if (this.active) {
             // also make the label visible (otherwise activation makes no sense)
@@ -527,6 +627,9 @@ export class ChangeLabelActivityAction extends Action<SegCollData> {
 
 }
 
+/**
+ * Action to change visibility of a label
+ */
 @Serializable()
 export class ChangeLabelVisibilityAction extends Action<SegCollData> {
     @JsonProperty() labelId: number;
@@ -539,21 +642,38 @@ export class ChangeLabelVisibilityAction extends Action<SegCollData> {
     }
 
     perform(data: SegCollData): void {
-        data.getLabelById(this.labelId).visible = this.visible;
+        const label = data.getLabelById(this.labelId)
+        label.visible = this.visible;
+
+        if (label.visible == false) {
+            new ChangeLabelActivityAction(this.labelId, false).perform(data);
+        }
     }
 }
 
+/**
+ * Action to change to color of a label
+ */
 @Serializable()
 export class ChangeLabelColorAction extends Action<SegCollData> {
     @JsonProperty() labelId: number;
     @JsonProperty() color: string;
 
+    /**
+     * 
+     * @param labelId label id
+     * @param color new color code
+     */
     constructor(labelId: number, color: string) {
         super(ActionTypes.ChangeLabelColorAction);
         this.labelId = labelId;
         this.color = color;
     }
 
+    /**
+     * Apply the new color to the label
+     * @param data 
+     */
     perform(data: SegCollData): void {
         data.getLabelById(this.labelId).color = this.color;
     }
@@ -594,11 +714,13 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
 
     const lookup = new Map<ActionTypes, any>();
 
+    // create the lookup
     for (const [actionType, classConstr] of lookupList) {
         lookup.set(actionType, classConstr);
     }
 
 
+    // get the action type
     const type = action['type'];
     if (lookup.has(type)) {
         return lookup.get(type);
@@ -607,12 +729,21 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
     }
 };
 
+/**
+ * Action wrapper for single image actions.
+ */
 @Serializable()
 export class LocalAction extends Action<SegCollData> {
 
+    /**
+     * the action
+     */
     @JsonProperty({predicate: actionRestorer})
     action: Action<SegmentationData>;
 
+    /**
+     * the plane (frame) to apply the action
+     */
     @JsonProperty()
     t: number;
 
@@ -623,23 +754,39 @@ export class LocalAction extends Action<SegCollData> {
         this.t = t;
     }
 
+    /**
+     * Apply the action to the corresponding image segmentation
+     * @param data 
+     */
     perform(data: SegCollData): void {
         this.action.perform(data.get(this.t));
     }
     
 }
 
+/**
+ * 
+ */
 @Serializable()
 export class JointAction<T> extends Action<T>{
 
+    /** List of actions */
     @JsonProperty({predicate: actionRestorer})
     actions: Action<T>[];
 
+    /**
+     * Creats a grouped action based on a list of actions
+     * @param actions list of actions
+     */
     constructor(...actions: Action<T>[]) {
         super(ActionTypes.JointAction);
         this.actions = actions;
     }
 
+    /**
+     * Perform all the actions
+     * @param data 
+     */
     perform(data: T) {
         for (const act of this.actions) {
             act.perform(data);
@@ -669,6 +816,9 @@ export class JointAction<T> extends Action<T>{
     }
 }
 
+/**
+ * Action wrapper to make an action undoable
+ */
 @Serializable()
 export class PreventUndoActionWrapper<T> extends Action<T> {
 
@@ -689,15 +839,21 @@ export class PreventUndoActionWrapper<T> extends Action<T> {
     }
 }
 
+/** Interface for clearing */
 export interface ClearableStorage {
-    clear();
+    clear(): void;
 }
 
+/**
+ * Class for managing (do/undo) actions modifying some (clearable) data
+ */
 @Serializable()
 export class ActionManager<T extends ClearableStorage> {
 
+    /** the full list of actions */
     @JsonProperty({predicate: actionRestorer})
     actions: Action<T>[] = [];
+    /** pointer to the most recent action */
     @JsonProperty()
     currentActionPointer: number;
 
@@ -706,6 +862,7 @@ export class ActionManager<T extends ClearableStorage> {
 
     onDataChanged = new EventEmitter<ActionManager<T>>();
 
+    /** the underlying data structure */
     data: T;
 
     constructor(data: T) {
@@ -725,23 +882,11 @@ export class ActionManager<T extends ClearableStorage> {
             action.perform(this.data);
         }
 
-        if (!this.recordedActionPointer && this.currentActionPointer > 0 && this.actions[this.currentActionPointer - 1].join(action)) {
-            // sucessfully joined the action
-        } else {
-            this.actions.splice(this.currentActionPointer, this.actions.length, action);
-            this.currentActionPointer++;
-        }
+        // add the action (and remove others that are still on the stack)
+        this.actions.splice(this.currentActionPointer, this.actions.length, action);
+        this.currentActionPointer++;
 
-
-        /*if (this.actions.length > 0
-            && (+(new Date()) - +this.actions[this.actions.length - 1].lastPerformedTime) / 1000 < this.actionTimeSplitThreshold) {
-            // join with existing action due to time correspondence
-            const jact = new JointAction(this.actions.pop(), action);
-            jact.updatePerformedTime();
-            action = jact;
-            this.actions.splice(this.currentActionPointer - 1, this.actions.length, action);
-        } else*/
-
+        // notify the data has changed
         this.notifyDataChanged(action);
     }
 
@@ -758,20 +903,15 @@ export class ActionManager<T extends ClearableStorage> {
         if (!this.canUndo) {
             return;
         }
-        const lastAction = this.lastAction;
 
         console.log('Undo:');
-        console.log(lastAction.constructor.name);
-        console.log(lastAction);
+        console.log(this.lastAction.constructor.name);
 
-        //lastAction.reverse();
+        // undo last action by remove one action from pointer
         this.currentActionPointer -= 1;
 
+        // redo all the actions again
         this.reapplyActions();
-
-        this.notifyDataChanged();
-
-        this.recordedActionPointer = null;
     }
 
     /**
@@ -787,14 +927,13 @@ export class ActionManager<T extends ClearableStorage> {
 
         console.log('Redo:');
         console.log(nextAction.constructor.name);
-        console.log(nextAction);
 
+        // perform action
         nextAction.perform(this.data);
         this.currentActionPointer++;
 
+        // notify the data change
         this.notifyDataChanged();
-
-        this.recordedActionPointer = null;
     }
 
     /**
@@ -818,34 +957,23 @@ export class ActionManager<T extends ClearableStorage> {
         return this.actions.length > this.currentActionPointer;
     }
 
+    /**
+     * Reapply all actions in the manager (according to action pointer) to the data and notify the changes
+     * @param data modified by actions
+     */
     reapplyActions(data = this.data) {
+        // clear the data
         data.clear();
 
+        // apply actions one by one
         for (let i = 0; i < this.currentActionPointer; i++) {
             const action = this.actions[i];
 
             action.perform(data);
         }
 
+        // notify that the data has changed
         this.notifyDataChanged();
-    }
-
-    recordActions() {
-        this.recordedActionPointer = this.currentActionPointer;
-    }
-
-    mergeRecordedActions() {
-        if (this.recordedActionPointer) {
-            const actions = this.actions.splice(this.recordedActionPointer, this.currentActionPointer - this.recordedActionPointer);
-
-            const action = new JointAction(...actions);
-
-            this.currentActionPointer = this.recordedActionPointer;
-
-            this.addAction(action, false);
-
-            this.recordedActionPointer = null;
-        }
     }
 
     clear() {

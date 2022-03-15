@@ -3,7 +3,7 @@ import { ActionSheetButton, ActionSheetController, AlertController, ToastControl
 import { from, Observable, of } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { AnnotationLabel } from '../models/segmentation-data';
-import { GlobalSegmentationModel, LocalSegmentationModel } from '../models/segmentation-model';
+import { LocalSegmentationModel } from '../models/segmentation-model';
 
 @Injectable({
   providedIn: 'root'
@@ -14,6 +14,11 @@ export class UserQuestionsService {
     private alertController: AlertController,
     private toastController: ToastController) { }
 
+    /**
+     * Ask the user for a label
+     * @param localSegModel local segmentation model used for obtaining labels
+     * @returns observable to selected label
+     */
   askForSingleLabel(localSegModel: LocalSegmentationModel): Observable<AnnotationLabel> {
 
     const buttons = localSegModel.labels.map((l): ActionSheetButton => {
@@ -31,7 +36,7 @@ export class UserQuestionsService {
         icon: 'close',
         role: 'cancel',
         handler: () => {
-          console.log('Cancel clicked');
+          //console.log('Cancel clicked');
         }
       }]
     })).pipe(
@@ -39,7 +44,7 @@ export class UserQuestionsService {
       switchMap(as => from(as.onDidDismiss())),
       map((result): string => result['role']),
       tap((role) => {
-        console.log(role)
+        //console.log(role)
       }),
       map((role: string) => {
         if (['cancel', 'backdrop'].includes(role)) {
@@ -52,6 +57,11 @@ export class UserQuestionsService {
     )
   }
 
+  /**
+   * Obtain the currently active label in a safe way. If no label is active, ask the user to select one
+   * @param localSegModel local segementation model
+   * @returns observable to label label
+   */
   activeLabel(localSegModel: LocalSegmentationModel): Observable<AnnotationLabel> {
     const activeLabels = localSegModel.activeLabels;
     if (activeLabels.length == 1) {
@@ -61,6 +71,12 @@ export class UserQuestionsService {
     }
   }
 
+  /**
+   * Ask to merge two labels
+   * @param srcName source label (will be merged and deleted)
+   * @param dstName target label (will stay)
+   * @returns observable to the user's decision
+   */
   mergeLabels(srcName: string, dstName: string): Observable<boolean> {
     return from(this.alertController.create({
       cssClass: 'my-custom-class',
@@ -118,6 +134,9 @@ export class UserQuestionsService {
     }).then(toast => toast.present());
   }
   
+  /**
+   * Ask the user to create new segmentation data for the image stack (mainly due to failure of loading existing).
+   */
   createNewData(): Observable<boolean> {
     return from(this.alertController.create({
       cssClass: 'over-loading',
@@ -147,4 +166,41 @@ export class UserQuestionsService {
       map(role => role == 'confirm')
     );
   }
+
+  /**
+   * Creates an alert dialog with specific layout
+   * @param header header 
+   * @param message message (usually a question)
+   * @param cancelText text of cancel button
+   * @param confirmText text of confirm button
+   * @returns "confirm" if confirm button is clicked, otherwise error
+   */
+     alertAsk(header, message, cancelText='cancel', confirmText='confirm') {
+      // 1. Warn the user that this can overwrite data
+      return from(this.alertController.create({
+        header,
+        message,
+        buttons: [
+          {
+            text: cancelText,
+            role: 'cancel',
+          },
+          {
+            text: confirmText,
+            role: 'confirm'
+          }
+        ]
+      })).pipe(
+        tap((alert) => alert.present()),
+        switchMap(alert => alert.onDidDismiss()),
+        map(data => {
+          if (data.role !== 'confirm') {
+            throw new Error("User canceled next image movement");
+          }
+  
+          // console.log(data.role);
+  
+          return data;
+        }));
+    }
 }

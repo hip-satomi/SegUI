@@ -42,7 +42,7 @@ export class OmeroDatasetPage implements ViewWillEnter {
         return this.omeroApi.getDatasetProjects(dataset);
       }),
       map((projects: Project[]) => projects[0]),
-      tap((p) => console.log('Project name:' + p.name)),
+      //tap((p) => console.log('Project name:' + p.name)),
       share()
     );
   }

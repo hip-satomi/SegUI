@@ -1,7 +1,6 @@
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SegmentationComponent } from '../components/segmentation/segmentation.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { BrushComponent } from '../components/brush/brush.component';
@@ -23,7 +22,6 @@ import { ImageCardComponent } from '../components/image-card/image-card.componen
 @NgModule({
   declarations: [
     ImageDisplayComponent,
-    SegmentationComponent,
     BrushComponent,
     PermissionVizComponent,
     SimpleNavigationComponent,
@@ -38,7 +36,6 @@ import { ImageCardComponent } from '../components/image-card/image-card.componen
   ],
   exports: [
     ImageDisplayComponent,
-    SegmentationComponent,
     BrushComponent,
     PermissionVizComponent,
     SimpleNavigationComponent,

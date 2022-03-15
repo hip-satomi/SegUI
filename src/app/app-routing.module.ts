@@ -6,7 +6,7 @@ const routes: Routes = [
   {
     path: 'seg-track',
     loadChildren: () => import('./home/home.module').then( m => m.HomePageModule),
-    //canActivate: [AuthGuard]
+    canActivate: [AuthGuard]
   },
   {
     path: '',
@@ -14,25 +14,23 @@ const routes: Routes = [
     pathMatch: 'full'
   },
   {
-    path: 'list',
-    loadChildren: () => import('./pages/image-set-list/image-set-list.module').then( m => m.ImageSetListPageModule),
-    canActivate: [AuthGuard]
-  },
-  {
     path: 'login',
-    loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
+    loadChildren: () => import('./pages/login/login.module').then( m => m.LoginPageModule),
   },
   {
     path: 'omero-dashboard',
-    loadChildren: () => import('./pages/omero-dashboard/omero-dashboard.module').then( m => m.OmeroDashboardPageModule)
+    loadChildren: () => import('./pages/omero-dashboard/omero-dashboard.module').then( m => m.OmeroDashboardPageModule),
+    canActivate: [AuthGuard]
   },
   {
     path: 'omero-project',
-    loadChildren: () => import('./pages/omero-project/omero-project.module').then( m => m.OmeroProjectPageModule)
+    loadChildren: () => import('./pages/omero-project/omero-project.module').then( m => m.OmeroProjectPageModule),
+    canActivate: [AuthGuard]
   },
   {
     path: 'omero-dataset',
-    loadChildren: () => import('./pages/omero-dataset/omero-dataset.module').then( m => m.OmeroDatasetPageModule)
+    loadChildren: () => import('./pages/omero-dataset/omero-dataset.module').then( m => m.OmeroDatasetPageModule),
+    canActivate: [AuthGuard]
   },
 ];
 

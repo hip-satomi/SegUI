@@ -18,11 +18,13 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
   @Input() drawer: Drawer;
   @Input() interactor: UIInteraction;
 
+  // drawing elements
   canvasElement;
   ctx;
 
   enabled = true;
 
+  /** touch/gesture indicators */
   indicators;
 
   pinchInfo = {
@@ -51,6 +53,7 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
 
   @HostListener('window:resize', [])
   private onResize() {
+    // fit container to new window size
     this.fitToContainer(this.canvasElement);
   }
 
@@ -257,7 +260,7 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     // update transform
     this.ctx.setTransform(transform);
 
-    console.log('zoomToShowFixedBox');
+    // console.log('zoomToShowFixedBox');
   }
 
   /**
@@ -292,7 +295,7 @@ export class ImageDisplayComponent implements OnInit, AfterViewInit, AfterViewCh
     // update transform
     this.ctx.setTransform(transform);
 
-    console.log('zoomToShowFixedBox');
+    // console.log('zoomToShowFixedBox');
   }
 
     /**

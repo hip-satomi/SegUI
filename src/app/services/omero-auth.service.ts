@@ -1,18 +1,13 @@
 import { Router } from '@angular/router';
 import { Platform, AlertController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, from, interval, Observable, of } from 'rxjs';
+import { BehaviorSubject, from, interval, Observable, of, ReplaySubject } from 'rxjs';
 import { Injectable } from '@angular/core';
 
 import { Plugins } from '@capacitor/core';
 import { JwtHelperService } from '@auth0/angular-jwt';
-import { switchMap, map, tap } from 'rxjs/operators';
+import { switchMap, map, tap, catchError, finalize, share, take } from 'rxjs/operators';
 import * as dayjs from 'dayjs';
-
-const { Storage } = Plugins;
-
-const helper = new JwtHelperService();
-const TOKEN_KEY = 'jwt-token';
 
 interface User {
   userName: string;
@@ -71,17 +66,34 @@ export class NoServerAvailableException extends Error {
   providedIn: 'root'
 })
 export class OmeroAuthService {
-  // observable that provides user data
-  public user = new BehaviorSubject<User>(null);
+  public loggedIn$;
+  public loggedIn = false;
+  private initialCheck = false;
+
+
+  /**
+   * Sends keep-alive request to the server. If the request fails, the user is not logged into the server backend!
+   * 
+   * @returns Observable(true) when the user is logged in, otherwise Observable(false)
+   */
+  keepAliveRequest(): Observable<boolean> {
+    // send keep alive request
+    return this.httpClient.get('omero/webclient/keepalive_ping/', {responseType: 'text'}).pipe(
+      map((res) => {
+        if(res === 'Connection Failed') {
+          // when connection fails --> we are not logged in
+          return false
+        }
+        // otherwise we are logged in
+        return true;
+      })
+    );
+  }
 
   private server$: Observable<number>;
 
-  private refreshTokenTimeout;
-
   constructor(private httpClient: HttpClient,
-              private plt: Platform,
-              private router: Router,
-              private alertController: AlertController) {
+              private router: Router) {
 
       this.server$ = this.httpClient.get('omero/api/servers/').pipe(
         map((r: DataListResponse<Server>) => {
@@ -92,6 +104,35 @@ export class OmeroAuthService {
           return r.data[0].id;
         })
       );
+
+      this.loggedIn$ = of(1).pipe(
+        switchMap(() => {
+          // check whether login state has been initialized
+          if(!this.initialCheck) {
+            // it's not: we try to get login for the first time
+            return this.keepAliveRequest().pipe(
+              catchError(() => {
+                return of(false)
+              }),
+              tap(loggedIn => this.loggedIn = loggedIn),
+              finalize(() => {
+                this.initialCheck = true;
+              })
+            )
+          } else {
+            // it has we just return it
+            return of(this.loggedIn);
+          }
+        }),
+      );
+
+      // send a keep-alive request every 60 seconds (to prevent csrf-token timeout)
+      interval(60 * 1000)
+        .subscribe((val) => {
+          console.log('Keep csrf-token alive');
+          this.keepAliveRequest().pipe(take(1))
+            .subscribe((result) => this.loggedIn = result, () => this.loggedIn = false)
+        });      
   }
 
   /**
@@ -124,13 +165,16 @@ export class OmeroAuthService {
   }
 
   updateUser(user: User) {
-    this.user.next(user);
+    if (user) {
+      this.loggedIn = true;
+    } else {
+      this.loggedIn = false;
+    }
+    this.initialCheck = true;
   }
 
   logout() {
-    Storage.remove({key: TOKEN_KEY}).then(() => {
-      this.router.navigateByUrl('/');
-      this.updateUser(null);
-    });
+    this.router.navigateByUrl('/');
+    this.updateUser(null);
   }
 }

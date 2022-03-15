@@ -27,6 +27,7 @@ export class PermissionVizComponent implements OnInit {
   }
 
   updateData() {
+    // generate data from permissions
     this.data = [
       {
         name: 'canAnnotate',

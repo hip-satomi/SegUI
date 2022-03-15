@@ -1,8 +1,8 @@
 import { OmeroAPIService, Project } from './../../services/omero-api.service';
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { catchError, share } from 'rxjs/operators';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
-import { throwError } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { ViewWillEnter } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
 
@@ -13,14 +13,19 @@ import { ActivatedRoute } from '@angular/router';
 })
 export class OmeroDashboardPage implements ViewWillEnter {
 
-  public projects$;
-  public group;
+  /** observable for all projects to visualize */
+  public projects$: Observable<Array<Project>>;
+  /** group restriction */
+  public group = '';
 
   constructor(public omeroAPI: OmeroAPIService,
               public userService: UserQuestionsService,
               private route: ActivatedRoute) {
   }
 
+  /**
+   * Before entering the dashboard we will update the data
+   */
   ionViewWillEnter() {
     // this is called every time the page is visited
     this.route.queryParams.subscribe(
@@ -29,7 +34,7 @@ export class OmeroDashboardPage implements ViewWillEnter {
         this.group = params['group'] || '';
 
         // depending on group parater select projects
-        let projectAdapter;
+        let projectAdapter: Observable<Array<Project>>;
         if (this.group !== '') {
           projectAdapter = this.omeroAPI.getPagedData('/omero/api/m/projects/', Project, 100, {group: this.group});
         } else {
@@ -52,9 +57,6 @@ export class OmeroDashboardPage implements ViewWillEnter {
    */
   get groupRestricted() {
     return this.group !== '';
-  }
-
-  ngOnInit() {
   }
 
 }

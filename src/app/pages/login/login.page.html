@@ -1,6 +1,7 @@
 <ion-header>
   <ion-toolbar color="primary">
     <ion-title>SegUI</ion-title>
+    <!-- show version of the software -->
     <ion-label slot="end" style="padding-right: 10px;">{{ version$ | async }}</ion-label>
   </ion-toolbar>
 </ion-header>
@@ -10,7 +11,18 @@
   <ion-row>
     <ion-col size="12" size-sm="10" offset-sm="1" size-md="8" offset-md="2" size-lg="6" offset-lg="3" size-xl="4"
       offset-xl="4">
+
+      <!-- Show a special card when already logged in, that you can just continue -->
+      <ion-card *ngIf="(this.loggedIn$ | async)">
+        <ion-card-header>
+          <ion-card-title class="ion-text-center">You are already logged in!</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-button expand="block" (click)="moveToNextPage()">Continue</ion-button>
+        </ion-card-content>
+      </ion-card>
  
+      <!-- Show card for logging in-->
       <ion-card>
         <ion-card-header>
           <ion-card-title class="ion-text-center">Login</ion-card-title>

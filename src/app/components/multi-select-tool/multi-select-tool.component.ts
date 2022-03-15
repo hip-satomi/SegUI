@@ -22,13 +22,15 @@ export class MultiSelectToolComponent extends Tool {
 
   @Output() changedEvent = new EventEmitter<void>();
 
-  @Input()
-  localSegModel: LocalSegmentationModel;
-  @Input()
-  globalSegModel: GlobalSegmentationModel;
+  // seg models
+  @Input() localSegModel: LocalSegmentationModel;
+  @Input() globalSegModel: GlobalSegmentationModel;
   _segUI: SegmentationUI;
+
+  // drawing
   ctx;
   canvasElement;
+
   @Input() set segUI(segUI: SegmentationUI) {
     this._segUI = segUI;
 
@@ -46,16 +48,12 @@ export class MultiSelectToolComponent extends Tool {
 
   rectangle: Polygon;
 
-  brushActivated = false;
-  oldPoints: Point[];
-  radius = 2;
+  rectangleActivated = false;
 
-  increase = true;
-  dirty = false;
-
-  simplificationTolerance = 0.2;
-
-
+  /**
+   * Delete all polygons inside the selction rectangle
+   * @returns 
+   */
   delete(): boolean {
       if (!this.rectangle) {
           return false;
@@ -133,7 +131,6 @@ export class MultiSelectToolComponent extends Tool {
 
   /**
    * Handles pointer (mouse or toch) down events
-   * Activates increase/decrease brush
    * 
    * @param event event
    */
@@ -160,19 +157,19 @@ export class MultiSelectToolComponent extends Tool {
   }
 
   onTap(event: any): boolean {
-      this.brushActivated = false;
+      this.rectangleActivated = false;
 
       return false;
   }
 
   onPress(event: any): boolean {
       // prevent brushing behavior but do not prevent default behavior
-      this.brushActivated = false;
+      this.rectangleActivated = false;
       return false;
   }
   onPanStart(event: any): boolean {
       event.preventDefault();
-      this.brushActivated = true;
+      this.rectangleActivated = true;
       this.rectangleStartPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
 
       // Notify change event
@@ -197,7 +194,7 @@ export class MultiSelectToolComponent extends Tool {
   }
 
   onPanEnd(event: any): boolean {
-      this.brushActivated = false;
+      this.rectangleActivated = false;
       
       this.rectangleEndPos = null;
       this.rectangleStartPos = null;
@@ -211,14 +208,6 @@ export class MultiSelectToolComponent extends Tool {
   }
 
   commitChanges() {
-      if (this.dirty) {
-          // only add actions if we have changed something
-          this.localSegModel.addAction(new ChangePolygonPoints(this.currentPolygon.points,
-                                  this.localSegModel.activePolygonId));
-      }
-      this.dirty = false;
-
-      this.changedEvent.emit();
   }
 
   stop() {

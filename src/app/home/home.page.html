@@ -1,3 +1,4 @@
+<!-- Header items-->
 <ion-header [translucent]="true">
   <ion-toolbar>
     <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
@@ -10,13 +11,9 @@
       <a ion-button href="https://jugit.fz-juelich.de/satomi/segtrackui/-/issues" target="_blank" #tooltip="matTooltip"
         matTooltip="Please report problems/feature requests for the software here"><ion-icon name="bug-outline"></ion-icon> ISSUES</a>
 
-      <ion-button *ngIf="isSegmentation" (click)="toggleTool(segTool)" type="button" #tooltip="matTooltip"
-        matTooltip="Advanced ML based segmentation proposals" [color]="isToolActive(segTool) ? 'primary' : ''">
-        <ion-icon name="rocket-outline"></ion-icon>ADV-SEG
-      </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(flexSegTool)" type="button" #tooltip="matTooltip"
-        matTooltip="Advanced ML based segmentation proposals" [color]="isToolActive(flexSegTool) ? 'primary' : ''">
-        <ion-icon name="rocket-outline"></ion-icon>FLX-SEG
+        matTooltip="Advanced deep-learning based segmentation proposals" [color]="isToolActive(flexSegTool) ? 'primary' : ''">
+        <ion-icon name="rocket-outline"></ion-icon>SEG
       </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(brushToolComponent)" type="button" [color]="isToolActive(brushToolComponent) ? 'primary' : ''"
         #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
@@ -41,11 +38,12 @@
   </ion-toolbar>
 </ion-header>
 
+<!-- Middle content-->
 <ion-content [fullscreen]="true" appMovableArea>
+
+  <!-- Tools -->
   <div #toolContainer>
   </div>
-  <app-segmentation #segTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
-  </app-segmentation>
 
   <app-flexible-segmentation #flexSegTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-flexible-segmentation>
@@ -63,12 +61,14 @@
 
   </ion-header>
 
+  <!-- Image Display-->
   <app-image-display #imageDisplay [drawer]="this" [interactor]="this" cdkOverlayOrigin #origin="cdkOverlayOrigin"></app-image-display>
-  <!--<app-image-view #imageView [imageUrl]="url" [enabled]="activeView === i" [segmentationModel]="segmentationModels[i]" [segmentationUI]="segmentationUIs[i]" *ngFor="let url of urls; let i = index"></app-image-view>-->
 </ion-content>
 
+<!-- Label annotation manager -->
 <app-ann-manager *ngIf="globalSegModel" [globalSegModel]="globalSegModel" (redraw)="draw()"></app-ann-manager>
 
+<!-- Footer for navigating image stack and images -->
 <ion-footer *ngIf="segmentationModels.length >= 1">
   <ion-toolbar>
     <ion-buttons slot="start">

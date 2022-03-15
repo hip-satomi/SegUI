@@ -2,17 +2,26 @@ import { Polygon } from 'src/app/models/geometry';
 import { JsonProperty, Serializable } from 'typescript-json-serializer';
 import { ClearableStorage } from './action';
 
-
+/**
+ * Segmentation data for a single image.
+ */
 export class SegmentationData implements ClearableStorage {
+    /** Mapping polygon ids to objects */
     private polygons: Map<string, Polygon>;
+    /** currently active polygon */
     activePolygonId: string;
+    /** currently active point index (of active polygon) */
     activePointIndex: number;
+    /** map polygon labels to annotation label ids */
     labels: Map<string, number>;
 
     constructor() {
         this.clear();
     }
 
+    /**
+     * Reset the segementation data
+     */
     clear() {
         this.polygons = new Map<string, Polygon>();
         this.activePolygonId = null;
@@ -20,6 +29,7 @@ export class SegmentationData implements ClearableStorage {
         this.labels = new Map<string, number>();
     }
 
+    /** get a polygon object by id */
     getPolygon(polygonId: string): Polygon {
         if (this.polygons.has(polygonId)) {
             return this.polygons.get(polygonId);
@@ -66,6 +76,10 @@ export class SegmentationData implements ClearableStorage {
         return poly;
     }
 
+    /**
+     * 
+     * @returns id of the first empty (no points) polygon or null
+     */
     getEmptyPolygonId() {
         for (const [id, poly] of this.polygons.entries()) {
             if (poly.numPoints === 0) {
@@ -76,7 +90,11 @@ export class SegmentationData implements ClearableStorage {
         return null;
     }
 
-    getEmptyPolygons() {
+    /**
+     * 
+     * @returns List of all empty [polygon ids, polygon object]
+     */
+    getEmptyPolygons(): Array<[string, Polygon]> {
         return [...this.polygons.entries()].filter(([id, poly]) => {
             return poly.numPoints == 0;
         });
@@ -100,6 +118,9 @@ export class SegmentationData implements ClearableStorage {
 }
 
 
+/**
+ * Annotation label class for storing all information related to a single label.
+ */
 @Serializable()
 export class AnnotationLabel {
     @JsonProperty() id: number;
@@ -108,6 +129,14 @@ export class AnnotationLabel {
     @JsonProperty() color: string;
     @JsonProperty() active: boolean;
 
+    /**
+     * 
+     * @param id unique id of the label
+     * @param name of the label
+     * @param visibile status (corresponds to beeing rendered or not)
+     * @param color of the label ('random' indicates to use underlying polygon color)
+     * @param active labels can be modified
+     */
     constructor(id: number, name: string, visibile = true, color = 'random', active = true) {
         this.id = id;
         this.name = name;
