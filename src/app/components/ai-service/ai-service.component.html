@@ -43,7 +43,11 @@
       </ion-item>
     </ion-list>
 
-    <ion-button color="secondary">Customize</ion-button>
-    <ion-button *ngIf="!readonly" color="primary">Save</ion-button>
+    <ion-item>
+      <ion-button color="secondary">Customize</ion-button>
+      <ion-button *ngIf="!readonly" color="primary">Save</ion-button>
+      <ion-button *ngIf="!readonly" color="primary" slot="end" color="warning">Discard</ion-button>
+      <ion-button *ngIf="!readonly" color="primary" slot="end" color="danger"><ion-icon name="trash-outline"></ion-icon></ion-button>
+    </ion-item>
   </ion-card-content>
 </ion-card>
