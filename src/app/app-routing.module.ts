@@ -32,6 +32,10 @@ const routes: Routes = [
     loadChildren: () => import('./pages/omero-dataset/omero-dataset.module').then( m => m.OmeroDatasetPageModule),
     canActivate: [AuthGuard]
   },
+  {
+    path: 'ai-config',
+    loadChildren: () => import('./pages/ai-config/ai-config.module').then( m => m.AiConfigPageModule)
+  },
 ];
 
 @NgModule({

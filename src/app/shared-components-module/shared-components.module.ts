@@ -18,6 +18,8 @@ import { AnnManagerComponent } from '../components/ann-manager/ann-manager.compo
 import { AnnLabelChipComponent } from '../components/ann-label-chip/ann-label-chip.component';
 import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
 import { ImageCardComponent } from '../components/image-card/image-card.component';
+import { AiServiceComponent } from '../components/ai-service/ai-service.component';
+import { AiParameterComponent } from '../components/ai-parameter/ai-parameter.component';
 
 @NgModule({
   declarations: [
@@ -33,6 +35,8 @@ import { ImageCardComponent } from '../components/image-card/image-card.componen
     AnnLabelChipComponent,
     FlexibleSegmentationComponent,
     ImageCardComponent,
+    AiServiceComponent,
+    AiParameterComponent
   ],
   exports: [
     ImageDisplayComponent,
@@ -47,6 +51,8 @@ import { ImageCardComponent } from '../components/image-card/image-card.componen
     AnnLabelChipComponent,
     FlexibleSegmentationComponent,
     ImageCardComponent,
+    AiServiceComponent,
+    AiParameterComponent
   ],
   imports: [
     CommonModule,

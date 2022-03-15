@@ -1,0 +1,29 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Configure your AI endpoints</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+
+  <ion-grid>
+    <ion-row>
+      <ion-col size="12" size-sm="12" offset-sm="0" size-md="10" offset-md="1" size-lg="8" offset-lg="2" size-xl="6"
+      offset-xl="3">
+        <ion-item>
+          <ion-label>AI Line:</ion-label>
+          <ion-select placeholder="Select one" interface="popover" [(ngModel)]="selectedLine">
+            <ion-select-option *ngFor="let name of (lineNames$ | async)" value="{{name}}">{{name}}</ion-select-option>
+            <!--<ion-select-option value="2">Custom</ion-select-option>-->
+          </ion-select>
+        </ion-item>
+        <app-ai-service *ngFor="let service of (services$ | async)" [service]="service" [readonly]="readonly$ | async"></app-ai-service>
+        <ion-item>
+          <ion-label class="ion-text-center" *ngIf="(services$ | async)?.length == 0">No services configured in this line!</ion-label>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+
+</ion-content>
