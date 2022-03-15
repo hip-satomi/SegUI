@@ -2,7 +2,7 @@
   <ion-card-header>
     <ion-card-title class="ion-text-center">
       <ion-item>
-        <h1 style="width: 100%;"><ion-input value="{{service.name}}" [readonly]="readonly" required></ion-input></h1>
+        <h1 style="width: 100%;"><ion-input value="{{service.name}}" [readonly]="readonly" placeholder="Enter your service name here..." required></ion-input></h1>
       </ion-item>
     </ion-card-title>
     <ion-chip *ngIf="readonly" color="warning" #tooltip="matTooltip"

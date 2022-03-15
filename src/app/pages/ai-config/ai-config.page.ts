@@ -92,7 +92,7 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
       take(1),
       tap((line: Line) => {
         line.services.push(
-          new AIService("My new Segmentation service", "", "", "", "", {})
+          new AIService("", "", "", "", "", {})
         );    
       })
     ).subscribe();
