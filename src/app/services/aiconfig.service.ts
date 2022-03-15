@@ -45,6 +45,15 @@ export class AIService {
   repo_version: string;
   @JsonProperty()
   additional_parameters: {[name: string]: string};
+
+  constructor(name: string, description: string, repo_url: string, repo_entry_point: string, repo_version: string, additional_parameters: {[name: string]: string}) {
+    this.name = name;
+    this.description = description;
+    this.repo_url = repo_url;
+    this.repo_entry_point = repo_entry_point;
+    this.repo_version = repo_version;
+    this.additional_parameters = additional_parameters;
+  }
 }
 
 @Serializable()

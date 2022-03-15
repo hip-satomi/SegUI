@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ViewWillEnter } from '@ionic/angular';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
+import { map, switchMap, take, tap } from 'rxjs/operators';
 import { AIConfig, AIConfigService, AIService, Line } from 'src/app/services/aiconfig.service';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
 
@@ -42,14 +42,21 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   services$: Observable<Array<AIService>>;
   readonly$: Observable<boolean>;
 
+  config$ = new ReplaySubject<AIConfig>(1);
+  config: AIConfig;
+
   ngOnInit() {
-    this.lineNames$ = this.configService.getConfig().pipe(
-      map(res => Object.keys(res['lines']))
+    this.configService.getConfig().pipe(
+      tap((config) => this.config$.next(config))
+    ).subscribe();
+
+    this.lineNames$ = this.config$.pipe(
+      map(res => Object.keys(res.lines))
     );
 
     this.line$ = this.lineName$.pipe(
       switchMap((lineName: string) => {
-        return this.configService.getConfig().pipe(
+        return this.config$.pipe(
           map((config) => {
             return config.lines[lineName]
           })
@@ -78,6 +85,17 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
         this.selectedLine = params["line"];
       }
     });
+  }
+
+  addService() {
+    this.line$.pipe(
+      take(1),
+      tap((line: Line) => {
+        line.services.push(
+          new AIService("My new Segmentation service", "", "", "", "", {})
+        );    
+      })
+    ).subscribe();
   }
 
 }

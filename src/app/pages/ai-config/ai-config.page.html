@@ -30,8 +30,8 @@
     </ion-row>
   </ion-grid>
 
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button>
+  <ion-fab *ngIf="!(readonly$ | async)" vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="addService()">
       <ion-icon name="add-circle-outline"></ion-icon>
     </ion-fab-button>
   </ion-fab>
