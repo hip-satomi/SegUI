@@ -29,6 +29,9 @@ export class AiParameterComponent implements OnInit {
   }
 
   get parameterList() {
+    if (this._parameters == null) {
+      return [];
+    }
     const params: Array<Parameter> = [];
     for (let [key, value] of Object.entries(this._parameters)) {
       params.push(new Parameter(key, value));
