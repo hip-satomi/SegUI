@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ViewWillEnter } from '@ionic/angular';
-import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, throwError } from 'rxjs';
 import { map, switchMap, take, tap } from 'rxjs/operators';
 import { AIConfig, AIConfigService, AIService, AILine } from 'src/app/services/aiconfig.service';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
@@ -15,7 +15,8 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
 
   constructor(private configService: AIConfigService,
     private route: ActivatedRoute,
-    private userQuestion: UserQuestionsService) { }
+    private userQuestion: UserQuestionsService,
+    private router: Router) { }
 
   @ViewChild('content') private content: any;
 
@@ -86,16 +87,59 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
       if (params.has("line")) {
         this.selectedLine = params.get("line");
       }
+      if (params.has("add_line") && params.has("add_service")) {
+        // we want to clone the service into our current line
+        this.line$.pipe(
+          take(1),
+          switchMap((line) => {
+            if (line.readonly) {
+              return throwError(Error("Line is read-only! Cannot add customized model"));
+            } else {
+              return this.config$;
+            }
+          }),
+          map((config: AIConfig) => {
+            const line_id = params.get("add_line");
+            const line_candidates = Object.entries(config.lines).filter(([key, line]) => line.id == line_id);
+
+            if (line_candidates.length == 1) {
+              return line_candidates[0][1];
+            } else {
+              throw new Error("Error while finding source line");
+            }            
+          }),
+          map((line: AILine) => {
+            const service_id = params.get("add_service");
+            const service_candidates = line.services.filter((service) => service.id == service_id);
+
+            if (service_candidates.length == 1) {
+              return service_candidates[0];
+            } else {
+              throw new Error("Error while finding source service")
+            }
+          }),
+          tap((service_to_clone: AIService) => {
+            const service_copy = service_to_clone.dubplicate();
+            service_copy.name += " - Customized"
+            this.addService(service_copy);
+          })
+        ).subscribe(
+          () => this.userQuestion.showInfo("Please customize the segmentation method!"),
+          (e) => this.userQuestion.showError(`Error while customizing: ${e.message}`)
+        );
+      }
     });
   }
 
-  addService() {
+  addService(service: AIService = null) {
     this.line$.pipe(
       take(1),
       tap((line: AILine) => {
-        line.services.push(
-          new AIService("", "", "", "", "", {})
-        );
+        if (service == null) {
+          service = new AIService("", "", "", "", "", {});
+        }
+        
+        line.services.push(service);
         setTimeout(() => this.content.scrollToBottom(300), 250)    
       })
     ).subscribe();
@@ -117,6 +161,15 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
         this.configService.deleteService(line, service);
       })
     ).subscribe(); 
+  }
+
+  customizeService(service: AIService) {
+    this.line$.pipe(
+      take(1),
+      tap((line: AILine) => {
+        this.router.navigate(['./', {"line": "Custom", add_line: line.id, add_service: service.id}]);
+      })
+    ).subscribe();
   }
 
 }

@@ -30,6 +30,9 @@ export class AiServiceComponent implements OnInit {
   @Output()
   delete = new EventEmitter<AIService>();
 
+  @Output()
+  customize = new EventEmitter<AIService>();
+
   serviceForm = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.pattern(/^[^\s].*$/)]),
     description: new FormControl('', [Validators.required, Validators.pattern(/.*\w.*/)]), 
@@ -75,6 +78,10 @@ export class AiServiceComponent implements OnInit {
 
   deleteService() {
     this.delete.emit(this.service);
+  }
+
+  customizeService() {
+    this.customize.emit(this.service);
   }
 
 }

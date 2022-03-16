@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, share, shareReplay } from 'rxjs/operators';
 import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
 import { v4 as uuidv4 } from 'uuid';
+import { Utils } from '../models/utils';
 import { UserQuestionsService } from './user-questions.service';
 @Serializable()
 export class SegmentationServiceDef {
@@ -62,6 +63,17 @@ export class AIService {
       this.id = uuidv4();
     }
   }
+
+  /**
+   * 
+   * @returns duplicate of the service with a new unique id
+   */
+  dubplicate(): AIService {
+    const copy = Utils.clone(this) as AIService;
+    copy.id = uuidv4();
+
+    return copy;
+  }
 }
 
 @Serializable()
@@ -107,7 +119,9 @@ export class AIConfigService {
     private userQuestion: UserQuestionsService) {}
 
   getConfig(): Observable<AIConfig> {
-    return this.getShippedConfig();
+    return this.getShippedConfig().pipe(
+      shareReplay(),
+    );
   }
 
   getShippedConfig(): Observable<AIConfig> {

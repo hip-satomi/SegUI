@@ -39,7 +39,7 @@
     </ion-list>
 
     <ion-toolbar>
-      <ion-button color="secondary">Customize</ion-button>
+      <ion-button color="secondary" (click)="customizeService()">Customize</ion-button>
       <ion-button *ngIf="!readonly" color="primary" type="submit" [disabled]="!serviceForm.valid" type="submit">Save</ion-button>
       <ion-button *ngIf="!readonly" color="primary" slot="end" color="warning" (click)="discardChanges()">Discard</ion-button>
       <ion-button *ngIf="!readonly" color="primary" slot="end" color="danger" (click)="deleteService()"><ion-icon name="trash-outline"></ion-icon></ion-button>
