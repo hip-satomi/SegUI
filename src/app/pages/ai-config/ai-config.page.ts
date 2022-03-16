@@ -81,10 +81,10 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   }
 
   ionViewWillEnter() {
-    this.route.queryParams.subscribe(params => {
+    this.route.paramMap.subscribe(params => {
       console.log(params);
-      if ("line" in params) {
-        this.selectedLine = params["line"];
+      if (params.has("line")) {
+        this.selectedLine = params.get("line");
       }
     });
   }
