@@ -1,10 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map, share, shareReplay, take } from 'rxjs/operators';
-import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
+import { Observable, ReplaySubject } from 'rxjs';
+import { map, share, shareReplay, take, tap } from 'rxjs/operators';
+import { serialize, deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
 import { v4 as uuidv4 } from 'uuid';
 import { Utils } from '../models/utils';
+import { StorageService } from './storage.service';
 import { UserQuestionsService } from './user-questions.service';
 @Serializable()
 export class SegmentationServiceDef {
@@ -115,13 +116,42 @@ export class AIConfig {
 })
 export class AIConfigService {
 
+  STORAGE_KEY = "AIConfig";
+
+  config$ = new ReplaySubject<AIConfig>(1);
+
   constructor(private httpClient: HttpClient,
-    private userQuestion: UserQuestionsService) {}
+    private userQuestion: UserQuestionsService,
+    private storageService: StorageService) {
+      this.init();
+  }
+
+  async init() {
+    this.storageService.available$.pipe(
+      take(1),
+      tap(async () => {
+        const isStored = await this.storageService.has(this.STORAGE_KEY);
+        if (!isStored) {
+          // we not yet have a config in the storage
+          this.getShippedConfig().pipe(
+            tap(async (config: AIConfig) => {
+              await this.storeConfig(config);
+              console.log("Create new storage!")
+            }),
+            tap(config => {
+              this.config$.next(config);
+            })
+          ).subscribe();
+        } else {
+          console.log("Use existing storage!")
+          this.config$.next(await this.loadConfig())
+        }
+      })
+    ).subscribe();
+  }
 
   getConfig(): Observable<AIConfig> {
-    return this.getShippedConfig().pipe(
-      shareReplay(),
-    );
+    return this.config$;
   }
 
   getShippedConfig(): Observable<AIConfig> {
@@ -130,8 +160,39 @@ export class AIConfigService {
     )
   }
 
+  private async storeConfig(config: AIConfig) {
+    return await this.storageService.set(this.STORAGE_KEY, serialize(config));
+  }
+
+  private async loadConfig() {
+    return deserialize(await this.storageService.get(this.STORAGE_KEY), AIConfig);
+  }
+
   saveService(line: AILine, service: AIService) {
-    this.userQuestion.showInfo(`Saved service '${service.name}' in line '${line.name}'`)
+    this.config$.pipe(
+      take(1),
+      map(config => {
+        const index = config.lines.indexOf(line);
+        
+        if (index == -1) {
+          throw new Error("Did not find line! Would need to create it!");
+        }
+
+        const serviceIndex = line.services.indexOf(service);
+
+        if (index == -1) {
+          // service is not in the line --> just add it
+          line.services.push(service);
+        } else {
+          // service is in line --> replace it
+          line.services[serviceIndex] = service;
+        }
+
+        return config;
+      }),
+      tap(async (config) => await this.storeConfig(config))
+    ).subscribe(() => {this.userQuestion.showInfo(`Saved service '${service.name}' in line '${line.name}'`)});
+    
   }
 
   deleteService(line: AILine, service: AIService) {
