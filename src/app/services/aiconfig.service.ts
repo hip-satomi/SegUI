@@ -108,6 +108,15 @@ export class AILine {
 export class AIConfig {
   @JsonProperty({type: AILine })
   lines: Array<AILine>;
+
+  getLineById(id: string) {
+    return this.lines.filter(line => line.id == id)[0];
+  }
+
+  setLineById(id: string, line: AILine) {
+    const lineIndex = this.lines.map(line => line.id).indexOf(line.id);
+    this.lines[lineIndex] = line;
+  }
 }
 
 
@@ -150,7 +159,9 @@ export class AIConfigService {
       switchMap((config: AIConfig) => {
         return this.getShippedConfig().pipe(
           map((shippedConfig) => {
-            config.lines[0] = shippedConfig.lines[0];
+            // update default line by the configurations shipped with segUI.
+            const defaultLineId = "26403c2b-cdbb-44c8-9140-25a01841ee34";
+            config.setLineById(defaultLineId, shippedConfig.getLineById(defaultLineId));
             console.log("Update default line!");
             return config;
           })
