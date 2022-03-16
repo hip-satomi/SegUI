@@ -32,6 +32,7 @@ export class AiServiceComponent implements OnInit {
     version: new FormControl('', [Validators.required, Validators.pattern(/^(([0-9a-f]{1,40})|(\w+)|(v[0-9](\.[0-9])*))$/)]),
     parameters: new FormControl('', [Validators.required,
       (control: AbstractControl) => {
+        // make sure we can parse the string as json
         let valid = true;
         try {
           JSON.parse(control.value)
