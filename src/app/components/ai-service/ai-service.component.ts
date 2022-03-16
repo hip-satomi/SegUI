@@ -48,4 +48,8 @@ export class AiServiceComponent implements OnInit {
 
   ngOnInit() {}
 
+  discardChanges() {
+    this.service = this._service;
+  }
+
 }
