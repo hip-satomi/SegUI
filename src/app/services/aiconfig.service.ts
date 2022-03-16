@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { map, share, shareReplay } from 'rxjs/operators';
+import { map, share, shareReplay, take } from 'rxjs/operators';
 import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
 import { v4 as uuidv4 } from 'uuid';
 import { Utils } from '../models/utils';
@@ -105,8 +105,8 @@ export class AILine {
 
 @Serializable()
 export class AIConfig {
-  @JsonProperty({ isDictionary: true, type: AILine })
-  lines: {[name: string]: AILine}
+  @JsonProperty({type: AILine })
+  lines: Array<AILine>;
 }
 
 
@@ -136,5 +136,14 @@ export class AIConfigService {
 
   deleteService(line: AILine, service: AIService) {
     this.userQuestion.showInfo(`Delete service '${service.name}' in line '${line.name}'`)
+  }
+
+  hasService(serviceId: string): Observable<boolean> {
+    return this.getConfig().pipe(
+      take(1),
+      map((config: AIConfig) => {
+        return [].concat(...config.lines.map(line => line.services)).filter((service: AIService) => service.id == serviceId).length == 1;
+      })
+    )
   }
 }

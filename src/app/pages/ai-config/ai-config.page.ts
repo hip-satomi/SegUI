@@ -54,14 +54,14 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
     ).subscribe();
 
     this.lineNames$ = this.config$.pipe(
-      map(res => Object.keys(res.lines))
+      map(res => res.lines.map(line => line.name))
     );
 
     this.line$ = this.lineName$.pipe(
       switchMap((lineName: string) => {
         return this.config$.pipe(
           map((config) => {
-            return config.lines[lineName]
+            return config.lines.filter(line => line.name == lineName)[0];
           })
         )
       }),
@@ -100,10 +100,10 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
           }),
           map((config: AIConfig) => {
             const line_id = params.get("add_line");
-            const line_candidates = Object.entries(config.lines).filter(([key, line]) => line.id == line_id);
+            const line_candidates = config.lines.filter((line) => line.id == line_id);
 
             if (line_candidates.length == 1) {
-              return line_candidates[0][1];
+              return line_candidates[0];
             } else {
               throw new Error("Error while finding source line");
             }            
