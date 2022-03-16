@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ViewWillEnter } from '@ionic/angular';
 import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
 import { map, switchMap, take, tap } from 'rxjs/operators';
-import { AIConfig, AIConfigService, AIService, Line } from 'src/app/services/aiconfig.service';
+import { AIConfig, AIConfigService, AIService, AILine } from 'src/app/services/aiconfig.service';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
 
 @Component({
@@ -40,7 +40,7 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   cachedConfig$ = new BehaviorSubject<AIConfig>(null);
 
   lineNames$: Observable<string[]>;
-  line$: Observable<Line>;
+  line$: Observable<AILine>;
   services$: Observable<Array<AIService>>;
   readonly$: Observable<boolean>;
 
@@ -67,14 +67,14 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
     );
 
     this.readonly$ = this.line$.pipe(
-      map((line: Line) => {
+      map((line: AILine) => {
         console.log(line.readonly);
         return line.readonly
       })
     );
 
     this.services$ = this.line$.pipe(
-      map((line: Line) => {
+      map((line: AILine) => {
         return line.services;
       })      
     );
@@ -92,13 +92,31 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   addService() {
     this.line$.pipe(
       take(1),
-      tap((line: Line) => {
+      tap((line: AILine) => {
         line.services.push(
           new AIService("", "", "", "", "", {})
         );
         setTimeout(() => this.content.scrollToBottom(300), 250)    
       })
     ).subscribe();
+  }
+
+  updateService(service: AIService) {
+    this.line$.pipe(
+      take(1),
+      tap((line: AILine) => {
+        this.configService.saveService(line, service);
+      })
+    ).subscribe(); 
+  }
+
+  deleteService(service: AIService) {
+    this.line$.pipe(
+      take(1),
+      tap((line: AILine) => {
+        this.configService.deleteService(line, service);
+      })
+    ).subscribe(); 
   }
 
 }

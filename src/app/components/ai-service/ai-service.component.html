@@ -1,4 +1,4 @@
-<form [formGroup]="serviceForm">
+<form [formGroup]="serviceForm" (ngSubmit)="onSubmit()">
 <ion-card>
   <ion-card-header>
     <ion-card-title class="ion-text-center">
@@ -40,9 +40,9 @@
 
     <ion-toolbar>
       <ion-button color="secondary">Customize</ion-button>
-      <ion-button *ngIf="!readonly" color="primary" type="submit" [disabled]="!serviceForm.valid">Save</ion-button>
+      <ion-button *ngIf="!readonly" color="primary" type="submit" [disabled]="!serviceForm.valid" type="submit">Save</ion-button>
       <ion-button *ngIf="!readonly" color="primary" slot="end" color="warning" (click)="discardChanges()">Discard</ion-button>
-      <ion-button *ngIf="!readonly" color="primary" slot="end" color="danger"><ion-icon name="trash-outline"></ion-icon></ion-button>
+      <ion-button *ngIf="!readonly" color="primary" slot="end" color="danger" (click)="deleteService()"><ion-icon name="trash-outline"></ion-icon></ion-button>
     </ion-toolbar>
   </ion-card-content>
 </ion-card>

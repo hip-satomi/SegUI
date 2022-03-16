@@ -1,6 +1,6 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { AbstractControl, ControlContainer, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
-import { AIService } from 'src/app/services/aiconfig.service';
+import { AIConfigService, AIService } from 'src/app/services/aiconfig.service';
 
 @Component({
   selector: 'app-ai-service',
@@ -24,6 +24,12 @@ export class AiServiceComponent implements OnInit {
   @Input()
   readonly = true;
 
+  @Output()
+  save = new EventEmitter<AIService>();
+
+  @Output()
+  delete = new EventEmitter<AIService>();
+
   serviceForm = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.pattern(/^[^\s].*$/)]),
     description: new FormControl('', [Validators.required, Validators.pattern(/.*\w.*/)]), 
@@ -44,13 +50,31 @@ export class AiServiceComponent implements OnInit {
      ])
   });
 
-  constructor() {
+  constructor(private aiConfigService: AIConfigService) {
   }
 
   ngOnInit() {}
 
   discardChanges() {
     this.service = this._service;
+  }
+
+  onSubmit() {
+    const newService = new AIService(
+      this.serviceForm.controls['name'].value,
+      this.serviceForm.controls['description'].value,
+      this.serviceForm.controls['repoUrl'].value,
+      this.serviceForm.controls['repoEntrypoint'].value,
+      this.serviceForm.controls['version'].value,
+      JSON.parse(this.serviceForm.controls['parameters'].value),
+      this.service.id
+    );
+    this.save.emit(newService);
+    //this.aiConfigService.saveService(line, newService);
+  }
+
+  deleteService() {
+    this.delete.emit(this.service);
   }
 
 }
