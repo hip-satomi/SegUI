@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
-
+import { v4 as uuidv4 } from 'uuid';
 @Serializable()
 export class SegmentationServiceDef {
   /** name of the segmentation method as displayed to the user */
@@ -45,14 +45,19 @@ export class AIService {
   repo_version: string;
   @JsonProperty()
   additional_parameters: {[name: string]: string};
+  @JsonProperty()
+  id: string = uuidv4();
 
-  constructor(name: string, description: string, repo_url: string, repo_entry_point: string, repo_version: string, additional_parameters: {[name: string]: string}) {
+  constructor(name: string, description: string, repo_url: string, repo_entry_point: string, repo_version: string, additional_parameters: {[name: string]: string}, id: string=null) {
     this.name = name;
     this.description = description;
     this.repo_url = repo_url;
     this.repo_entry_point = repo_entry_point;
     this.repo_version = repo_version;
     this.additional_parameters = additional_parameters;
+    if (this.id !== null) {
+      this.id = id;
+    }
   }
 }
 
