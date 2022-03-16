@@ -1,8 +1,9 @@
+<form [formGroup]="serviceForm">
 <ion-card>
   <ion-card-header>
     <ion-card-title class="ion-text-center">
       <ion-item>
-        <h1 style="width: 100%;"><ion-input value="{{service.name}}" [readonly]="readonly" placeholder="Enter your service name here..." required></ion-input></h1>
+        <h1 style="width: 100%;"><ion-input formControlName="name" [readonly]="readonly" placeholder="Enter your service name here..." required></ion-input></h1>
       </ion-item>
     </ion-card-title>
     <ion-chip *ngIf="readonly" color="warning" #tooltip="matTooltip"
@@ -15,32 +16,34 @@
     <ion-list>
       <ion-item>
         <ion-label>Description:</ion-label>
-        <ion-textarea auto-grow="true" value="{{service.description}}" [readonly]="readonly" placeholder="Enter service description..." required></ion-textarea>
+        <ion-textarea auto-grow="true" formControlName="description" [readonly]="readonly" placeholder="Enter service description..." required></ion-textarea>
       </ion-item>
       <ion-item>
         <ion-label>Repository Url:</ion-label>
-        <ion-textarea auto-grow="true" value="{{service.repo_url}}" [readonly]="readonly" placeholder="Enter git repository url..." required></ion-textarea>
+        <ion-textarea auto-grow="true" formControlName="repoUrl" [readonly]="readonly" placeholder="Enter git repository url..." required></ion-textarea>
       </ion-item>
       <ion-item>
         <ion-label>Entrypoint:</ion-label><ion-icon name="information-circle-outline" #tooltip="matTooltip"
         matTooltip="The entrypoint for the reposiotry is defined using mlflow format"></ion-icon>
-        <ion-input value="{{service.repo_entry_point}}" [readonly]="readonly" placeholder="Enter mlflow project entrypoint..." required></ion-input>
+        <ion-input formControlName="repoEntrypoint" [readonly]="readonly" placeholder="Enter mlflow project entrypoint..." required></ion-input>
       </ion-item>
       <ion-item>
         <ion-label>Version:</ion-label>
-        <ion-input value="{{service.repo_version}}" [readonly]="readonly" placeholder="Enter git version (tag, branch, commit hash)..." required></ion-input>
+        <ion-input formControlName="version" [readonly]="readonly" placeholder="Enter git version (tag, branch, commit hash)..." required></ion-input>
       </ion-item>
       <ion-item>
         <ion-label>Parameters:</ion-label>
-        <app-ai-parameter [parameters]="service.additional_parameters" [readonly]="readonly" required></app-ai-parameter>
+        <ion-textarea auto-grow="true" formControlName="parameters" [readonly]="readonly" placeholder="Enter additional parameters in JSON format..." required></ion-textarea>
+        <!--<app-ai-parameter [parameters]="service.additional_parameters" [readonly]="readonly" required></app-ai-parameter>-->
       </ion-item>
     </ion-list>
 
-    <ion-item>
+    <ion-toolbar>
       <ion-button color="secondary">Customize</ion-button>
-      <ion-button *ngIf="!readonly" color="primary">Save</ion-button>
+      <ion-button *ngIf="!readonly" color="primary" type="submit" [disabled]="!serviceForm.valid">Save</ion-button>
       <ion-button *ngIf="!readonly" color="primary" slot="end" color="warning">Discard</ion-button>
       <ion-button *ngIf="!readonly" color="primary" slot="end" color="danger"><ion-icon name="trash-outline"></ion-icon></ion-button>
-    </ion-item>
+    </ion-toolbar>
   </ion-card-content>
 </ion-card>
+</form>

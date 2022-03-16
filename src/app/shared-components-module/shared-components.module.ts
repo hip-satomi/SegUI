@@ -60,7 +60,8 @@ import { AiParameterComponent } from '../components/ai-parameter/ai-parameter.co
     IonicModule,
     MatTooltipModule,
     RouterModule,
-    ColorPickerModule
+    ColorPickerModule,
+    ReactiveFormsModule
   ]
 })
 export class SharedComponentsModule { }
