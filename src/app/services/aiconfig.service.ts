@@ -102,6 +102,20 @@ export class AILine {
       this.id = uuidv4();
     }
   }
+
+  hasService(serviceId: string) {
+    return this.services.map(service => service.id).includes(serviceId);
+  }
+
+  deleteServiceById(serviceId: string) {
+    if (this.hasService(serviceId)) {
+      const index = this.services.map(service => service.id).indexOf(serviceId);
+      this.services.splice(index, 1);
+    } else {
+      console.warn("AI service cannot be deleted from this line");
+    }
+  }
+
 };
 
 @Serializable()
@@ -109,13 +123,17 @@ export class AIConfig {
   @JsonProperty({type: AILine })
   lines: Array<AILine>;
 
-  getLineById(id: string) {
+  getLineById(id: string): AILine {
     return this.lines.filter(line => line.id == id)[0];
   }
 
   setLineById(id: string, line: AILine) {
     const lineIndex = this.lines.map(line => line.id).indexOf(line.id);
     this.lines[lineIndex] = line;
+  }
+
+  hasLine(lineId: string) {
+    return this.lines.map(line => line.id).includes(lineId);
   }
 }
 
@@ -220,7 +238,20 @@ export class AIConfigService {
   }
 
   deleteService(line: AILine, service: AIService) {
-    this.userQuestion.showInfo(`Delete service '${service.name}' in line '${line.name}'`)
+    this.config$.pipe(
+      take(1),
+      map(config => {
+        if(config.hasLine(line.id)) {
+          if(line.hasService(service.id)) {
+            line.deleteServiceById(service.id);
+          }
+        }
+        return config;
+      }),
+      tap(async (config) => await this.storeConfig(config))
+    ).subscribe(
+      () => this.userQuestion.showInfo(`Delete service '${service.name}' in line '${line.name}'`)
+    );    
   }
 
   hasService(serviceId: string): Observable<boolean> {
