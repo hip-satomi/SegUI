@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, ReplaySubject } from 'rxjs';
-import { map, share, shareReplay, take, tap } from 'rxjs/operators';
+import { from, Observable, of, ReplaySubject } from 'rxjs';
+import { map, share, shareReplay, switchMap, take, tap } from 'rxjs/operators';
 import { serialize, deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
 import { v4 as uuidv4 } from 'uuid';
 import { Utils } from '../models/utils';
@@ -129,24 +129,37 @@ export class AIConfigService {
   async init() {
     this.storageService.available$.pipe(
       take(1),
-      tap(async () => {
+      switchMap(async () => {
         const isStored = await this.storageService.has(this.STORAGE_KEY);
         if (!isStored) {
           // we not yet have a config in the storage
-          this.getShippedConfig().pipe(
+          return this.getShippedConfig().pipe(
             tap(async (config: AIConfig) => {
               await this.storeConfig(config);
               console.log("Create new storage!")
             }),
-            tap(config => {
-              this.config$.next(config);
-            })
-          ).subscribe();
+          );
         } else {
           console.log("Use existing storage!")
-          this.config$.next(await this.loadConfig())
+          return of(await this.loadConfig());
         }
+      }),
+      // make the promise go away
+      switchMap(config => config),
+      // update from shipped
+      switchMap((config: AIConfig) => {
+        return this.getShippedConfig().pipe(
+          map((shippedConfig) => {
+            config.lines[0] = shippedConfig.lines[0];
+            console.log("Update default line!");
+            return config;
+          })
+        )
+      }),
+      tap(config => {
+        this.config$.next(config);
       })
+
     ).subscribe();
   }
 
