@@ -210,35 +210,58 @@ export class AIConfigService {
     return deserialize(await this.storageService.get(this.STORAGE_KEY), AIConfig);
   }
 
+  /**
+   * Saves a service in a line permanently into the storage.
+   * 
+   * This function only modifies and works with the config in storage!
+   * 
+   * @param line the line of the service
+   * @param service the service to add
+   */
   saveService(line: AILine, service: AIService) {
-    this.config$.pipe(
+    this.getConfigFromStorage().pipe(
       take(1),
       map(config => {
-        const index = config.lines.indexOf(line);
+        const storage_line = config.getLineById(line.id);
         
-        if (index == -1) {
+        if (storage_line == null) {
           throw new Error("Did not find line! Would need to create it!");
         }
 
-        const serviceIndex = line.services.indexOf(service);
+        const storage_service = storage_line.getServiceById(service.id);
 
-        if (index == -1) {
+        if (storage_service == null) {
           // service is not in the line --> just add it
-          line.services.push(service);
+          storage_line.services.push(service);
         } else {
           // service is in line --> replace it
-          line.services[serviceIndex] = service;
+          storage_line.setServiceById(service.id, service);
         }
 
         return config;
       }),
-      tap(async (config) => await this.storeConfig(config))
+      switchMap((config) => {
+        // store config
+        return from(this.storeConfig(config)).pipe(
+          map(() => config)
+        );
+      }),
+      tap(config => {
+        this.config$.next(config)
+      })
     ).subscribe(() => {this.userQuestion.showInfo(`Saved service '${service.name}' in line '${line.name}'`)});
     
   }
 
+  /**
+   * Deletes are service permanently from the line.
+   * 
+   * This function only operates on the stored config.
+   * @param line the line to user
+   * @param service the service to remove
+   */
   deleteService(line: AILine, service: AIService) {
-    this.config$.pipe(
+    this.getConfigFromStorage().pipe(
       take(1),
       map(config => {
         if(config.hasLine(line.id)) {
