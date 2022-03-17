@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { from, Observable, of, ReplaySubject } from 'rxjs';
+import { BehaviorSubject, from, Observable, of, ReplaySubject } from 'rxjs';
 import { map, share, shareReplay, switchMap, take, tap } from 'rxjs/operators';
 import { serialize, deserialize, JsonProperty, Serializable } from 'typescript-json-serializer';
 import { v4 as uuidv4 } from 'uuid';
@@ -165,6 +165,9 @@ export class AIConfigService {
 
   config$ = new ReplaySubject<AIConfig>(1);
 
+  /** is updated when storage changes. Value can be neglected! */
+  storageChanged$ = new BehaviorSubject<number>(1);
+
   constructor(private httpClient: HttpClient,
     private userQuestion: UserQuestionsService,
     private storageService: StorageService) {
@@ -268,9 +271,8 @@ export class AIConfigService {
           map(() => config)
         );
       }),
-      tap(config => {
-        this.config$.next(config)
-      })
+      // inform that storage has changed
+      tap(() => this.storageChanged$.next(1))
     ).subscribe(() => {this.userQuestion.showInfo(`Saved service '${service.name}' in line '${line.name}'`)});
     
   }
@@ -293,15 +295,22 @@ export class AIConfigService {
         }
         return config;
       }),
-      tap(async (config) => await this.storeConfig(config))
+      switchMap((config) => from(this.storeConfig(config))),
+      // inform that storage has changed
+      tap(() => this.storageChanged$.next(1))
     ).subscribe(
       () => this.userQuestion.showInfo(`Delete service '${service.name}' in line '${line.name}'`)
     );    
   }
 
-  hasService(serviceId: string): Observable<boolean> {
-    return this.getConfig().pipe(
-      take(1),
+  /**
+   * Checks whether service is inside the AIConfig that is stored. Updates automatically on changes of the storage
+   * @param serviceId to check
+   * @returns true if the service is in the stored config, false otherwise
+   */
+  hasServiceSaved(serviceId: string): Observable<boolean> {
+    return this.storageChanged$.pipe(
+      switchMap(() => this.getConfigFromStorage()),      
       map((config: AIConfig) => {
         return [].concat(...config.lines.map(line => line.services)).filter((service: AIService) => service.id == serviceId).length == 1;
       })
