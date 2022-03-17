@@ -17,13 +17,6 @@ export class AiServiceComponent implements OnInit {
   @Input() set service(service: AIService) {
     this._service = service;
     this.serviceForm.setValue({name: this._service.name, description: this._service.description, repoUrl: this._service.repo_url, repoEntrypoint: this._service.repo_entry_point, version: this._service.repo_version, parameters: JSON.stringify(this._service.additional_parameters, null, 4)});
-
-    // see whether the service is already stored and we can customize it
-    this.aiConfigService.hasService(this.service.id).pipe(
-      tap(hasService => {
-        this.customizable = hasService
-      })
-    ).subscribe();
   }
 
   get service() {
@@ -42,7 +35,7 @@ export class AiServiceComponent implements OnInit {
   @Output()
   customize = new EventEmitter<AIService>();
 
-  customizable = false;
+  customizable$: Observable<boolean>;
 
   serviceForm = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.pattern(/^[^\s].*$/)]),
@@ -67,7 +60,10 @@ export class AiServiceComponent implements OnInit {
   constructor(private aiConfigService: AIConfigService) {
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    // see whether the service is already stored and we can customize it
+    this.customizable$ = this.aiConfigService.hasServiceSaved(this.service.id);
+  }
 
   discardChanges() {
     this.service = this._service;
