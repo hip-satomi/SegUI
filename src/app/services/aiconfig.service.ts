@@ -116,6 +116,24 @@ export class AILine {
     }
   }
 
+  getServiceById(serviceId: string): AIService | null  {
+    const candidates = this.services.filter(s => s.id == serviceId);
+    if (candidates.length == 1) {
+      return candidates[0];
+    } else {
+      return null;
+    }
+  }
+
+  setServiceById(serviceId: string, service) {
+    const index = this.services.map(s => s.id).indexOf(serviceId);
+    if (index == -1) {
+      console.warn("Cannot set service: id not found!");
+    } else {
+      this.services[index] = service;
+    }
+  }
+
 };
 
 @Serializable()
