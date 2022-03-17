@@ -214,6 +214,10 @@ export class AIConfigService {
     return this.config$;
   }
 
+  private getConfigFromStorage(): Observable<AIConfig> {
+    return from(this.loadConfig());
+  }
+
   getShippedConfig(): Observable<AIConfig> {
     return this.httpClient.get('assets/ai-lines.json').pipe(
       map((res) => deserialize(res, AIConfig))
