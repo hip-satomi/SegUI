@@ -8,7 +8,7 @@ import { ReplaySubject } from 'rxjs';
   providedIn: 'root'
 })
 export class StorageService {
-  private _storage: Storage | null = null;
+  private _storage: Promise<Storage>;// | null = null;
 
   available$ = new ReplaySubject<boolean>(1);
 
@@ -16,26 +16,28 @@ export class StorageService {
     this.init();
   }
 
-  async init() {
+  init() {
     // If using, define drivers here: await this.storage.defineDriver(/*...*/);
-    const storage = await this.storage.create();
-    this._storage = storage;
-    console.log(this.storage);
+    this._storage =  this.storage.create();
+    this._storage.then((storage) => console.log(storage))
     this.available$.next(true);
   }
 
   // Create and expose methods that users of this service can
   // call, for example:
-  public set(key: string, value: any) {
-    return this._storage?.set(key, value);
+  public async set(key: string, value: any) {
+    const storage = await this._storage;
+    return storage.set(key, value);
   }
 
-  public get(key: string): Promise<string> {
-    return this._storage?.get(key);
+  public async get(key: string): Promise<string> {
+    const storage = await this._storage;
+    return storage.get(key);
   }
 
-  public has(key: string): Promise<boolean> {
+  public async has(key: string): Promise<boolean> {
+    const storage = await this._storage;
     console.log("has");
-    return this._storage?.keys().then(keys => keys.includes(key));
+    return storage.keys().then(keys => keys.includes(key));
   }
 }

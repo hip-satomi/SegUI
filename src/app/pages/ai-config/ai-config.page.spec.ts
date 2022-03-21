@@ -3,7 +3,9 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
+import { IonicStorageModule } from '@ionic/storage-angular';
 import { EMPTY } from 'rxjs';
+import { MockStorage } from 'src/app/services/storage.service.spec';
 
 import { AiConfigPage } from './ai-config.page';
 
@@ -26,11 +28,15 @@ describe('AiConfigPage', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [ AiConfigPage ],
-      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule],
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, RouterTestingModule, IonicStorageModule.forRoot()],
       providers: [
         {
           provide: ActivatedRoute,
           useClass: MockActivatedRoute
+        },
+        {
+          provide: Storage,
+          useClass: MockStorage
         }
       ]
     }).compileComponents();

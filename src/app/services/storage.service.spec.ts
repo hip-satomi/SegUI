@@ -3,11 +3,18 @@ import { IonicStorageModule } from '@ionic/storage-angular';
 
 import { StorageService } from './storage.service';
 
-class MockStorage {
+import { Storage } from '@ionic/storage-angular';
+
+// load default segmentation configuration from file
+const segmentationConfig = require('../../assets/ai-lines.json');
+
+export class MockStorage {
 
   data = {};
 
-  create() {
+  async create() {
+
+    this.data = { "AIConfig": segmentationConfig};
     return this;
   }
 
@@ -16,7 +23,10 @@ class MockStorage {
   }
 
   async get(key: string) {
-    this.data[key] || null;
+    if (this.data[key] == null) {
+      throw new Error("Key is not in storage!");
+    }
+    return this.data[key];
   }
 
   async keys() {
@@ -28,19 +38,28 @@ class MockStorage {
 
 describe('StorageService', () => {
   let service: StorageService;
+  let storageService: Storage;
+
+  const storage = new MockStorage();
+  storage.data["test"] = "1";
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [IonicStorageModule.forRoot()],
       providers: [{
         provide: Storage,
-        useClass: MockStorage
+        useValue: storage
       }]
     });
+    storageService = TestBed.inject(Storage);
     service = TestBed.inject(StorageService);
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  it('should load dummy config', async () => {
+    expect(await service.get("AIConfig")).toBeTruthy()
   });
 });
