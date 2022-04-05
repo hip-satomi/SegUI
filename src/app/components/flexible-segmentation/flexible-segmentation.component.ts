@@ -111,18 +111,19 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
 
     this.oldPencil = pencil;
 
+    // display the old overlay
+    if (this.showOverlay) {
+      this.segUI.draw(pencil, false);//drawPolygons(pencil.canvasCtx, false);
+    }
+
     // display the new overlay
     if (this.showNewOverlay && this.temporarySegModel) {
       this.filteredDets.map(([uuid, poly]) => {
         poly.draw(pencil.canvasCtx, false);
       })
     }
-
-    // display the old overlay
-    if (this.showOverlay) {
-      this.segUI.drawPolygons(pencil.canvasCtx, false);
-    }
-
+    
+    
     // draw the image in the background
     this.segUI.drawImage(pencil.canvasCtx);
   }
@@ -375,15 +376,16 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
         // determine the label
         if (this.useLabels) {
           if (this.globalSegModel.labels.map(l => l.name).filter(name => name == label).length > 0) {
+            // label is already present
             labelId = this.globalSegModel.labels.filter(l => l.name == label)[0].id
           } else {
-            if (labels.includes(label)) {
-              labelId = nextFreeLabelId + labels.indexOf(label);
-            } else {
-              // new label
-              labelId = labels.length;
+            if (!labels.includes(label)) {
+              // create new label
               labels.push(label);
             }
+            // we have already created this label
+            labelId = nextFreeLabelId + labels.indexOf(label);
+
           }
         }
 

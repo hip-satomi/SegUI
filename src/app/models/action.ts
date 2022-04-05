@@ -126,6 +126,11 @@ export class CreateSegmentationLayersAction extends Action<SegCollData> {
             data.addSegmentationData(new SegmentationData());
         }
     }
+
+    /** does this action allow undo */
+    allowUndo(): boolean {
+        return false;
+    }
 }
 
 /**
