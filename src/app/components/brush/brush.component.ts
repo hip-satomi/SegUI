@@ -109,6 +109,14 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
         this.controlKeyDown = false;
     }
 
+    @HostListener('document:keydown.o', ['$event'])
+    overlayToggle(event) {
+        if(this.show) {
+            // if the brush tool is shown we do toggle the overlay
+            this.showOverlay = !this.showOverlay;
+        }
+    }
+
     /**
      * Use the keydown event (for numbers) to switch between label classes efficiently
      * @param event keydown event
