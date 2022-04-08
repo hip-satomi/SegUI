@@ -13,7 +13,7 @@ RUN cd app && npm ci
 
 RUN cd app && npm install -g @angular/cli @ionic/cli
 RUN cd app && ls
-RUN cd app && ionic build --prod --aot --outputHashing=all
+RUN cd app && ionic build --prod -- --aot --outputHashing=all
 
 ### deployment section
 
