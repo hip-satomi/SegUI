@@ -70,6 +70,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     canvasElement;
     pencil: Pencil;
 
+    /** line width used for drawing brush circle */
+    lineWidth = .2;
 
     /* Brush configuration variables (size, ...) in state */
     brushState: BrushState;
@@ -202,6 +204,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
     // draw the circle around the pointer
     if (this.pointerPos) {
+        // set the line width
+        ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
         ctx.arc(this.pointerPos.x, this.pointerPos.y, this.brushSize, 0, 2 * Math.PI);
         ctx.stroke();
