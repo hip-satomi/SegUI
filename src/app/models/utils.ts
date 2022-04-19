@@ -205,8 +205,9 @@ export class UIUtils {
   static drawSingle(points: Point[], active: boolean, ctx, color: string) {
     ctx.globalCompositeOperation = 'destination-over';
     ctx.fillStyle = 'rgb(255,255,255)';
-    ctx.strokeStyle = 'rgba(0,0,0,0)'; // invisible stroke (to better see the labeled cell interior)
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = color;
+    // small line width (to allow precise segmentation)
+    ctx.lineWidth = .2;
 
     // create the path for polygon
     ctx.beginPath();
