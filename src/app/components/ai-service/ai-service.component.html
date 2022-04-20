@@ -39,10 +39,13 @@
     </ion-list>
 
     <ion-toolbar>
-      <ion-button color="secondary" (click)="customizeService()" [disabled]="!(customizable$ | async)">Customize</ion-button>
-      <ion-button *ngIf="!readonly" color="primary" type="submit" [disabled]="!serviceForm.valid" type="submit">Save</ion-button>
-      <ion-button *ngIf="!readonly" color="primary" slot="end" color="warning" (click)="discardChanges()">Discard</ion-button>
-      <ion-button *ngIf="!readonly" color="primary" slot="end" color="danger" (click)="deleteService()"><ion-icon name="trash-outline"></ion-icon></ion-button>
+      <ion-button color="secondary" (click)="customizeService()" [disabled]="!(customizable$ | async)" #tooltip="matTooltip"
+      matTooltip="Customize description, repo url and parameters!">Customize</ion-button>
+      <ion-button *ngIf="!readonly" color="primary" type="submit" [disabled]="!serviceForm.valid" type="submit" #tooltip="matTooltip"
+      matTooltip="Save your changes to the service!">Save</ion-button>
+      <!--<ion-button *ngIf="!readonly" color="primary" slot="end" color="warning" (click)="discardChanges()">Discard</ion-button>-->
+      <ion-button *ngIf="!readonly" color="primary" slot="end" color="danger" (click)="deleteService()" #tooltip="matTooltip"
+      matTooltip="Delete the segmentation service!"><ion-icon name="trash-outline"></ion-icon></ion-button>
     </ion-toolbar>
   </ion-card-content>
 </ion-card>
