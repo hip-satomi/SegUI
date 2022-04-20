@@ -12,7 +12,7 @@
       <ion-col size="12" size-sm="12" offset-sm="0" size-md="10" offset-md="1" size-lg="8" offset-lg="2" size-xl="6"
       offset-xl="3">
         <ion-item>
-          <ion-label>AI Line:</ion-label>
+          <ion-label>AI Repository:</ion-label>
           <ion-select placeholder="Select one" interface="popover" [(ngModel)]="selectedLine">
             <ion-select-option *ngFor="let name of (lineNames$ | async)" value="{{name}}">{{name}}</ion-select-option>
             <!--<ion-select-option value="2">Custom</ion-select-option>-->
