@@ -55,5 +55,6 @@
             "read-only": false,
             "services": []
         }
-    ]
+    ],
+    "version": "0.1"
 }
