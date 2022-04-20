@@ -19,6 +19,9 @@ import { TokenInterceptorService } from './services/token-interceptor.service';
 
 import { ColorPickerModule } from 'ngx-color-picker';
 import { CookieService } from 'ngx-cookie-service';
+import { IonicStorageModule } from '@ionic/storage-angular';
+
+import { Drivers, Storage } from '@ionic/storage';
 @Injectable({providedIn: 'root'})
 export class MyHammerConfig extends HammerGestureConfig  {
   overrides = {
@@ -40,7 +43,8 @@ export class MyHammerConfig extends HammerGestureConfig  {
             HttpClientXsrfModule.withOptions({
               cookieName: 'csrftoken', // this is optional
               headerName: 'X-CSRFToken' // this is optional
-            })
+            }),
+            IonicStorageModule.forRoot()
           ],
   providers: [
     StatusBar,
