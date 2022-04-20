@@ -33,8 +33,8 @@ const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
-    path: 'ai-config',
-    loadChildren: () => import('./pages/ai-config/ai-config.module').then( m => m.AiConfigPageModule)
+    path: 'ai-settings',
+    loadChildren: () => import('./pages/ai-settings/ai-settings.module').then( m => m.AiSettingsPageModule)
   },
 ];
 

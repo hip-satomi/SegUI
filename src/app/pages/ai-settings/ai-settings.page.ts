@@ -3,13 +3,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ViewWillEnter } from '@ionic/angular';
 import { BehaviorSubject, Observable, ReplaySubject, throwError } from 'rxjs';
 import { map, switchMap, take, tap } from 'rxjs/operators';
-import { AIConfig, AIConfigService, AIService, AILine } from 'src/app/services/aiconfig.service';
+import { AIConfig, AIConfigService, AIService, AIRepository as AIRepository } from 'src/app/services/aiconfig.service';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
 
 @Component({
-  selector: 'app-ai-config',
-  templateUrl: './ai-config.page.html',
-  styleUrls: ['./ai-config.page.scss'],
+  selector: 'app-ai-settings',
+  templateUrl: './ai-settings.page.html',
+  styleUrls: ['./ai-settings.page.scss'],
 })
 export class AiConfigPage implements OnInit, ViewWillEnter {
 
@@ -41,7 +41,7 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   cachedConfig$ = new BehaviorSubject<AIConfig>(null);
 
   lineNames$: Observable<string[]>;
-  line$: Observable<AILine>;
+  line$: Observable<AIRepository>;
   services$: Observable<Array<AIService>>;
   readonly$: Observable<boolean>;
 
@@ -54,28 +54,28 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
     ).subscribe();
 
     this.lineNames$ = this.config$.pipe(
-      map(res => res.lines.map(line => line.name))
+      map(res => res.repositories.map(line => line.name))
     );
 
     this.line$ = this.lineName$.pipe(
       switchMap((lineName: string) => {
         return this.config$.pipe(
           map((config) => {
-            return config.lines.filter(line => line.name == lineName)[0];
+            return config.repositories.filter(line => line.name == lineName)[0];
           })
         )
       }),
     );
 
     this.readonly$ = this.line$.pipe(
-      map((line: AILine) => {
+      map((line: AIRepository) => {
         console.log(line.readonly);
         return line.readonly
       })
     );
 
     this.services$ = this.line$.pipe(
-      map((line: AILine) => {
+      map((line: AIRepository) => {
         return line.services;
       })      
     );
@@ -99,7 +99,7 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   addService(service: AIService = null) {
     this.line$.pipe(
       take(1),
-      tap((line: AILine) => {
+      tap((line: AIRepository) => {
         if (service == null) {
           service = new AIService("", "", "", "", "", {});
         }
@@ -113,7 +113,7 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   updateService(service: AIService) {
     this.line$.pipe(
       take(1),
-      tap((line: AILine) => {
+      tap((line: AIRepository) => {
         this.configService.saveService(line, service);
       })
     ).subscribe(); 
@@ -122,7 +122,7 @@ export class AiConfigPage implements OnInit, ViewWillEnter {
   deleteService(service: AIService) {
     this.line$.pipe(
       take(1),
-      tap((line: AILine) => {
+      tap((line: AIRepository) => {
         this.configService.deleteService(line, service);
       })
     ).subscribe(); 

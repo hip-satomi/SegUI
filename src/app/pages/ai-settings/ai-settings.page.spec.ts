@@ -7,7 +7,7 @@ import { IonicStorageModule } from '@ionic/storage-angular';
 import { EMPTY } from 'rxjs';
 import { MockStorage } from 'src/app/services/storage.service.spec';
 
-import { AiConfigPage } from './ai-config.page';
+import { AiConfigPage } from './ai-settings.page';
 
 class MockActivatedRoute {
   // here you can add your mock objects, like snapshot or parent or whatever

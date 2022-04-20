@@ -6,7 +6,7 @@ import { StorageService } from './storage.service';
 import { Storage } from '@ionic/storage-angular';
 
 // load default segmentation configuration from file
-const segmentationConfig = require('../../assets/ai-lines.json');
+const segmentationConfig = require('../../assets/ai-repositories.json');
 
 export class MockStorage {
 

@@ -6,7 +6,7 @@
       <ion-chip *ngIf="groupRestricted" color="danger" [routerLink]="['/omero-dashboard/']" #tooltip="matTooltip" matTooltip="Currently you only see projects in group {{this.group}}. Click to see your full dashboard!"><ion-label>group restricted</ion-label></ion-chip>
     </ion-title>
     <ion-buttons slot="end">
-      <ion-button [routerLink]="['/ai-config']"><ion-icon name="settings-outline"></ion-icon></ion-button>
+      <ion-button [routerLink]="['/ai-settings']"><ion-icon name="settings-outline"></ion-icon></ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>

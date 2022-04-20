@@ -78,7 +78,7 @@ export class AIService {
 }
 
 @Serializable()
-export class AILine {
+export class AIRepository {
   @JsonProperty()
   name: string;
   @JsonProperty()
@@ -138,20 +138,20 @@ export class AILine {
 
 @Serializable()
 export class AIConfig {
-  @JsonProperty({type: AILine })
-  lines: Array<AILine>;
+  @JsonProperty({type: AIRepository })
+  repositories: Array<AIRepository>;
 
-  getLineById(id: string): AILine {
-    return this.lines.filter(line => line.id == id)[0];
+  getLineById(id: string): AIRepository {
+    return this.repositories.filter(line => line.id == id)[0];
   }
 
-  setLineById(id: string, line: AILine) {
-    const lineIndex = this.lines.map(line => line.id).indexOf(line.id);
-    this.lines[lineIndex] = line;
+  setLineById(id: string, line: AIRepository) {
+    const lineIndex = this.repositories.map(line => line.id).indexOf(line.id);
+    this.repositories[lineIndex] = line;
   }
 
   hasLine(lineId: string) {
-    return this.lines.map(line => line.id).includes(lineId);
+    return this.repositories.map(line => line.id).includes(lineId);
   }
 }
 
@@ -222,7 +222,7 @@ export class AIConfigService {
   }
 
   getShippedConfig(): Observable<AIConfig> {
-    return this.httpClient.get('assets/ai-lines.json').pipe(
+    return this.httpClient.get('assets/ai-repositories.json').pipe(
       map((res) => deserialize(res, AIConfig))
     )
   }
@@ -243,7 +243,7 @@ export class AIConfigService {
    * @param line the line of the service
    * @param service the service to add
    */
-  saveService(line: AILine, service: AIService) {
+  saveService(line: AIRepository, service: AIService) {
     this.getConfigFromStorage().pipe(
       take(1),
       map(config => {
@@ -284,7 +284,7 @@ export class AIConfigService {
    * @param line the line to user
    * @param service the service to remove
    */
-  deleteService(line: AILine, service: AIService) {
+  deleteService(line: AIRepository, service: AIService) {
     this.getConfigFromStorage().pipe(
       take(1),
       map(config => {
@@ -312,7 +312,7 @@ export class AIConfigService {
     return this.storageChanged$.pipe(
       switchMap(() => this.getConfigFromStorage()),      
       map((config: AIConfig) => {
-        return [].concat(...config.lines.map(line => line.services)).filter((service: AIService) => service.id == serviceId).length == 1;
+        return [].concat(...config.repositories.map(line => line.services)).filter((service: AIService) => service.id == serviceId).length == 1;
       })
     )
   }

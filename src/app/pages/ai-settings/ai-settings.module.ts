@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms';
 
 import { IonicModule } from '@ionic/angular';
 
-import { AiConfigPageRoutingModule } from './ai-config-routing.module';
+import { AiSettingsPageRoutingModule } from './ai-settings-routing.module';
 
-import { AiConfigPage } from './ai-config.page';
+import { AiConfigPage } from './ai-settings.page';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SharedComponentsModule } from 'src/app/shared-components-module/shared-components.module';
 
@@ -15,10 +15,10 @@ import { SharedComponentsModule } from 'src/app/shared-components-module/shared-
     CommonModule,
     FormsModule,
     IonicModule,
-    AiConfigPageRoutingModule,
+    AiSettingsPageRoutingModule,
     MatTooltipModule,
     SharedComponentsModule
   ],
   declarations: [AiConfigPage]
 })
-export class AiConfigPageModule {}
+export class AiSettingsPageModule {}
