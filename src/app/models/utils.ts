@@ -206,7 +206,8 @@ export class UIUtils {
     ctx.globalCompositeOperation = 'destination-over';
     ctx.fillStyle = 'rgb(255,255,255)';
     ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
+    // small line width (to allow precise segmentation)
+    ctx.lineWidth = .2;
 
     // create the path for polygon
     ctx.beginPath();

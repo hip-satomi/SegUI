@@ -70,6 +70,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     canvasElement;
     pencil: Pencil;
 
+    /** line width used for drawing brush circle */
+    lineWidth = .2;
 
     /* Brush configuration variables (size, ...) in state */
     brushState: BrushState;
@@ -107,6 +109,14 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     @HostListener('document:keyup.control', ['$event'])
         ctrlKeyUp(event) {
         this.controlKeyDown = false;
+    }
+
+    @HostListener('document:keydown.o', ['$event'])
+    overlayToggle(event) {
+        if(this.show) {
+            // if the brush tool is shown we do toggle the overlay
+            this.showOverlay = !this.showOverlay;
+        }
     }
 
     /**
@@ -194,6 +204,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
     // draw the circle around the pointer
     if (this.pointerPos) {
+        // set the line width
+        ctx.lineWidth = this.lineWidth;
         ctx.beginPath();
         ctx.arc(this.pointerPos.x, this.pointerPos.y, this.brushSize, 0, 2 * Math.PI);
         ctx.stroke();

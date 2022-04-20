@@ -381,7 +381,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
      * 
      * @param ctx canvas context
      */
-    draw(pencil: Pencil) {
+    draw(pencil: Pencil, drawImage=true) {
         pencil.clear();
 
         const ctx = pencil.canvasCtx;
@@ -389,10 +389,10 @@ export class SegmentationUI implements UIInteraction, Drawer {
         this.drawPolygonsAdv(ctx, true,
             // filter only polygons with visible label
             (p: [string, Polygon]) => {
-                return this.segModel.labels[this.segModel.segmentationData.getPolygonLabel(p[0])].visible
+                return this.segModel.labels[this.segModel.segmentationData.getPolygonLabel(p[0])].visible;
             },
             ({uuid, poly}) => {
-                const label = this.segModel.labels[this.segModel.segmentationData.getPolygonLabel(uuid)]
+                const label = this.segModel.getPolygonLabel(uuid);
                 const mode = label.color;
 
                 if (mode == 'random') {
@@ -403,7 +403,9 @@ export class SegmentationUI implements UIInteraction, Drawer {
             }
 
         );
-        this.drawImage(ctx);
+        if (drawImage) {
+            this.drawImage(ctx);
+        }
     }
 
     /**

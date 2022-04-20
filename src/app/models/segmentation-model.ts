@@ -661,8 +661,13 @@ export class LocalSegmentationModel {
         return this.segmentationData.labels.get(id);
     }
 
-    getPolygonLabel(id: string)  {
-        return this.parent.labels[this.segmentationData.labels.get(id)];
+    getPolygonLabel(id: string): AnnotationLabel  {
+        const labelId = this.segmentationData.labels.get(id);
+        const candidates = this.parent.labels.filter(l => l.id == labelId);
+        if (candidates.length == 1) {
+            return candidates[0];
+        }
+        throw new Error("Requested label id not found!");
     }
 }
 
