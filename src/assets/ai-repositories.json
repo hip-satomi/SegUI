@@ -10,7 +10,7 @@
                     "id": "4645d1ec-4612-4197-8e83-72da49497392",
                     "name": "Cellpose",
                     "description": "Segmentation service based on the Cellpose implementation (https://github.com/MouseLand/cellpose)",
-                    "repo_url": "https://gitlab+deploy-token-1:jzCPzEwRQacvqp8z2an9@jugit.fz-juelich.de/mlflow-executors/cellpose-executor.git",
+                    "repo_url": "https://github.com/hip-satomi/Cellpose-Executor.git",
                     "repo_entry_point": "main",
                     "repo_version": "main",
                     "additional_parameters": {}
@@ -19,7 +19,7 @@
                     "id": "a40cdb3a-f8f0-4b51-8d81-4f3e289b3332",
                     "name": "Omnipose",
                     "description": "Segmentation service based on the Omnipose implementation (https://github.com/MouseLand/cellpose)",
-                    "repo_url": "https://gitlab+deploy-token-1:jzCPzEwRQacvqp8z2an9@jugit.fz-juelich.de/mlflow-executors/cellpose-executor.git",
+                    "repo_url": "https://github.com/hip-satomi/Cellpose-Executor.git",
                     "repo_entry_point": "omnipose",
                     "repo_version": "main",
                     "additional_parameters": {}
@@ -28,7 +28,7 @@
                     "id": "78080257-59e9-44c6-a664-b3b247389b7a",
                     "name": "HybridTaskCascade (HTC)",
                     "description": "HTC segmentation approach trained on synthetic data",
-                    "repo_url": "https://gitlab+deploy-token-1:jzCPzEwRQacvqp8z2an9@jugit.fz-juelich.de/mlflow-executors/mmdetection-executor.git",
+                    "repo_url": "https://github.com/hip-satomi/MMDetection-Executor.git",
                     "repo_entry_point": "main",
                     "repo_version": "main",
                     "additional_parameters": {
@@ -40,7 +40,7 @@
                     "id": "290c8491-a492-42d4-b401-4cbfc49a5fba",
                     "name": "Yolov5m",
                     "description": "Yolov5 object detector for common objects (https://github.com/ultralytics/yolov5). It is trained on the COCO dataset.",
-                    "repo_url": "https://gitlab+deploy-token-1:jzCPzEwRQacvqp8z2an9@jugit.fz-juelich.de/mlflow-executors/yolov5-executor.git",
+                    "repo_url": "https://github.com/hip-satomi/Yolov5-Executor.git",
                     "repo_entry_point": "main",
                     "repo_version": "master",
                     "additional_parameters": {
