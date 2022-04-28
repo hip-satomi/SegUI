@@ -1,0 +1,7 @@
+<ion-list lines="full">
+  <ion-item *ngFor="let param of parameterList">
+    <ion-input value="{{param.name}}" [readonly]="readonly"></ion-input>
+    <ion-input value="{{param.value}}" [readonly]="readonly"></ion-input>
+  </ion-item>
+  <ion-item *ngIf="parameterList.length == 0">No Parameters</ion-item>
+</ion-list>
