@@ -405,6 +405,10 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
     const jointLocalActions = this.localSegModel.wrapAction(jointAction);
     this.globalSegModel.addAction(new JointAction(...addLabelActions, jointLocalActions));
 
+    // clear segmentation model
+    this.data = [];
+    this.createLocalSegModel();
+
     // close the window
     this.close();
   }
