@@ -8,12 +8,13 @@ import { Serializable, JsonProperty, deserialize } from 'typescript-json-seriali
 import { map, tap, mergeMap, switchMap, combineAll, catchError } from 'rxjs/operators';
 import { DataResponse } from './omero-auth.service';
 import { HttpClient} from '@angular/common/http';
-import { Observable, of, combineLatest, from } from 'rxjs';
+import { Observable, of, combineLatest, from, throwError } from 'rxjs';
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
 import { UserQuestionsService } from './user-questions.service';
 import { SegCollData } from '../models/segmentation-model';
 import { OmeroUtils } from '../models/utils';
+import { AnnotationLabel } from '../models/segmentation-data';
 
 /**
  * Rewrite omero api urls into our urls (they get redirected again).
@@ -476,6 +477,12 @@ export interface RenderChannel {
   color: string;
 }
 
+enum OmeroType {
+  Image = "image",
+  Dataset = "dataset",
+  Project = "project"
+}
+
 /**
  * This service bundles functionality to access the Omero web JSON API (https://docs.openmicroscopy.org/omero/5.6.0/developers/json-api.html)
  */
@@ -551,6 +558,28 @@ export class OmeroAPIService {
         return deserialize(r, DatasetResult).data[0];
       })
     );
+  };
+
+  /**
+   * Obtain the parent project of the dataset. If multiple parent projects are registered it retunrs the first one.
+   * @param datasetId omero dataset id
+   * @returns first project that is parent of the dataset
+   */
+  getDatasetProject(datasetId: number): Observable<Project> {
+    return this.getDataset(datasetId).pipe(
+      map(dataset => {
+        return dataset.urlProjects
+      }),
+      switchMap(url => {
+        return this.getPagedData(url, Project)
+      }),
+      map((projects: Array<Project>) => {
+        if (projects.length != 1) {
+          console.warn("Not a single parent project registered! Take first! This might give ambiguous results!");
+        }
+        return projects[0];
+      })
+    )
   };
 
   /**
@@ -675,10 +704,10 @@ export class OmeroAPIService {
 
   /**
    * Show all file annotations associated with an image sequence in omero
-   * @param imageId image sequence id
+   * @param id image sequence id
    */
-  getFileAnnotations(imageId: number): Observable<Array<Annotation>> {
-    return this.httpClient.get(`omero/webclient/api/annotations/?type=file&image=${imageId}`).pipe(
+  getFileAnnotations(id: number, type: OmeroType = OmeroType.Image): Observable<Array<Annotation>> {
+    return this.httpClient.get(`omero/webclient/api/annotations/?type=file&${type}=${id}`).pipe(
       map(r => {
         return deserialize(r, AnnotationResult);
       }),
@@ -699,12 +728,12 @@ export class OmeroAPIService {
    * Returns the latest file version associated with an image.
    * 
    * Only works when the file format is json!!!
-   * @param imageId image set id
+   * @param omeroId image set id
    * @param fileName file name
    */
-  getLatestFileJSON(imageId: number, fileName: string) {
+  getLatestFileJSON(omeroId: number, fileName: string, type: OmeroType = OmeroType.Image) {
     // get all annotations first
-    return this.getFileAnnotations(imageId).pipe(
+    return this.getFileAnnotations(omeroId, type).pipe(
       // filter by name and sort by date
       map(annotations => {
         return annotations.filter(ann => ann.file.name === fileName).sort((a, b) => -(a.date.getTime() - b.date.getTime()));
@@ -717,7 +746,7 @@ export class OmeroAPIService {
             map(txt => JSON.parse(txt))
           );
         } else {
-          return of(null);
+          return throwError(new Error("File not found!"));
         }
       })
     );
@@ -1086,4 +1115,70 @@ export class OmeroAPIService {
   getImageAnnotations(imageSetId: number) {
     return this.httpClient.get(`/omero/webclient/api/annotations/`, {params: {type: 'map', image: `${imageSetId}`}});
   }
+
+  /**
+   * Tries to obtain default annotation config based on image, dataset, project or default config
+   * @param imageSetId omero image id
+   * @returns json object of annotation config
+   */
+  getDefaultAnnotationConfig(imageSetId: number): Observable<any> {
+    // get dataset and project id first
+    return this.getImageDataset(imageSetId).pipe(
+      map((dataset) => dataset.id),
+      switchMap((datasetId: number) => {
+        return this.getDatasetProject(datasetId).pipe(
+          map((project) => project.id),
+          map((projectId: number) => {
+            return {datasetId, projectId}
+          })
+        )
+      }),
+      // try to obain json annotation files
+      switchMap(({datasetId, projectId}) => {
+        const filename = "annotation_config.json";
+
+        // 1. get image config (e.g. annotation_config.json)
+        return this.getLatestFileJSON(imageSetId, filename, OmeroType.Image).pipe(
+          tap(() => console.log("Use default image annotation config!")),
+          catchError(() => {
+            // 2. on fail --> get dataset config
+            return this.getLatestFileJSON(datasetId, filename, OmeroType.Dataset).pipe(
+              tap(() => console.log("Use default dataset annotation config!")),
+              catchError(() => {
+                // 5. on fail --> get project config
+                return this.getLatestFileJSON(projectId, filename, OmeroType.Project).pipe(
+                  tap(() => console.log("Use default project annotation config!")),
+                  catchError(() => {
+                    // 4. on fail --> get application config
+                    return this.httpClient.get(`assets/${filename}`).pipe(
+                      tap(() => console.log("Use default application annotation config")),
+                    );
+                  })
+                )
+              }),
+            )
+          }),
+          );
+        }
+      ));
+    }
 }
+
+/**
+ * Extract label information from default json config
+ */
+export const extractLabels = map((jsonData) => {
+  try {
+    const annotationLabels = []
+    const labels = jsonData["labels"];
+    // loop through all labels
+    labels.forEach((item, index) => {
+      annotationLabels.push(new AnnotationLabel(index, item['name'], item["visible"], item["color"], item["active"]));
+    });
+
+    return annotationLabels;
+  } catch(e) {
+    console.error(e.message);
+    throw e;
+  }
+});

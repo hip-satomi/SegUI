@@ -1,0 +1,10 @@
+{
+    "labels": [
+                {
+                    "name": "Cell",
+                    "visible": true,
+                    "color": "random",
+                    "active": true
+                }
+            ]
+}

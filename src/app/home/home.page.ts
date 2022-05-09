@@ -1,4 +1,4 @@
-import { Dataset, OmeroAPIService, Project, RoIShape } from './../services/omero-api.service';
+import { Dataset, extractLabels, OmeroAPIService, Project, RoIShape } from './../services/omero-api.service';
 import { OmeroUtils, Utils } from './../models/utils';
 import { Polygon, BoundingBox } from './../models/geometry';
 import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './../models/action';
@@ -476,7 +476,10 @@ export class HomePage implements Drawer, UIInteraction{
           // Currently: Load the latest GUISegmentation
           mergeMap((joint) => {
             return this.omeroAPI.getLatestFileJSON(imageSetId, 'GUISegmentation.json').pipe(
-              map(segm => ({urls: urls, segm}))
+              map(segm => ({urls: urls, segm})),
+              catchError((err, caught) => {
+                return of({urls, segm: null});
+              })
             );
           }),
           takeUntil(this.ngUnsubscribe),
@@ -488,12 +491,12 @@ export class HomePage implements Drawer, UIInteraction{
             let srscPipeline: Observable<GlobalSegmentationOMEROStorageConnector>;
 
             if (content.segm === null) {
+              // there is no existing segmentation json --> try to load from omero
               srscPipeline = this.omeroImport(false).pipe(
                 //map((srsc: GlobalSegmentationOMEROStorageConnector) => 'hello'),
                 catchError(e => {
                   // loading from OMERO failed or has been rejected
-                  srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, content.urls, this.ngUnsubscribe);
-                  return of(srsc).pipe(
+                  return this.createSegmentationConnector(imageSetId, content.urls).pipe(
                     // enforce an update
                     tap((srsc) => srsc.update().subscribe())
                   );
@@ -514,9 +517,8 @@ export class HomePage implements Drawer, UIInteraction{
                     switchMap((createNewOne) => {
                       if(createNewOne) {
                         // create new segmentation
-                        srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, urls, this.ngUnsubscribe);
                         // and force an update on the server
-                        return of(srsc).pipe(
+                        return this.createSegmentationConnector(imageSetId, urls).pipe(
                           tap(() => srsc.update().subscribe())
                         );
                       } else {
@@ -865,9 +867,7 @@ export class HomePage implements Drawer, UIInteraction{
           // deactivate data synchronization
           tap(() => this.ngUnsubscribe.next()),
           switchMap(({importLabels, roiData}) => this.omeroAPI.getImageUrls(imageSetId).pipe(map(urls => {return {importLabels, roiData, urls}}))),
-          map(combined => {
-            let {importLabels, roiData, urls} = combined;
-
+          map(({importLabels, roiData, urls}) => {
             // only polgyons
             roiData = roiData.filter(shape => shape.type == "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon")
 
@@ -876,6 +876,12 @@ export class HomePage implements Drawer, UIInteraction{
 
             // add every polygon that already exists in omero
             const additionalLabels: string[] = [];
+
+            if (!importLabels) {
+              // we do not import labels --> we have to create a default label set
+              // TODO: specify by dataset/project
+              additionalLabels.push("Cell");
+            }
             /** Array of all actions to be performed */
             const actions: Action<SegCollData>[] = [];
             const currentModel = srsc.getModel()
@@ -1164,6 +1170,24 @@ export class HomePage implements Drawer, UIInteraction{
 
   get numImages() {
     return this.segmentationModels.length;
+  }
+
+  /**
+   * Create a new Segmentation with access to omero
+   * @param imageSetId id of the image
+   * @param imageUrls url of the individual frames in the Omero iamge
+   * @returns Observable of connector to omero
+   */
+  createSegmentationConnector(imageSetId: number, imageUrls: Array<string>): Observable<GlobalSegmentationOMEROStorageConnector> {
+    // add a single label 'Cell' in the beginning!
+    return this.omeroAPI.getDefaultAnnotationConfig(imageSetId).pipe(
+      extractLabels,
+      map((initialLabels: AnnotationLabel[]) => {
+        const initialActions = initialLabels.map((label: AnnotationLabel) => new AddLabelAction(label));
+        const srsc = GlobalSegmentationOMEROStorageConnector.createNew(this.omeroAPI, imageSetId, imageUrls, this.ngUnsubscribe, initialActions);
+        return srsc;
+      })
+    );
   }
 
 }
