@@ -474,6 +474,8 @@ export interface RenderChannel {
   max: number;
   c: number;
   color: string;
+  lut: string;
+  inverted: boolean;
 }
 
 /**
@@ -613,7 +615,21 @@ export class OmeroAPIService {
     // create rendering strings
     const individualChannelRenders = []
     for (const channel of channels) {
-      individualChannelRenders.push(`${channel.c}|${channel.min}:${channel.max}$${channel.color}`);
+      let renderString = `${channel.c}|${channel.min}:${channel.max}$${channel.color}`;
+      // if a lut is defined include that
+      if (channel.lut !== undefined) {
+        renderString += `$${channel.lut}`;
+      }
+      // check more specialized parameters
+      const maps = [];
+      if(channel.inverted) {
+        maps.push({inverted: {enabled: true}})
+      }
+      // and add them to the render string
+      if(maps.length > 0) {
+        renderString += `$maps=${maps}`;
+      }
+      individualChannelRenders.push(renderString);
     }
 
     // join channel rendering strings
@@ -664,11 +680,33 @@ export class OmeroAPIService {
           return {...data, it: zs.map(idx => ({imageId: data.image.id, z: idx, t: 0}))};
         }
       }),
+      switchMap((data) => {
+        return this.getRenderConfigs(imageSetId).pipe(
+          map((rdefs) => {
+            return {...data, rdefs: rdefs};
+          })
+        );
+      }),
       // generate the final image urls with render info
-      map((data: {image: Image, renderInfos: RenderInfos, it: Array<{imageId: number, z: number, t: number}>}) => {
-        const min = data.renderInfos.channels[0].window.start;
-        const max = data.renderInfos.channels[0].window.end;
-        return data.it.map(item => this.getImageViewUrl(item.imageId, item.z, item.t, [{min, max, c: 1, color: '808080'}]));
+      map((data: {image: Image, renderInfos: RenderInfos, it: Array<{imageId: number, z: number, t: number}>, rdefs:any}) => {
+
+        // get rendering information from omero render definition
+        // TODO: let user select render config (not always take the first one)
+        const rdef = data.rdefs[0];
+        const renderChannels = [];
+        let index = 0;
+        for(const channel of rdef.c) {
+          const start = channel.start;
+          const end = channel.end;
+          const color = channel.color;
+          const lut = channel.lut;
+          const inverted = channel.inverted || false;
+          renderChannels.push({min: start, max: end, c: index+1, color, inverted});
+          index += 1;
+        }
+        
+        // use the definition to render images by omero
+        return data.it.map(item => this.getImageViewUrl(item.imageId, item.z, item.t, renderChannels));
       })
     );
   }
@@ -1085,5 +1123,16 @@ export class OmeroAPIService {
    */
   getImageAnnotations(imageSetId: number) {
     return this.httpClient.get(`/omero/webclient/api/annotations/`, {params: {type: 'map', image: `${imageSetId}`}});
+  }
+
+  /**
+   * Obtain the omero render configuration for a specific image
+   * @param imageSetId omero image id
+   * @returns array of omero render definitions
+   */
+  getRenderConfigs(imageSetId: number) {
+    return this.httpClient.get(`omero/webgateway/get_image_rdefs_json/${imageSetId}/`).pipe(
+      map(data => data["rdefs"])
+    );
   }
 }
