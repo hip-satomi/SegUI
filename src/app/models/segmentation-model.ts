@@ -410,9 +410,10 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
      * Creates a global segmentation model for an image stack
      * @param destroySignal distroy signal to stop processing pipelines when necessary (e.g. when another model is used)
      * @param numSegmentationLayers number of frames in the image stack
+     * @param initConfigActions list of actions that is used to initialize the segmentation workspace (e.g. add certain labels)
      * @returns 
      */
-    constructor(destroySignal, numSegmentationLayers: number) {
+    constructor(destroySignal, numSegmentationLayers: number, initConfigActions: Array<Action<SegCollData>> = []) {
         super();
         this.destroySignal = destroySignal;
 
@@ -434,7 +435,9 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
         this.actionManager.addAction(new CreateSegmentationLayersAction(numSegmentationLayers));
 
         // create default label
-        this.actionManager.addAction(new AddLabelAction(new AnnotationLabel(0, 'Cell', true, 'random', true)));
+        if (initConfigActions.length >= 0) {
+            this.actionManager.addAction(new JointAction(...initConfigActions));
+        }
     }
 
     /**
@@ -468,7 +471,7 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
      * @returns next highest free label id
      */
     nextLabelId(): number {
-        return Math.max(...this.segmentationData.labels.map(l => l.id), 0) + 1;
+        return Math.max(...this.segmentationData.labels.map(l => l.id), -1) + 1;
     }
 
     get canUndo() {

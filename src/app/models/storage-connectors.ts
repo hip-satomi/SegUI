@@ -7,9 +7,10 @@ import { deserialize, serialize } from 'typescript-json-serializer';
 import { EventEmitter } from '@angular/core';
 import { ModelChanged, ChangeType } from './change';
 import { debounceTime, filter, map, tap, switchMap, catchError } from 'rxjs/operators';
-import { SimpleSegmentationView, GlobalSegmentationModel } from './segmentation-model';
+import { SimpleSegmentationView, GlobalSegmentationModel, SegCollData } from './segmentation-model';
 import { Observable, of, zip, empty, Subject, EMPTY } from 'rxjs';
 import { StorageConnector } from './storage';
+import { Action } from './action';
 
 
 
@@ -51,10 +52,11 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
      * @param omeroAPI segmentation REST SErvice
      * @param imageSetId the image set id
      * @param imageUrls the image urls
+     * @param initConfigActions list of initial actions to execute on segmentation model
      */
-    public static createNew(omeroAPI: OmeroAPIService, imageSetId: number, imageUrls: string[], destroySingal: Subject<void>) {
+    public static createNew(omeroAPI: OmeroAPIService, imageSetId: number, imageUrls: string[], destroySingal: Subject<void>, initConfigActions: Array<Action<SegCollData>> = []) {
         // new holder
-        const holder = new GlobalSegmentationModel(destroySingal, imageUrls.length);
+        const holder = new GlobalSegmentationModel(destroySingal, imageUrls.length, initConfigActions);
 
         // create the omero storage connector and bind it to the model
         const srsc = new GlobalSegmentationOMEROStorageConnector(omeroAPI, holder, imageSetId);
