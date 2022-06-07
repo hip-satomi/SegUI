@@ -5,8 +5,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
+import { IonicStorageModule } from '@ionic/storage-angular';
 import { EMPTY, of } from 'rxjs';
 import { OmeroAuthService } from '../services/omero-auth.service';
+import { MockStorage } from '../services/storage.service.spec';
 import { SharedComponentsModule } from '../shared-components-module/shared-components.module';
 import { HomePageModule } from './home.module';
 
@@ -35,7 +37,7 @@ describe('HomePage', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ HomePage ],
-      imports: [IonicModule.forRoot(), RouterTestingModule, HttpClientTestingModule, MatTooltipModule, OverlayModule, SharedComponentsModule],
+      imports: [IonicModule.forRoot(), RouterTestingModule, HttpClientTestingModule, MatTooltipModule, OverlayModule, SharedComponentsModule, IonicStorageModule.forRoot()],
       providers: [
         {
           provide: ActivatedRoute,
@@ -44,6 +46,10 @@ describe('HomePage', () => {
         {
           provide: OmeroAuthService,
           useClass: MockAuthService
+        },
+        {
+          provide: Storage,
+          useClass: MockStorage
         }
       ]
     }).compileComponents();
