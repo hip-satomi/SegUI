@@ -10,6 +10,7 @@ import { AnnotationLabel } from 'src/app/models/segmentation-data';
 import { GlobalSegmentationModel, LocalSegmentationModel, SegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { UIUtils, Utils } from 'src/app/models/utils';
+import { AIConfigService, AIService } from 'src/app/services/aiconfig.service';
 import { SegmentationData, SegmentationService, SegmentationServiceDef, ServiceResult } from 'src/app/services/segmentation.service';
 
 @Component({
@@ -75,7 +76,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   simplifyError = 0.1;
   filterOverlaps = true;
   useLabels = false;
-  segmentationModels$ = new ReplaySubject<Array<SegmentationServiceDef>>();
+  segmentationModels$ = new ReplaySubject<Array<AIService>>();
 
   // cache for filtering detections
   _cachedFilterDets: Array<[string, Polygon]> = null;
@@ -83,7 +84,8 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   constructor(private loadingCtrl: LoadingController,
               private httpClient: HttpClient,
               private segmentationService: SegmentationService,
-              private toastController: ToastController) {
+              private toastController: ToastController,
+              private aiConfigService: AIConfigService) {
     super("FlexSegmentationTool");
   }
 
@@ -180,7 +182,14 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
   }
 
   ngOnInit() {
-    this.segmentationService.getSegmentationServices().pipe(
+    this.aiConfigService.getConfig().pipe(
+      map(config => {
+        let services: Array<AIService> = [];
+        for (const repo of config.repositories) {
+          services = services.concat(repo.services);
+        }
+        return services;
+      }),
       tap(services => {
         this.segmentationModels$.next(services)
       })
