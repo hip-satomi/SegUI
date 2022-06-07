@@ -81,7 +81,9 @@ test:
   coverage: '/Lines \W+: (\d+\.\d+)%.*/'
   artifacts:
       reports:
-        cobertura: ./builds/cobertura.xml
+        coverage_report: 
+          coverage_format: cobertura
+          path: ./builds/cobertura.xml
 
 #build-job:       # This job runs in the build stage, which runs first.
 #  stage: build
