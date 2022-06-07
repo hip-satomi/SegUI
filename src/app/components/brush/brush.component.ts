@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
 import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction, SelectPolygon} from 'src/app/models/action';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
-import { ApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
+import { MaxErrorApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { GlobalSegmentationModel, LocalSegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
 import { Position, Utils } from 'src/app/models/utils';
@@ -72,6 +72,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
     /** line width used for drawing brush circle */
     lineWidth = .2;
+    /** Relative error with respect to Radius for circle approximation (absError = radius * relativeError) */
+    relativeError = .01
 
     /* Brush configuration variables (size, ...) in state */
     brushState: BrushState;
@@ -327,7 +329,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             this.brushMode = BrushMode.Increase;
         } else {
             // measure brush intersection with current polygon
-            const circle = new ApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize);
+            const circle = new MaxErrorApproxCircle(this.pointerPos.x, this.pointerPos.y, this.brushSize, this.relativeError);
             let inter: Point[][];
             if (this.currentPolygon.numPoints === 0) {
                 inter = [];
@@ -358,8 +360,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
      */
     smoothBrush(startPos: Position, endPos: Position) {
         // no intersection, most likely due to quick draw
-        const originCircle = new ApproxCircle(startPos.x, startPos.y, this.brushSize);
-        const endCircle = new ApproxCircle(endPos.x, endPos.y, this.brushSize);
+        const originCircle = new MaxErrorApproxCircle(startPos.x, startPos.y, this.brushSize, this.relativeError);
+        const endCircle = new MaxErrorApproxCircle(endPos.x, endPos.y, this.brushSize, this.relativeError);
 
         // make rectangle
         const distance = Utils.euclideanDistance([startPos.x, startPos.y], [this.pointerPos.x, this.pointerPos.y]);

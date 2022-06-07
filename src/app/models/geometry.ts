@@ -386,3 +386,21 @@ export class ApproxCircle extends Polygon {
         super(...points);
     }
 }
+
+/**
+ * Polygon to approximate a circle with a maximal relative error
+ */
+export class MaxErrorApproxCircle extends ApproxCircle {
+    /**
+     * 
+     * @param centerX Horizontal center coordinate of the circle 
+     * @param centerY Vertical center coordinate of the circle
+     * @param radius Radius of the circle
+     * @param error Relative error in terms of radii so that the area approximation error is smaller than `error * radius`
+     */
+    constructor(centerX: number, centerY: number, radius: number, error: number) {
+        // according to: https://math.stackexchange.com/questions/4132060/compute-number-of-regular-polgy-sides-to-approximate-circle-to-defined-precision
+        super(centerX, centerY, radius, Math.ceil(Math.PI / Math.sqrt(2 * error)))
+        console.log(`Number of circle points: ${Math.ceil(Math.PI / Math.sqrt(2 * error))}`)
+    }
+}
