@@ -23,6 +23,7 @@ import { AnnotationLabel } from '../models/segmentation-data';
 import { StateService } from '../services/state.service';
 import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
 import { OmeroAuthService } from '../services/omero-auth.service';
+import { ManualTrackingComponent } from '../components/manual-tracking/manual-tracking.component';
 
 
 /**
@@ -63,6 +64,7 @@ export class HomePage implements Drawer, UIInteraction{
   // the different segmentation tools
   @ViewChild('flexSegTool') flexSegTool: FlexibleSegmentationComponent;
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
+  @ViewChild('trackingTool') trackingToolComponent: ManualTrackingComponent;
   @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
 
   /** the currently active tool */

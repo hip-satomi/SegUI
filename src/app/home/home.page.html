@@ -11,6 +11,10 @@
       <a ion-button href="https://github.com/hip-satomi/ObiWan-Microbi/issues/new" target="_blank" #tooltip="matTooltip"
         matTooltip="Please report problems/feature requests for the software here"><ion-icon name="bug-outline"></ion-icon> ISSUES</a>
 
+      <ion-button (click)="toggleTool(trackingToolComponent)" type="button" [color]="isToolActive(trackingToolComponent) ? 'primary' : ''"
+        #tooltip="matTooltip" matTooltip="Open the manual tracking tool">
+        <ion-icon name="brush-outline"></ion-icon>TRACK
+      </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(flexSegTool)" type="button" #tooltip="matTooltip"
         matTooltip="Advanced deep-learning based segmentation proposals" [color]="isToolActive(flexSegTool) ? 'primary' : ''">
         <ion-icon name="rocket-outline"></ion-icon>SEG
@@ -44,6 +48,9 @@
   <!-- Tools -->
   <div #toolContainer>
   </div>
+
+  <app-manual-tracking #trackingTool class="popover" [appMovable]="true" (changedEvent)="draw()" [segUI]="curSegUI" [segUIs]="segmentationUIs" [globalSegModel]="globalSegModel" [(activeView)]="activeView" [imageId]="(imageSetId | async)">
+  </app-manual-tracking>
 
   <app-flexible-segmentation #flexSegTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-flexible-segmentation>
