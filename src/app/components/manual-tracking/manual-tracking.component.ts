@@ -380,7 +380,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     this.userQuestionService.showInfo(`"Selected source: ${id}"`)
   }
 
-  /** Select a target for tracking and perform backtracking */
+  /**
+   * Select a target for tracking and perform backtracking
+   * @param id target segmentaiton id
+   * @param frame segmentation frame
+   */
   selectTrackTarget(id: string, frame: number) {
     // create selection object
     this.selectedSegment = new Selection(id, frame);
