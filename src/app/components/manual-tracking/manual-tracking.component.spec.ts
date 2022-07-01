@@ -10,7 +10,7 @@ describe('ManualTrackingComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [ ManualTrackingComponent ],
-      imports: [IonicModule.forRoot()]
+      imports: [IonicModule.forRoot(), HttpClientTestingModule, MatTooltipModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(ManualTrackingComponent);
