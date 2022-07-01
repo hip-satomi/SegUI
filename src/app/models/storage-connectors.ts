@@ -11,6 +11,7 @@ import { SimpleSegmentationView, GlobalSegmentationModel, SegCollData } from './
 import { Observable, of, zip, empty, Subject, EMPTY } from 'rxjs';
 import { StorageConnector } from './storage';
 import { Action } from './action';
+import { GlobalTrackingModel } from './tracking/model';
 
 
 
@@ -166,5 +167,104 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
     public update() {
         const data: string = JSON.stringify(this.model.content);
         return this.omeroAPI.updateFile(this.parentOMERO.imageSetId, 'simpleSegmentation.json', data);
+    }
+}
+
+/**
+ * Stores tracking information in an Omero File Attachment for the specific image sequence
+ */
+ export class GlobalTrackingOMEROStorageConnector extends StorageConnector<GlobalTrackingModel> {
+
+    /** Image Sequence id */
+    imageSetId: number;
+    /** omero api */
+    omeroAPI: OmeroAPIService;
+    updateEvent: EventEmitter<GlobalTrackingOMEROStorageConnector> = new EventEmitter();
+
+    /**
+     * Creates the segmentation holder from an existing json entry in db
+     * @param imageSetId the omero image sequence id
+     * @param segService segmentation service
+     * @param segmentation the segmentation file as a json string
+     */
+    public static createFromExisting(omeroAPI: OmeroAPIService, segmentation: any, imageSetId: number, destroySignal: Subject<void>): GlobalTrackingOMEROStorageConnector {
+        const model = deserialize<GlobalTrackingModel>(segmentation, GlobalTrackingModel);
+
+        if(model.formatVersion != GlobalTrackingModel.defaultFormatVersion) {
+            throw new Error("Segmentation format incompatability!");
+        }
+
+        // TODO: this should be implemented into the serializer
+        model.onDeserialized(destroySignal);
+
+        // create the omero storage connector and bind it to the model
+        const srsc = new GlobalTrackingOMEROStorageConnector(omeroAPI, model, imageSetId);
+
+        return srsc;
+    }
+
+    /**
+     * Creates a new tracking model
+     * @param omeroAPI OMERO REST Service
+     * @param imageSetId the image set id
+     */
+    public static createNew(omeroAPI: OmeroAPIService, imageSetId: number, destroySingal: Subject<void>) {
+        // new holder
+        const holder = new GlobalTrackingModel(destroySingal);
+
+        // create the omero storage connector and bind it to the model
+        const srsc = new GlobalTrackingOMEROStorageConnector(omeroAPI, holder, imageSetId);
+
+        return srsc;
+    }
+
+
+    /**
+     * Binds the storage connector to a model instance
+     * @param model tracking model
+     * @param imageId optional image id (the image id can only be missing if we are using an existing REST record)
+     */
+    constructor(omeroAPI: OmeroAPIService,
+                model: GlobalTrackingModel, imageId?: number) {
+        super(model);
+
+        this.omeroAPI = omeroAPI;
+        this.imageSetId = imageId;
+
+
+        if (this.imageSetId === undefined) {
+            throw new Error('[TrackingOMEROStorageConnector] imageSetId has to be defined!');
+        }
+
+        // register with the on change event
+        this.model.modelChanged.pipe(
+            filter((changeEvent: ModelChanged<GlobalTrackingModel>) => {
+                return changeEvent.changeType === ChangeType.HARD;
+            }),
+            debounceTime(5000),
+            switchMap((changeEvent: ModelChanged<GlobalTrackingModel>) => {
+                return this.update().pipe(
+                    catchError((err) => {
+                        console.error('Failed updating GUI tracking REST model;');
+                        this.omeroAPI.userQuestionService.showError("Failed updating the tracking backend!");
+                        console.error(err);
+                        return empty();
+                    })
+                );
+            }))
+        .subscribe((val) => {
+            //console.log('Updated REST model!');
+        }, err => { console.error(err); });
+    }
+
+    /**
+     * Update the object representation in the rest api
+     */
+    public update(): Observable<any> {
+        const segModelJSON: string = JSON.stringify(serialize(this.model));
+        return this.omeroAPI.updateFile(this.imageSetId, 'GUITracking.json', segModelJSON).pipe(
+            // notify the update
+            tap(() => this.updateEvent.emit(this))
+        );
     }
 }
