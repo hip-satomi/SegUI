@@ -1,8 +1,52 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { Observable, of, Subject } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { AddLinkAction } from 'src/app/models/action';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
+import { Line, Point, Polygon } from 'src/app/models/geometry';
+import { GlobalSegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
+import { GlobalTrackingOMEROStorageConnector } from 'src/app/models/storage-connectors';
+import { Link } from 'src/app/models/tracking/data';
+import { UIUtils, Utils } from 'src/app/models/utils';
+import { OmeroAPIService } from 'src/app/services/omero-api.service';
+import { UserQuestionsService } from 'src/app/services/user-questions.service';
+
+class Selection {
+  id: string;
+  frame: number;
+
+  constructor(id: string, frame: number) {
+    this.id = id;
+    this.frame = frame;
+  }
+}
+
+/**
+ * Draws an arrow on a canvas
+ * from: https://stackoverflow.com/a/64756256
+ * 
+ * @param context canvas context
+ * @param fromx source x coordinate
+ * @param fromy source y coordinate
+ * @param tox target x coordinate
+ * @param toy target y coordinate
+ */
+const draw_arrow = ( context, fromx, fromy, tox, toy ) => {
+  const dx = tox - fromx;
+  const dy = toy - fromy;
+  const headlen = Math.sqrt( dx * dx + dy * dy ) * 0.3; // length of head in pixels
+  const angle = Math.atan2( dy, dx );
+  context.beginPath();
+  context.moveTo( fromx, fromy );
+  context.lineTo( tox, toy );
+  context.stroke();
+  context.beginPath();
+  context.moveTo( tox - headlen * Math.cos( angle - Math.PI / 6 ), toy - headlen * Math.sin( angle - Math.PI / 6 ) );
+  context.lineTo( tox, toy );
+  context.lineTo( tox - headlen * Math.cos( angle + Math.PI / 6 ), toy - headlen * Math.sin( angle + Math.PI / 6 ) );
+  context.stroke();
+}
 
 @Component({
   selector: 'app-manual-tracking',
@@ -18,8 +62,34 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   canvasElement;
   pencil: Pencil;
 
+  /** Currently visualized frame */
+  _activeView: number = 0;
+
+  /** Current source selection for tracking */
+  source: Selection;
+  /** line for connecting selection and target */
+  line: Line;
+
+  /** annotate one track in a row */
+  fastTrackAnnotation = true;
+
+  /** show tracking overlay */
+  showTracking = true;
+
+  /** show segmentation overlay */
+  showSegmentation = true;
+
+  @Input() globalSegModel: GlobalSegmentationModel;
+  @Input() activeView: number;
+  @Output() activeViewChange = new EventEmitter<number>();
+  @Input() segUIs: Array<SegmentationUI>;
+  @Input() imageId;
+
+  protected destroySignal: Subject<void> = new Subject<void>();
 
   @Output() changedEvent = new EventEmitter<void>();
+
+  trackingConnector: GlobalTrackingOMEROStorageConnector;
 
 
   @Input() set segUI(value: SegmentationUI) {
@@ -32,13 +102,35 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   }
 
 
-  constructor() {
+  constructor(private userQuestionService: UserQuestionsService,
+              private omeroAPI: OmeroAPIService) {
     super("ManualTrackingTool");
-
-    this.changedEvent
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+    console.log("init");
+    console.log(`Image id ${this.imageId}`);
+
+    this.omeroAPI.getLatestFileJSON(this.imageId, 'GUITracking.json').pipe(
+      catchError((err, caught) => {
+        return of(null);
+      }),
+      switchMap(tracking => {
+        if (tracking) {
+          return of(GlobalTrackingOMEROStorageConnector.createFromExisting(this.omeroAPI, tracking, this.imageId, this.destroySignal));
+        } else {
+          return of(GlobalTrackingOMEROStorageConnector.createNew(this.omeroAPI, this.imageId, this.destroySignal));
+        }
+      }),
+      tap(trCon => {
+        this.trackingConnector = trCon;
+      })
+    ).subscribe();
+  }
+
+  ngOnDestroy() {
+    this.destroySignal.next();
+  }
 
   prepareDraw(): Observable<Drawer> {
     return this.segUI.prepareDraw().pipe(
@@ -65,8 +157,197 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     const ctx = pencil.canvasCtx;
 
-    this.segUI.drawPolygons(ctx, true);
+    const trModel = this.trackingConnector.getModel();
+
+    if (this.showSegmentation) {
+      this.segUIs[this.activeView].drawPolygons(ctx, false);
+    }
+
+    if (this.source) {
+      //this.segUIs[this.source.frame].drawPolygonsAdv(ctx, false, (p: [string, Polygon]) => p[0] == this.source.id,  ({uuid, poly}) => "FF0000");
+      UIUtils.drawSingle(this.segUIs[this.source.frame].segModel.segmentationData.getPolygon(this.source.id).points, false, ctx, "ff0000");
+    }
+
+    // draw existing trackings
+    for (const [uuid, poly] of this.segUIs[this.activeView].segModel.getVisiblePolygons()) {
+      // do we have a link to the future
+      const outgoingLinks = trModel.trackingData.listFrom(uuid);
+      const incomingLinks = trModel.trackingData.listTo(uuid);
+
+      if(this.showTracking) {
+        // render outgoing links (red)
+        for (const oLink of outgoingLinks) {
+          const sourceCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(oLink.sourceId).center;
+          const targetCenter = this.segUIs[this.activeView+1].segModel.segmentationData.getPolygon(oLink.targetId).center;
+          this.drawArrow(ctx, sourceCenter, targetCenter, "rgb(255, 0, 0)", 1.);
+        }
+
+        // render incoming links (green)
+        for (const iLink of incomingLinks) {
+          const sourceCenter = this.segUIs[this.activeView-1].segModel.segmentationData.getPolygon(iLink.sourceId).center;
+          const targetCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(iLink.targetId).center;
+          this.drawArrow (ctx, sourceCenter, targetCenter, "rgb(100, 100, 100)", 1.);
+        }
+      }
+    }
+
+    // draw linking line
+    if (this.source && this.line) {
+      this.drawArrow(ctx, this.line.points[0], this.line.points[1], "rgb(255, 0, 0)", 1);
+    }
+
     // 2. draw the backgound image
-    this.segUI.drawImage(ctx);
+    this.segUIs[this.activeView].drawImage(ctx);
+  }
+
+  /**
+   * Draws an arrow on the canvas
+   * @param ctx canvas context
+   * @param from source point
+   * @param to target point
+   * @param color color of the arrow
+   * @param width stroke width
+   */
+  drawArrow(ctx, from: Point, to: Point, color: string, width: number) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    draw_arrow(ctx, ...from, ...to);
+  }
+
+  /**
+   * Draws a line on a canvas
+   * @param ctx canvas context
+   * @param from source point
+   * @param to target point
+   * @param color color of the line
+   * @param width stroke width of the line
+   */
+  drawLine(ctx, from: Point, to: Point, color: string, width: number) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(...from);
+    ctx.lineTo(...to);
+    ctx.stroke();
+  }
+
+  /**
+   * Stops user annotation of a track
+   */
+  stopTrackAnnotation() {
+    const preSource = this.source;
+    this.source = null;
+
+    if (preSource) {
+      // when we have changed something --> redraw
+      this.draw();
+    }
+  }
+
+  /**
+   * Handles pointer (mouse or toch) down events
+   * Activates increase/decrease brush
+   * 
+   * @param event event
+   */
+  onTap(event: any): boolean {
+    // check whether you did click onto another polygon
+    const mousePos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+    const x = mousePos.x;
+    const y = mousePos.y;
+
+    const segModel = this.globalSegModel.getLocalModel(this.activeView);
+    for (const [index, polygon] of segModel.getVisiblePolygons()) {
+        if (polygon.isInside([x, y])) {
+            // clicke inside a non active polygon
+
+            if (!this.source) {
+              this.selectTrackSource(index, this.activeView);
+              //this.source = new Selection(index, this.activeView);
+
+              //this.segModel.activePolygonId = index;
+              //this.activeViewChange.emit(this.activeView + 1);
+              return true;
+            } else {
+              // make the connection
+              this.userQuestionService.showInfo(`Linking cells ${this.source.id} --> ${index}`);
+              this.trackingConnector.getModel().addAction(new AddLinkAction(new Link(this.source.id, index)));
+              if (this.fastTrackAnnotation) {
+                // continue to track the same object
+                this.source = new Selection(index, this.activeView);
+                this.activeViewChange.emit(this.activeView + 1);
+              } else {
+                this.stopTrackAnnotation();
+              }
+              //this.changedEvent.emit();
+              return true;
+            }
+        }
+    }
+
+    this.source = null;
+    this.draw();
+
+    return true;    
+  }
+
+  onMove(event: any): boolean {
+    const mousePos = Utils.screenPosToModelPos(Utils.getMousePosMouse(this.canvasElement, event), this.ctx);
+    const x = mousePos.x;
+    const y = mousePos.y;
+
+    const ctx = this.ctx;
+
+    if (this.source) {
+      // draw line from center to mouse
+      const segModel = this.globalSegModel.getLocalModel(this.activeView);
+      let targetPoint: Point = [x,y]
+      for (const [index, polygon] of segModel.getVisiblePolygons()) {
+        if (polygon.isInside([x, y])) {
+          targetPoint = polygon.center;
+        }
+      }
+
+      this.line = new Line(...this.globalSegModel.getLocalModel(this.source.frame).segmentationData.getPolygon(this.source.id).center, ...targetPoint);
+      this.draw();
+    }
+
+    return false;
+  }
+
+  /**
+   * Selects earliest cell to annotate
+   */
+  selectNextCell(): void {
+    // TODO: this function has a problem with divisions!!! We also need to check whether all cells have an incoming edge. If they do not we have to backtrack and then continue tracking forward!
+
+    this.stopTrackAnnotation();
+
+    let frame = 0;
+    for (const segUI of this.segUIs) {
+      for (const [id, poly] of segUI.segModel.getVisiblePolygons()) {
+        const targetList = this.trackingConnector.getModel().trackingData.listFrom(id);
+        if (targetList.length == 0) {
+          // we have no outgoing link --> we need to track this
+          this.selectTrackSource(id, frame);
+          // TODO: move view to center id cell
+          return;     
+        }
+      }
+      frame += 1;
+    }
+  }
+
+  /**
+   * Selects a source for tracking
+   * @param id source segmentation id
+   * @param frame frame for the segmentation
+   */
+  selectTrackSource(id: string, frame: number) {
+    // create selection object
+    this.source = new Selection(id, frame);
+    // jump to next cell to select forward tracking
+    this.activeViewChange.emit(frame + 1);
+    this.userQuestionService.showInfo(`"Selected source: ${id}"`)
   }
 }

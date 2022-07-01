@@ -4,4 +4,30 @@
       <ion-icon name="close-outline"></ion-icon>
     </ion-button>
   </ion-toolbar>
+  <ion-grid>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracking overlay">Show Tracking</ion-label>
+          <ion-toggle [(ngModel)]="showTracking" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide segmentation overlay">Show Segmentation</ion-label>
+          <ion-toggle [(ngModel)]="showSegmentation" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-button color="secondary" (click)="selectNextCell()" #tooltip="matTooltip"
+          matTooltip="Select next free cell for tracking annotation">
+          Next cell
+        </ion-button>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
 </div>
