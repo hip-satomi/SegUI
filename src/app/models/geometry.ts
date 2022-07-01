@@ -370,6 +370,12 @@ export class Rectangle extends Polygon {
     }
 }
 
+export class Line extends Polygon {
+    constructor(startX: number, startY: number, endX: number, endY: number) {
+        super([startX, startY], [endX, endY]);
+    }
+}
+
 /**
  * An approximated circle polygon class
  * 
