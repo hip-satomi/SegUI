@@ -66,7 +66,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   _activeView: number = 0;
 
   /** Current source selection for tracking */
-  source: Selection;
+  selectedSegment: Selection;
   /** line for connecting selection and target */
   line: Line;
 
@@ -163,9 +163,9 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       this.segUIs[this.activeView].drawPolygons(ctx, false);
     }
 
-    if (this.source) {
-      //this.segUIs[this.source.frame].drawPolygonsAdv(ctx, false, (p: [string, Polygon]) => p[0] == this.source.id,  ({uuid, poly}) => "FF0000");
-      UIUtils.drawSingle(this.segUIs[this.source.frame].segModel.segmentationData.getPolygon(this.source.id).points, false, ctx, "ff0000");
+    if (this.selectedSegment) {
+        // forward track
+        UIUtils.drawSingle(this.segUIs[this.selectedSegment.frame].segModel.segmentationData.getPolygon(this.selectedSegment.id).points, false, ctx, "ff0000");
     }
 
     // draw existing trackings
@@ -192,7 +192,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     }
 
     // draw linking line
-    if (this.source && this.line) {
+    if (this.selectedSegment && this.line) {
       this.drawArrow(ctx, this.line.points[0], this.line.points[1], "rgb(255, 0, 0)", 1);
     }
 
@@ -235,8 +235,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
    * Stops user annotation of a track
    */
   stopTrackAnnotation() {
-    const preSource = this.source;
-    this.source = null;
+    const preSource = this.selectedSegment;
+    this.selectedSegment = null;
 
     if (preSource) {
       // when we have changed something --> redraw
@@ -261,7 +261,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         if (polygon.isInside([x, y])) {
             // clicke inside a non active polygon
 
-            if (!this.source) {
+            if (!this.selectedSegment) {
               this.selectTrackSource(index, this.activeView);
               //this.source = new Selection(index, this.activeView);
 
@@ -270,12 +270,30 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
               return true;
             } else {
               // make the connection
-              this.userQuestionService.showInfo(`Linking cells ${this.source.id} --> ${index}`);
-              this.trackingConnector.getModel().addAction(new AddLinkAction(new Link(this.source.id, index)));
+              let sourceId = null;
+              let targetId = null;
+              let targetFrame = -1;
+              if (this.selectedSegment.frame < this.activeView) {
+                // forward track
+                sourceId = this.selectedSegment.id;
+                targetId = index;
+                targetFrame = this.activeView;
+              } else if (this.selectedSegment.frame > this.activeView) {
+                // backward track
+                sourceId = index;
+                targetId = this.selectedSegment.id;
+                targetFrame = this.selectedSegment.frame;
+              } else {
+                this.userQuestionService.showError("Cannot link between segmentations of the same frame!")
+                return true;
+              }
+              this.userQuestionService.showInfo(`Linking cells ${sourceId} --> ${targetId}`);
+              this.trackingConnector.getModel().addAction(new AddLinkAction(new Link(sourceId, targetId)));
               if (this.fastTrackAnnotation) {
                 // continue to track the same object
-                this.source = new Selection(index, this.activeView);
-                this.activeViewChange.emit(this.activeView + 1);
+                this.selectTrackSource(targetId, targetFrame);
+                //this.source = new Selection(targetId, targetFrame+1);
+                //this.activeViewChange.emit(this.activeView + 1);
               } else {
                 this.stopTrackAnnotation();
               }
@@ -285,7 +303,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         }
     }
 
-    this.source = null;
+    this.selectedSegment = null;
     this.draw();
 
     return true;    
@@ -298,7 +316,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     const ctx = this.ctx;
 
-    if (this.source) {
+    if (this.selectedSegment) {
       // draw line from center to mouse
       const segModel = this.globalSegModel.getLocalModel(this.activeView);
       let targetPoint: Point = [x,y]
@@ -308,7 +326,13 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         }
       }
 
-      this.line = new Line(...this.globalSegModel.getLocalModel(this.source.frame).segmentationData.getPolygon(this.source.id).center, ...targetPoint);
+      if (this.activeView > this.selectedSegment.frame) {
+        this.line = new Line(...this.globalSegModel.getLocalModel(this.selectedSegment.frame).segmentationData.getPolygon(this.selectedSegment.id).center, ...targetPoint);
+      } else if (this.activeView < this.selectedSegment.frame) {
+        this.line = new Line(...targetPoint, ...this.globalSegModel.getLocalModel(this.selectedSegment.frame).segmentationData.getPolygon(this.selectedSegment.id).center);        
+      } else {
+        // do not draw: no tracking in same frame
+      }
       this.draw();
     }
 
@@ -327,6 +351,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     for (const segUI of this.segUIs) {
       for (const [id, poly] of segUI.segModel.getVisiblePolygons()) {
         const targetList = this.trackingConnector.getModel().trackingData.listFrom(id);
+        const sourceList = this.trackingConnector.getModel().trackingData.listTo(id);
+        if (sourceList.length == 0 && frame > 0) {
+          this.selectTrackTarget(id, frame);
+          return;
+        }
         if (targetList.length == 0) {
           // we have no outgoing link --> we need to track this
           this.selectTrackSource(id, frame);
@@ -345,9 +374,17 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
    */
   selectTrackSource(id: string, frame: number) {
     // create selection object
-    this.source = new Selection(id, frame);
+    this.selectedSegment = new Selection(id, frame);
     // jump to next cell to select forward tracking
     this.activeViewChange.emit(frame + 1);
     this.userQuestionService.showInfo(`"Selected source: ${id}"`)
+  }
+
+  /** Select a target for tracking and perform backtracking */
+  selectTrackTarget(id: string, frame: number) {
+    // create selection object
+    this.selectedSegment = new Selection(id, frame);
+    this.activeViewChange.emit(frame - 1);
+    this.userQuestionService.showInfo(`Selected target: ${id}. Backtrack`);
   }
 }
