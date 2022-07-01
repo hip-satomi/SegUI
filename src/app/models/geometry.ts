@@ -43,6 +43,10 @@ export class BoundingBox {
 
         return x >= this.x && x <= this.x + this.w && y > this.y && y < this.y + this.h;
     }
+
+    get center(): Point {
+        return [this.x+this.w/2, this.y+this.h/2];
+    }
 }
 
 /**
@@ -169,7 +173,7 @@ export class Polygon {
     /**
      * get the bouding box of the polygon
      */
-    get boundingBox() {
+    get boundingBox(): BoundingBox {
         if(!this._cached_bounding_box) {
             // if it is not cached --> create it
             this.updateBoundingBox();
@@ -276,7 +280,7 @@ export class Polygon {
         if (this.numPoints === 0) {
             return [0, 0];
         }
-        return mean(this.points, 0);
+        return this.boundingBox.center;
     }
 
     /**
