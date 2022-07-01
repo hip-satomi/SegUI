@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
 import { SegCollData } from './segmentation-model';
 import * as dayjs from 'dayjs';
+import { Link, TrackingData } from './tracking/data';
 
 /** List of different action types */
 enum ActionTypes {
@@ -37,7 +38,10 @@ enum ActionTypes {
     ChangeLabelActivityAction = "ChangeLabelActivityAction",
     ChangeLabelVisibilityAction = "ChangeLabelVisibilityAction",
     ChangeLabelColorAction = "ChangeLabelColorAction",
-    DeleteLabelAction = "DeleteLabelAction"
+    DeleteLabelAction = "DeleteLabelAction",
+
+    AddLinkAction = "AddLinkAction",
+    RemoveLinkAction = "RemoveLinkAction"
 }
 
 /**
@@ -684,6 +688,50 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
     }
 }
 
+/*************************
+ **** Tracking Actions ***
+ *************************
+*/
+
+/** Action to link two segmentations */
+@Serializable()
+export class AddLinkAction extends Action<TrackingData> {
+    @JsonProperty() link: Link;
+
+    /**
+     * 
+     * @param numSegLayers the number of segmentation layers (e.g. images)
+     */
+    constructor(link: Link) {
+        super(ActionTypes.AddLinkAction);
+        this.link = link;
+    }
+
+    perform(data: TrackingData): void {
+        data.addLink(this.link)
+    }
+}
+
+/** Action to delete link between segmentations */
+@Serializable()
+export class RemoveLinkAction extends Action<TrackingData> {
+    @JsonProperty() linkIndex: number;
+
+    /**
+     * 
+     * @param numSegLayers the number of segmentation layers (e.g. images)
+     */
+    constructor(linkIndex: number) {
+        super(ActionTypes.RemoveLinkAction);
+        this.linkIndex = linkIndex;
+    }
+
+    perform(data: TrackingData): void {
+        data.removeLink(data.links[this.linkIndex]);
+    }
+}
+ 
+
 /**
  * Restores action with their corresponding types
  * 
@@ -714,7 +762,10 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
         [ActionTypes.ChangeLabelActivityAction, ChangeLabelActivityAction],
         [ActionTypes.ChangeLabelVisibilityAction, ChangeLabelVisibilityAction],
         [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction],
-        [ActionTypes.DeleteLabelAction, DeleteLabelAction]
+        [ActionTypes.DeleteLabelAction, DeleteLabelAction],
+
+        [ActionTypes.AddLinkAction, AddLinkAction],
+        [ActionTypes.RemoveLinkAction, RemoveLinkAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();
