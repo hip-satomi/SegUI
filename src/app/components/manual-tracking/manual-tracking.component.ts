@@ -391,4 +391,26 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     this.activeViewChange.emit(frame - 1);
     this.userQuestionService.showInfo(`Selected target: ${id}. Backtrack`);
   }
+
+  get canRedo(): boolean {
+    return this.trackingConnector.getModel().canRedo;
+  }
+
+  get canUndo(): boolean {
+    return this.trackingConnector.getModel().canUndo;
+  }
+
+  redo(): void {
+    if (this.canRedo) {
+      this.trackingConnector.getModel().redo();
+      this.draw();
+    }
+  }
+
+  undo(): void {
+    if (this.canUndo) {
+      this.trackingConnector.getModel().undo();
+      this.draw();
+    }
+  }
 }
