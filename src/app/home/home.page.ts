@@ -442,7 +442,10 @@ export class HomePage implements Drawer, UIInteraction{
   @HostListener('document:keydown.control.z')
   async undo() {
     if (this.canUndo) {
-      if (this.curSegModel) {
+      if (this.tool) {
+        this.tool.undo();
+      }
+      else if (this.curSegModel) {
         this.globalSegModel.undo();
       }
     }
@@ -451,7 +454,10 @@ export class HomePage implements Drawer, UIInteraction{
   @HostListener('document:keydown.control.y')
   async redo() {
     if (this.canRedo) {
-      if (this.curSegModel) {
+      if (this.tool) {
+        this.tool.redo();
+      }
+      else if (this.curSegModel) {
         this.globalSegModel.redo();
       }
     }
@@ -677,7 +683,10 @@ export class HomePage implements Drawer, UIInteraction{
   }
 
   get canRedo() {
-    if (this.curSegModel) {
+    if (this.tool) {
+      return this.tool.canRedo;
+    }
+    else if (this.curSegModel) {
       return this.globalSegModel.canRedo;
     }
 
@@ -685,7 +694,10 @@ export class HomePage implements Drawer, UIInteraction{
   }
 
   get canUndo() {
-    if (this.curSegModel) {
+    if (this.tool) {
+      return this.tool.canUndo;
+    }
+    else if (this.curSegModel) {
       return this.globalSegModel.canUndo;
     }
 
