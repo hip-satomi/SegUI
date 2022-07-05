@@ -660,10 +660,20 @@ export class LocalSegmentationModel {
         return this.parent.nextLabelId();
     }
 
+    /**
+     * 
+     * @param id string identifier of the polygon
+     * @returns numeric id of the annotation label
+     */
     getPolygonLabelId(id: string): number {
         return this.segmentationData.labels.get(id);
     }
 
+    /**
+     * 
+     * @param id string identifier of the polygon
+     * @returns corresponding annotation label object
+     */
     getPolygonLabel(id: string): AnnotationLabel  {
         const labelId = this.segmentationData.labels.get(id);
         const candidates = this.parent.labels.filter(l => l.id == labelId);
@@ -678,21 +688,23 @@ export class LocalSegmentationModel {
 /**
  * Interface for a single segmentation contour
  */
-export interface SimpleDetection {
+@Serializable()
+export class SimpleDetection {
     /** label name */
-    label: string;
+    @JsonProperty() label: string;
     /** contour defined as list of points */
-    contour: Array<Point>;
+    @JsonProperty() contour: Array<Point>;
     /** unique id */
-    id: string;
+    @JsonProperty() id: string;
 }
 
 /** segmentation of a full frame */
-export interface SimpleSegmentation {
+@Serializable()
+export class SimpleSegmentation {
     /** frame index */
-    frame: number;
+    @JsonProperty() frame: number;
     /** list of countours that are belonging to that frame */
-    detections: Array<SimpleDetection>;
+    @JsonProperty() detections: Array<SimpleDetection>;
 }
 
 /**

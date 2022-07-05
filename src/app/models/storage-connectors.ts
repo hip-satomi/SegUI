@@ -11,7 +11,7 @@ import { SimpleSegmentationView, GlobalSegmentationModel, SegCollData } from './
 import { Observable, of, zip, empty, Subject, EMPTY } from 'rxjs';
 import { StorageConnector } from './storage';
 import { Action } from './action';
-import { GlobalTrackingModel } from './tracking/model';
+import { GlobalTrackingModel, SimpleTrackingView } from './tracking/model';
 
 
 
@@ -266,5 +266,61 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
             // notify the update
             tap(() => this.updateEvent.emit(this))
         );
+    }
+}
+
+/**
+ * Connects the simple segmentation holder to an OMERO attachment and stores any HARD change of the segmentation models.
+ * 
+ * Synchronizes with the GUI {@link SegmentationOMEROStorageConnector} such that simple segmentation is always in sync with GUI Segmentation.
+ */
+ export class SimpleTrackingOMEROStorageConnector extends StorageConnector<SimpleTrackingView> {
+
+    omeroAPI: OmeroAPIService;
+    parentTracking: GlobalTrackingOMEROStorageConnector;
+
+    imageSetId: number;
+
+    updateEvent: EventEmitter<SimpleTrackingOMEROStorageConnector> = new EventEmitter();
+
+    /**
+     * Attaches the storage connector to a model instance
+     * @param model segmentation model
+     * @param imageId optional image id (the image id can only be missing if we are using an existing REST record)
+     */
+    constructor(omeroAPI: OmeroAPIService,
+                imageSetId: number,
+                simpleTrackingView: SimpleTrackingView) {
+        super(simpleTrackingView);
+
+        this.omeroAPI = omeroAPI;
+        this.imageSetId = imageSetId;
+
+        // listen to parent rest events
+        // zip operator combines both observables --> i.e. waits for rest update and model update
+        (simpleTrackingView.modelChanged)
+        .pipe(
+            // switch to backend update observable
+            switchMap(() => {
+                return this.update().pipe(
+                    catchError((err) => {
+                        console.error('Error while updating Simple segmentation backend!');
+                        console.error(err);
+                        // do not throw the error because simple segmentation is not critical for work
+                        return EMPTY;
+                    })
+                );
+            })
+        ).subscribe(() => {
+            //console.log('Updated SimpleTracking backend!');
+        });
+    }
+
+    /**
+     * Update the object representation in omero via the REST API
+     */
+    public update() {
+        const data: string = JSON.stringify(serialize(this.model.content));
+        return this.omeroAPI.updateFile(this.imageSetId, 'simpleTracking.json', data);
     }
 }
