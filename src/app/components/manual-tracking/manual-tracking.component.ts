@@ -1,13 +1,14 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Observable, of, Subject } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, delay, map, switchMap, tap } from 'rxjs/operators';
 import { AddLinkAction } from 'src/app/models/action';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { Line, Point, Polygon } from 'src/app/models/geometry';
 import { GlobalSegmentationModel } from 'src/app/models/segmentation-model';
 import { SegmentationUI } from 'src/app/models/segmentation-ui';
-import { GlobalTrackingOMEROStorageConnector } from 'src/app/models/storage-connectors';
+import { GlobalTrackingOMEROStorageConnector, SimpleTrackingOMEROStorageConnector } from 'src/app/models/storage-connectors';
 import { Link } from 'src/app/models/tracking/data';
+import { SimpleTrackingView } from 'src/app/models/tracking/model';
 import { UIUtils, Utils } from 'src/app/models/utils';
 import { OmeroAPIService } from 'src/app/services/omero-api.service';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
@@ -111,6 +112,9 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     console.log("init");
     console.log(`Image id ${this.imageId}`);
 
+  }
+
+  ngAfterViewInit() {
     this.omeroAPI.getLatestFileJSON(this.imageId, 'GUITracking.json').pipe(
       catchError((err, caught) => {
         return of(null);
@@ -124,6 +128,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       }),
       tap(trCon => {
         this.trackingConnector = trCon;
+      }),
+      // TODO: the delay is dirty!!!!! When not using this.globalSegModel was undefined!!
+      delay(2000),
+      tap(trCon => {
+        new SimpleTrackingOMEROStorageConnector(this.omeroAPI, this.imageId, new SimpleTrackingView(trCon.getModel(), this.globalSegModel));
       })
     ).subscribe();
   }
