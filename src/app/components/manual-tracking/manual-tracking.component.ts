@@ -358,6 +358,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     let frame = 0;
     for (const segUI of this.segUIs) {
+      let out_candidate = null;
       for (const [id, poly] of segUI.segModel.getVisiblePolygons()) {
         const targetList = this.trackingConnector.getModel().trackingData.listFrom(id);
         const sourceList = this.trackingConnector.getModel().trackingData.listTo(id);
@@ -367,11 +368,21 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         }
         if (targetList.length == 0) {
           // we have no outgoing link --> we need to track this
-          this.selectTrackSource(id, frame);
+          // but having sources is more important --> memorize
+          if (!out_candidate) {
+            out_candidate = id;
+          }
           // TODO: move view to center id cell
-          return;     
         }
       }
+      // no missing source link found --> check whether we had a missing outgoing link
+      if (out_candidate) {
+        this.selectTrackSource(out_candidate, frame);
+        return;
+          return;     
+        return;
+      }
+
       frame += 1;
     }
   }
