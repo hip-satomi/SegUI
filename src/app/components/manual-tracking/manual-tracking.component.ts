@@ -379,8 +379,6 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       if (out_candidate) {
         this.selectTrackSource(out_candidate, frame);
         return;
-          return;     
-        return;
       }
 
       frame += 1;
