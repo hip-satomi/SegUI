@@ -75,18 +75,9 @@ export class LineageVisualizerComponent {
     const [nodes, edges] = line(4, split(line(3, split(line(2), line(5))), line(5, split(line(7), line(4)))));
 
     var cy = cytoscape({
-      container: this.container.nativeElement, //document.getElementById('cy-container'), // container to render in
+      container: this.container.nativeElement,
       autoungrabify: true,
-      elements: [ // list of graph elements to start with
-      //{ // node a
-      //  data: { id: 'a' }
-      //},
-      //{ // node b
-      //  data: { id: 'b' }
-      //},
-      //{ // edge ab
-      //  data: { id: 'ab', source: 'a', target: 'b' }
-      //}
+      elements: [
       ...nodes,
       ...edges
     ],
@@ -110,6 +101,7 @@ export class LineageVisualizerComponent {
           'curve-style': 'bezier'
         }
       },
+      // give selected things a special color
       {
         selector: ':selected',
         css: {
