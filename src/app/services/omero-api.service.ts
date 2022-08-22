@@ -644,10 +644,13 @@ export class OmeroAPIService {
     // create rendering strings
     const individualChannelRenders = []
     for (const channel of channels) {
-      let renderString = `${channel.c}|${channel.min}:${channel.max}$${channel.color}`;
+      let renderString = `${channel.c}|${channel.min}:${channel.max}`;
       // if a lut is defined include that
       if (channel.lut !== undefined) {
         renderString += `$${channel.lut}`;
+      } else {
+        // use color for rendering
+        renderString += `$${channel.color}`;
       }
       // check more specialized parameters
       const maps = [];
@@ -725,12 +728,16 @@ export class OmeroAPIService {
         const renderChannels = [];
         let index = 0;
         for(const channel of rdef.c) {
+          if (!channel.active) {
+            // channel is not active --> we do not include it into the rendering
+            continue;
+          }
           const start = channel.start;
           const end = channel.end;
           const color = channel.color;
           const lut = channel.lut;
           const inverted = channel.inverted || false;
-          renderChannels.push({min: start, max: end, c: index+1, color, inverted});
+          renderChannels.push({min: start, max: end, c: index+1, color, inverted, lut});
           index += 1;
         }
         
