@@ -11,6 +11,7 @@ import { Link } from 'src/app/models/tracking/data';
 import { SimpleTrackingView } from 'src/app/models/tracking/model';
 import { UIUtils, Utils } from 'src/app/models/utils';
 import { OmeroAPIService } from 'src/app/services/omero-api.service';
+import { TrackingService } from 'src/app/services/tracking.service';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
 
 class Selection {
@@ -104,7 +105,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
 
   constructor(private userQuestionService: UserQuestionsService,
-              private omeroAPI: OmeroAPIService) {
+              private omeroAPI: OmeroAPIService,
+              private trackingService: TrackingService) {
     super("ManualTrackingTool");
   }
 
@@ -115,26 +117,10 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   }
 
   ngAfterViewInit() {
-    this.omeroAPI.getLatestFileJSON(this.imageId, 'GUITracking.json').pipe(
-      catchError((err, caught) => {
-        return of(null);
-      }),
-      switchMap(tracking => {
-        if (tracking) {
-          return of(GlobalTrackingOMEROStorageConnector.createFromExisting(this.omeroAPI, tracking, this.imageId, this.destroySignal));
-        } else {
-          return of(GlobalTrackingOMEROStorageConnector.createNew(this.omeroAPI, this.imageId, this.destroySignal));
-        }
-      }),
-      tap(trCon => {
-        this.trackingConnector = trCon;
-      }),
-      // TODO: the delay is dirty!!!!! When not using this.globalSegModel was undefined!!
-      delay(2000),
-      tap(trCon => {
-        new SimpleTrackingOMEROStorageConnector(this.omeroAPI, this.imageId, new SimpleTrackingView(trCon.getModel(), this.globalSegModel));
-      })
-    ).subscribe();
+    this.trackingService.$currentTrackingModel.subscribe((trCon) => this.trackingConnector = trCon);
+
+    // TODO: the delay is dirty!!!!! When not using this.globalSegModel was undefined!!
+    setTimeout(() => this.trackingService.loadById(this.imageId, this.globalSegModel), 2000);
   }
 
   ngOnDestroy() {
