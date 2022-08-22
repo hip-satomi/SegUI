@@ -44,6 +44,8 @@
 
 <!-- Middle content-->
 <ion-content [fullscreen]="true" appMovableArea>
+  <!-- A bit dirty to have it outside the content-->
+  <app-lineage-visualizer></app-lineage-visualizer>
 
   <!-- Tools -->
   <div #toolContainer>
@@ -70,6 +72,7 @@
 
   <!-- Image Display-->
   <app-image-display #imageDisplay [drawer]="this" [interactor]="this" cdkOverlayOrigin #origin="cdkOverlayOrigin"></app-image-display>
+
 </ion-content>
 
 <!-- Label annotation manager -->

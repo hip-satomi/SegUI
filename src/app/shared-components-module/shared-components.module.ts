@@ -21,6 +21,7 @@ import { ImageCardComponent } from '../components/image-card/image-card.componen
 import { AiServiceComponent } from '../components/ai-service/ai-service.component';
 import { AiParameterComponent } from '../components/ai-parameter/ai-parameter.component';
 import { ManualTrackingComponent } from '../components/manual-tracking/manual-tracking.component';
+import { LineageVisualizerComponent } from '../components/lineage-visualizer/lineage-visualizer.component';
 
 @NgModule({
   declarations: [
@@ -38,7 +39,8 @@ import { ManualTrackingComponent } from '../components/manual-tracking/manual-tr
     ImageCardComponent,
     AiServiceComponent,
     AiParameterComponent,
-    ManualTrackingComponent
+    ManualTrackingComponent,
+    LineageVisualizerComponent
   ],
   exports: [
     ImageDisplayComponent,
@@ -55,7 +57,8 @@ import { ManualTrackingComponent } from '../components/manual-tracking/manual-tr
     ImageCardComponent,
     AiServiceComponent,
     AiParameterComponent,
-    ManualTrackingComponent
+    ManualTrackingComponent,
+    LineageVisualizerComponent
   ],
   imports: [
     CommonModule,
