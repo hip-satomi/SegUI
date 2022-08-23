@@ -466,7 +466,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       const touchedLinks = trModel.trackingData.links.filter(link => nodeId == link.sourceId || nodeId == link.targetId);
 
       for (const link of touchedLinks) {
-        trModel.addAction(new RemoveLinkAction(trModel.trackingData.links.indexOf(link)));
+        trModel.addAction(new RemoveLinkAction(link.sourceId, link.targetId));
       }
 
       /**const frame = this.globalSegModel.getFrameById(nodeId)
@@ -479,10 +479,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       const source = edge["source"];
       const target = edge["target"];
 
-      const candidates = trModel.trackingData.links.filter(link => link.sourceId == source && link.targetId == target);
-      for (const cand of candidates) {
-        trModel.addAction(new RemoveLinkAction(trModel.trackingData.links.indexOf(cand)));
-      }
+      // remove the link corresponding to the selected edge
+      trModel.addAction(new RemoveLinkAction(source, target));
     }
     this.trackingService.selectedEdges = [];
   }

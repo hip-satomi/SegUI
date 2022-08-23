@@ -717,19 +717,24 @@ export class AddLinkAction extends Action<TrackingData> {
 /** Action to delete link between segmentations */
 @Serializable()
 export class RemoveLinkAction extends Action<TrackingData> {
-    @JsonProperty() linkIndex: number;
+    @JsonProperty() source: string;
+    @JsonProperty() target: string;
 
     /**
      * 
      * @param numSegLayers the number of segmentation layers (e.g. images)
      */
-    constructor(linkIndex: number) {
+    constructor(source: string, target: string) {
         super(ActionTypes.RemoveLinkAction);
-        this.linkIndex = linkIndex;
+        this.source = source;
+        this.target = target
     }
 
     perform(data: TrackingData): void {
-        data.removeLink(data.links[this.linkIndex]);
+        const deleteCandidates = data.links.filter(link => link.sourceId == this.source && link.targetId == this.target);
+        for (const cand of deleteCandidates) {
+            data.removeLink(cand);
+        }
     }
 }
 
