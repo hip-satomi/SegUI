@@ -283,7 +283,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         if (polygon.isInside([x, y])) {
             // clicke inside a non active polygon
 
-            if (!this.selectedSegment) {
+            if (!this.selectedSegment && this.activeView < this.globalSegModel.segmentationModels.length - 1) {
               this.selectTrackSource(index, this.activeView);
               //this.source = new Selection(index, this.activeView);
 
@@ -313,7 +313,12 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
               this.trackingConnector.getModel().addAction(new AddLinkAction(new Link(sourceId, targetId)));
               if (this.fastTrackAnnotation) {
                 // continue to track the same object
-                this.selectTrackSource(targetId, targetFrame);
+                if (targetFrame < this.globalSegModel.segmentationModels.length - 1) {
+                  // only when we are not reaching the end!
+                  this.selectTrackSource(targetId, targetFrame);
+                } else {
+                  this.stopTrackAnnotation();
+                }
                 //this.source = new Selection(targetId, targetFrame+1);
                 //this.activeViewChange.emit(this.activeView + 1);
               } else {
@@ -325,7 +330,9 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         }
     }
 
-    this.selectedSegment = null;
+    if (this.selectedSegment) {
+      this.stopTrackAnnotation();
+    }
     //this.draw();
 
     return true;    
