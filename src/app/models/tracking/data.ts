@@ -62,7 +62,7 @@ export class TrackingData implements ClearableStorage {
         // delete all the candidates
         for (const link of links) {
             const index = this.links.indexOf(link);
-            delete this.links[index];
+            this.links.splice(index, 1);
         }
     }
 
