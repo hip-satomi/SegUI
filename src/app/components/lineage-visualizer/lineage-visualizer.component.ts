@@ -2,6 +2,7 @@ import { Component, EventEmitter, OnInit, Output, ViewChild } from '@angular/cor
 
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
+import { debounceTime } from 'rxjs/operators';
 import { ChangeType } from 'src/app/models/change';
 import { GlobalTrackingOMEROStorageConnector } from 'src/app/models/storage-connectors';
 import { GlobalTrackingModel } from 'src/app/models/tracking/model';
@@ -87,7 +88,9 @@ export class LineageVisualizerComponent implements OnInit {
   }
 
   registerTrackingCon(trCon: GlobalTrackingOMEROStorageConnector) {
-    trCon.getModel().modelChanged.subscribe((modelChanged) => {
+    trCon.getModel().modelChanged.pipe(
+      debounceTime(5000)
+    ).subscribe((modelChanged) => {
       if (modelChanged.changeType == ChangeType.HARD) {
         // update visualization
         this.updateFromModel(trCon.getModel());
