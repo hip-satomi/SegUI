@@ -1,7 +1,7 @@
 import { Dataset, extractLabels, OmeroAPIService, Project, RoIShape } from './../services/omero-api.service';
 import { OmeroUtils, Utils } from './../models/utils';
 import { Polygon, BoundingBox } from './../models/geometry';
-import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './../models/action';
+import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action, SelectPolygon } from './../models/action';
 import { ModelChanged } from './../models/change';
 import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
@@ -1202,6 +1202,16 @@ export class HomePage implements Drawer, UIInteraction{
         return srsc;
       })
     );
+  }
+
+  selectNode(nodeId: string) {
+    const frame = this.globalSegModel.getFrameById(nodeId);
+
+    if (this.activeView != frame) {
+      this.activeView = frame;
+    }
+
+    this.globalSegModel.getLocalModel(frame).addAction(new SelectPolygon(nodeId));
   }
 
 }

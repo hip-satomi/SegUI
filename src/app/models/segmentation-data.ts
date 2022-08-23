@@ -30,6 +30,12 @@ export class SegmentationData implements ClearableStorage {
     }
 
     /** get a polygon object by id */
+
+    /**
+     * Get a polygon object by id or null (if object does not exist)
+     * @param polygonId the query id
+     * @returns polygon object or null (if object does not exist)
+     */
     getPolygon(polygonId: string): Polygon {
         if (this.polygons.has(polygonId)) {
             return this.polygons.get(polygonId);
