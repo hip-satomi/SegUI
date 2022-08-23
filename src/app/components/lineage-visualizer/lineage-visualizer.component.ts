@@ -65,16 +65,101 @@ const split = (tailA, tailB) => {
   templateUrl: './lineage-visualizer.component.html',
   styleUrls: ['./lineage-visualizer.component.scss'],
 })
-export class LineageVisualizerComponent {
+export class LineageVisualizerComponent implements OnInit {
 
   @ViewChild("cytoscape") container;
+  cy;
 
-  constructor() { }
+  constructor(private trackingService: TrackingService) { }
+
+  ngOnInit() {
+    this.trackingService.$currentTrackingModel.subscribe(
+      (trCon) => {
+        this.registerTrackingCon(trCon);
+      }
+    )
+  }
+
+  registerTrackingCon(trCon: GlobalTrackingOMEROStorageConnector) {
+    trCon.getModel().modelChanged.subscribe((modelChanged) => {
+      if (modelChanged.changeType == ChangeType.HARD) {
+        // update visualization
+        this.updateFromModel(trCon.getModel());
+      }
+    });
+
+    this.updateFromModel(trCon.getModel());
+  }
+
+  updateFromModel(trackingModel: GlobalTrackingModel) {
+    const nodes = new Set<string>();
+    const edges = new Set();
+    for (const link of trackingModel.trackingData.links) {
+      nodes.add(link.sourceId);
+      nodes.add(link.targetId);
+      edges.add({source: link.sourceId, target: link.targetId});
+    }
+
+    const nodesInCy = new Set<string>(this.cy.filter("node").map(el => el._private["data"]["id"]));
+    
+    for(const node of nodes) {
+      if (nodesInCy.has(node)) {
+        // all good node already present
+      } else {
+        this.cy.add({data: {id: node, shortId: node.substring(0,4)}})
+      }
+    }
+
+    for (const node of nodesInCy) {
+      if (nodes.has(node)) {
+        // all good node is still present
+      } else {
+        const nodeToDelete = this.cy.filter("node").filter(`node[id = "${node}"]`)
+        this.cy.remove(nodeToDelete);
+      }
+    }
+
+    const edgesInCy = new Set(this.cy.filter("edge").map(el => el._private["data"]["id"]));
+
+    for (const edge of edges) {
+      const source = edge["source"];
+      const target = edge["target"];
+      if (edgesInCy.has(`${source}->${target}`)) {
+        // edge already there -> all good!
+      } else {
+        // need to insert the edge
+        this.cy.add({
+          data: {
+            id: `${source}->${target}`,
+            source: source,
+            target: target
+          }
+        });
+      }
+    }
+
+    const edgeIdSet = new Set([...edges].map(el => `${el["source"]}->${el["target"]}`));
+
+    for (const cyEdge of new Set(this.cy.filter("edge").map(el => el._private["data"]))) {
+      const source = cyEdge["source"];
+      const target = cyEdge["target"];
+
+      if (edgeIdSet.has(`${source}->${target}`)) {
+        // all good, edge is present
+      } else {
+        // we have to remove the edge
+        this.cy.remove(this.cy.filter(`edge[source = "${source}"][target = "${target}"]`));
+      }
+    }
+
+    const layout = this.cy.makeLayout({name: 'dagre', rankDir: 'LR'});
+    layout.run();
+  }
 
   ngAfterViewInit() {
     const [nodes, edges] = line(4, split(line(3, split(line(2), line(5))), line(5, split(line(7), line(4)))));
 
-    var cy = cytoscape({
+    const cy = cytoscape({
       container: this.container.nativeElement,
       autoungrabify: true,
       elements: [
@@ -87,7 +172,7 @@ export class LineageVisualizerComponent {
         selector: 'node',
         style: {
           'background-color': '#666',
-          'label': 'data(id)'
+          'label': 'data(shortId)'
         }
       },
   
@@ -119,6 +204,7 @@ export class LineageVisualizerComponent {
     }
     });
 
+    this.cy = cy;
   }
 
 }
