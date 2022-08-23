@@ -213,6 +213,12 @@ export class LineageVisualizerComponent implements OnInit {
     this.cy = cy;
 
     cy.on("tapselect", (event) => this.cySelect(event));
+    cy.on("unselect", (event) => this.cyUnselect(event));
+  }
+
+  /** Deletes currently selected nodes or edges */
+  delete() {
+    console.log("Deletion not yet implemented!")
   }
 
   cySelect(event) {
@@ -227,6 +233,38 @@ export class LineageVisualizerComponent implements OnInit {
 
         // jump to the frame of the node
         this.selectNode.emit(target["data"]["id"]);
+
+        this.trackingService.selectedNodes.push(target["data"]["id"]);
+      } else {
+        // should be an edge
+        this.trackingService.selectedEdges.push({source: target["data"]["source"], target: target["data"]["target"]});
+      }
+    }
+  }
+
+  cyUnselect(event) {
+    console.log(event);
+
+    if (event.target.length == 1) {
+      console.log("Single selection");
+      const target = event.target[0]._private;
+
+      if (!("source" in target["data"])) {
+        console.log("It is a node!");
+
+        const index = this.trackingService.selectedNodes.indexOf(target["data"]["id"]);
+        if (index != -1) {
+          this.trackingService.selectedNodes.splice(index, 1);
+        }
+      } else {
+        // should be an edge
+        //this.trackingService.selectedEdges.push({source: target["data"]["source"], target: target["data"]["target"]});
+        const candidates = this.trackingService.selectedEdges.filter(el => el["source"] == target["data"]["source"] && el["target"] == target["data"]["target"]);
+
+        if (candidates.length == 1) {
+          const elIndex = this.trackingService.selectedEdges.indexOf(candidates[0]);
+          this.trackingService.selectedEdges.splice(elIndex, 1);
+        }
       }
     }
   }

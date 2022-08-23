@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Observable, of, Subject } from 'rxjs';
-import { catchError, delay, map, switchMap, tap } from 'rxjs/operators';
-import { AddLinkAction } from 'src/app/models/action';
+import { AddLinkAction, RemoveLinkAction, RemovePolygon } from 'src/app/models/action';
+import { ChangeType } from 'src/app/models/change';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { Line, Point, Polygon } from 'src/app/models/geometry';
 import { GlobalSegmentationModel } from 'src/app/models/segmentation-model';
@@ -416,5 +416,36 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       this.trackingConnector.getModel().undo();
       this.draw();
     }
+  }
+
+  delete() {
+    console.log("Not yet implemented!");
+
+    const trModel = this.trackingConnector.getModel();
+
+    for (const nodeId of this.trackingService.selectedNodes) {
+
+      const touchedLinks = trModel.trackingData.links.filter(link => nodeId == link.sourceId || nodeId == link.targetId);
+
+      for (const link of touchedLinks) {
+        trModel.addAction(new RemoveLinkAction(trModel.trackingData.links.indexOf(link)));
+      }
+
+      /**const frame = this.globalSegModel.getFrameById(nodeId)
+
+      this.globalSegModel.getLocalModel(frame).addAction(new RemovePolygon(nodeId));*/
+    }
+    this.trackingService.selectedNodes = [];
+
+    for (const edge of this.trackingService.selectedEdges) {
+      const source = edge["source"];
+      const target = edge["target"];
+
+      const candidates = trModel.trackingData.links.filter(link => link.sourceId == source && link.targetId == target);
+      for (const cand of candidates) {
+        trModel.addAction(new RemoveLinkAction(trModel.trackingData.links.indexOf(cand)));
+      }
+    }
+    this.trackingService.selectedEdges = [];
   }
 }
