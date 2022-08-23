@@ -1,7 +1,11 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, ViewChild } from '@angular/core';
 
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
+import { ChangeType } from 'src/app/models/change';
+import { GlobalTrackingOMEROStorageConnector } from 'src/app/models/storage-connectors';
+import { GlobalTrackingModel } from 'src/app/models/tracking/model';
+import { TrackingService } from 'src/app/services/tracking.service';
 
 cytoscape.use( dagre );
 
@@ -13,7 +17,7 @@ const line = (length: number, tail=[[],[]]) => {
   const nodes = [];
   const edges = [];
   for (let i = 0; i < length; i++) {
-    nodes.push({data: {id: node_id}})
+    nodes.push({data: {id: node_id, shortId: node_id}})
     node_id += 1;
 
     if (nodes.length >= 2) {
@@ -42,7 +46,7 @@ const makeEdge = (sourceId, targetId) => {
 }
 
 const split = (tailA, tailB) => {
-  const node = {data: {id: node_id}};
+  const node = {data: {id: node_id, shortId: node_id}};
   node_id += 1;
   const edges = [];
 
@@ -69,6 +73,8 @@ export class LineageVisualizerComponent implements OnInit {
 
   @ViewChild("cytoscape") container;
   cy;
+
+  @Output() selectNode = new EventEmitter<string>();
 
   constructor(private trackingService: TrackingService) { }
 
@@ -205,6 +211,24 @@ export class LineageVisualizerComponent implements OnInit {
     });
 
     this.cy = cy;
+
+    cy.on("tapselect", (event) => this.cySelect(event));
+  }
+
+  cySelect(event) {
+    console.log(event);
+
+    if (event.target.length == 1) {
+      console.log("Single selection");
+      const target = event.target[0]._private;
+
+      if (!("source" in target["data"])) {
+        console.log("It is a node!");
+
+        // jump to the frame of the node
+        this.selectNode.emit(target["data"]["id"]);
+      }
+    }
   }
 
 }
