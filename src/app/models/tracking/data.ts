@@ -19,7 +19,10 @@ export class Link {
 export class TrackingData implements ClearableStorage {
 
     // array of linkings (all information for the tracking)
-    links: Array<Link>;
+    links: Array<Link> = [];
+
+    // array of forced track ends containing id of final items
+    forcedTrackEnds: Array<string> = [];
 
     constructor() {
         this.clear();
