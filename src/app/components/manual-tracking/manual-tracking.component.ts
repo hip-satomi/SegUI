@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Observable, of, Subject } from 'rxjs';
+import { catchError, delay, map, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { AddLinkAction, RemoveLinkAction, RemovePolygon } from 'src/app/models/action';
 import { ChangeType } from 'src/app/models/change';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
@@ -117,13 +118,23 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   }
 
   ngAfterViewInit() {
-    this.trackingService.$currentTrackingModel.subscribe((trCon) => this.trackingConnector = trCon);
+    this.trackingService.$currentTrackingModel.subscribe((trCon) => {
+      this.trackingConnector = trCon;
+
+      this.trackingConnector.getModel().modelChanged.pipe(
+        takeUntil(this.destroySignal)
+      ).subscribe((modelChange) =>{
+        if (modelChange.changeType == ChangeType.HARD) {
+          this.draw()
+        }
+      });
+    });
 
     // TODO: the delay is dirty!!!!! When not using this.globalSegModel was undefined!!
     setTimeout(() => this.trackingService.loadById(this.imageId, this.globalSegModel), 2000);
   }
 
-  ngOnDestroy() {
+  ngDestroy() {
     this.destroySignal.next();
   }
 
@@ -304,6 +315,10 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     return true;    
   }
 
+  onPress(event) {
+    return true;
+  }
+
   onMove(event: any): boolean {
     const mousePos = Utils.screenPosToModelPos(Utils.getMousePosMouse(this.canvasElement, event), this.ctx);
     const x = mousePos.x;
@@ -397,11 +412,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   }
 
   get canRedo(): boolean {
-    return this.trackingConnector.getModel().canRedo;
+    return this.trackingConnector && this.trackingConnector.getModel().canRedo;
   }
 
   get canUndo(): boolean {
-    return this.trackingConnector.getModel().canUndo;
+    return this.trackingConnector && this.trackingConnector.getModel().canUndo;
   }
 
   redo(): void {
