@@ -22,7 +22,7 @@ export class TrackingData implements ClearableStorage {
     links: Array<Link> = [];
 
     // array of forced track ends containing id of final items
-    forcedTrackEnds: Array<string> = [];
+    forcedTrackEnds: Set<string> = new Set<string>();
 
     constructor() {
         this.clear();
@@ -86,5 +86,4 @@ export class TrackingData implements ClearableStorage {
     listFrom(sourceId: string): Array<Link> {
         return this.links.filter(l => l.sourceId == sourceId);
     }
-
 }

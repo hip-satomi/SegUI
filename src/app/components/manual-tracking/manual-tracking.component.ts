@@ -1,7 +1,7 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { Observable, of, Subject } from 'rxjs';
 import { catchError, delay, map, switchMap, takeUntil, tap } from 'rxjs/operators';
-import { AddLinkAction, RemoveLinkAction, RemovePolygon } from 'src/app/models/action';
+import { AddLinkAction, ForceTrackEndAction, RemoveLinkAction, RemovePolygon } from 'src/app/models/action';
 import { ChangeType } from 'src/app/models/change';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { Line, Point, Polygon } from 'src/app/models/geometry';
@@ -144,6 +144,18 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     );
   }
 
+  @HostListener('document:keyup.x', ['$event'])
+  overlayToggle(event) {
+      if(this.show) {
+          // if the brush tool is shown we do toggle the overlay
+          if (this.selectedSegment) {
+            this.trackingConnector.getModel().addAction(new ForceTrackEndAction(this.selectedSegment.id));
+            this.selectedSegment = null;
+          }
+      }
+  }
+
+
   /**
    * Draw the segmentation using the brushed view
    * @param ctx the canvas context to draw
@@ -183,16 +195,20 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       if(this.showTracking) {
         // render outgoing links (red)
         for (const oLink of outgoingLinks) {
-          const sourceCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(oLink.sourceId).center;
-          const targetCenter = this.segUIs[this.activeView+1].segModel.segmentationData.getPolygon(oLink.targetId).center;
-          this.drawArrow(ctx, sourceCenter, targetCenter, "rgb(255, 0, 0)", 1.);
+          const sourceCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(oLink.sourceId)?.center;
+          const targetCenter = this.segUIs[this.activeView+1].segModel.segmentationData.getPolygon(oLink.targetId)?.center;
+          if (sourceCenter && targetCenter) {
+            this.drawArrow(ctx, sourceCenter, targetCenter, "rgb(255, 0, 0)", 1.);
+          }
         }
 
         // render incoming links (green)
         for (const iLink of incomingLinks) {
-          const sourceCenter = this.segUIs[this.activeView-1].segModel.segmentationData.getPolygon(iLink.sourceId).center;
-          const targetCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(iLink.targetId).center;
-          this.drawArrow (ctx, sourceCenter, targetCenter, "rgb(100, 100, 100)", 1.);
+          const sourceCenter = this.segUIs[this.activeView-1].segModel.segmentationData.getPolygon(iLink.sourceId)?.center;
+          const targetCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(iLink.targetId)?.center;
+          if (sourceCenter && targetCenter) {
+            this.drawArrow (ctx, sourceCenter, targetCenter, "rgb(100, 100, 100)", 1.);
+          }
         }
       }
     }
@@ -310,7 +326,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     }
 
     this.selectedSegment = null;
-    this.draw();
+    //this.draw();
 
     return true;    
   }
@@ -357,17 +373,26 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     this.stopTrackAnnotation();
 
+    const trData = this.trackingConnector.getModel().trackingData;
+
     let frame = 0;
     for (const segUI of this.segUIs) {
       let out_candidate = null;
+      // loop over all visible polygons in the segmentation model
       for (const [id, poly] of segUI.segModel.getVisiblePolygons()) {
+        // scan for successors
         const targetList = this.trackingConnector.getModel().trackingData.listFrom(id);
+        // scan for predecessors
         const sourceList = this.trackingConnector.getModel().trackingData.listTo(id);
+
         if (sourceList.length == 0 && frame > 0) {
+          // when we have no parent, we need to find that first
           this.selectTrackTarget(id, frame);
           return;
         }
-        if (targetList.length == 0) {
+        if (targetList.length == 0 && !(trData.forcedTrackEnds.has(id))) {
+          // after the and: if this is a forced track end we do not need any outgoing links!!!
+
           // we have no outgoing link --> we need to track this
           // but having sources is more important --> memorize
           if (!out_candidate) {
@@ -422,14 +447,12 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   redo(): void {
     if (this.canRedo) {
       this.trackingConnector.getModel().redo();
-      this.draw();
     }
   }
 
   undo(): void {
     if (this.canUndo) {
       this.trackingConnector.getModel().undo();
-      this.draw();
     }
   }
 

@@ -125,6 +125,13 @@ export class LineageVisualizerComponent implements OnInit {
       }
     }
 
+    // Render node types w.r.t track ends!
+    this.cy.$('node').data('type', 'ellipse');
+
+    for (const node of trackingModel.trackingData.forcedTrackEnds) {
+      this.cy.$(`node[id = "${node}"]`).data('type', 'rectangle');
+    }
+
     const edgesInCy = new Set(this.cy.filter("edge").map(el => el._private["data"]["id"]));
 
     for (const edge of edges) {
@@ -178,7 +185,8 @@ export class LineageVisualizerComponent implements OnInit {
         selector: 'node',
         style: {
           'background-color': '#666',
-          'label': 'data(shortId)'
+          'label': 'data(shortId)',
+          'shape': 'data(type)',
         }
       },
   
@@ -200,6 +208,12 @@ export class LineageVisualizerComponent implements OnInit {
           'line-color': 'black',
           'target-arrow-color': 'black',
           'source-arrow-color': 'black'
+        }
+      },
+      {
+        selector: 'node[type = "rectangle"]',
+        css: {
+          'background-color': '#ff0000',
         }
       }  
     ],

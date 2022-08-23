@@ -40,8 +40,10 @@ enum ActionTypes {
     ChangeLabelColorAction = "ChangeLabelColorAction",
     DeleteLabelAction = "DeleteLabelAction",
 
+    // tracking actions
     AddLinkAction = "AddLinkAction",
-    RemoveLinkAction = "RemoveLinkAction"
+    RemoveLinkAction = "RemoveLinkAction",
+    ForceTrackEndAction = "ForceTrackEndAction"
 }
 
 /**
@@ -730,6 +732,33 @@ export class RemoveLinkAction extends Action<TrackingData> {
         data.removeLink(data.links[this.linkIndex]);
     }
 }
+
+/**
+ * Action to toggle forced track end status
+ */
+@Serializable()
+export class ForceTrackEndAction extends Action<TrackingData> {
+    @JsonProperty() trackEndItemId: string;
+
+    /**
+     * 
+     * @param trackEndItemId id of the last item in the track
+     */
+    constructor(trackEndItemId: string) {
+        super(ActionTypes.ForceTrackEndAction);
+        this.trackEndItemId = trackEndItemId;
+    }
+
+    perform(data: TrackingData): void {
+        if (this.trackEndItemId in data.forcedTrackEnds) {
+            // remove it
+            data.forcedTrackEnds.delete(this.trackEndItemId);
+        } else {
+            data.forcedTrackEnds.add(this.trackEndItemId);
+        }
+    }
+}
+
  
 
 /**
@@ -764,8 +793,10 @@ export class RemoveLinkAction extends Action<TrackingData> {
         [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction],
         [ActionTypes.DeleteLabelAction, DeleteLabelAction],
 
+        // Tracking Actions
         [ActionTypes.AddLinkAction, AddLinkAction],
-        [ActionTypes.RemoveLinkAction, RemoveLinkAction]
+        [ActionTypes.RemoveLinkAction, RemoveLinkAction],
+        [ActionTypes.ForceTrackEndAction, ForceTrackEndAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();
