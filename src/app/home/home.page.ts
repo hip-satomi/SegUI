@@ -434,7 +434,7 @@ export class HomePage implements Drawer, UIInteraction{
         return;
       }
     }
-    if (this.isSegmentation) {
+    else if (this.isSegmentation) {
       this.segmentationUIs[this.activeView].delete();
     }
   }
