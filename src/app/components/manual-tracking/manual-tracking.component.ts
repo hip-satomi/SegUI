@@ -429,6 +429,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     // jump to next cell to select forward tracking
     this.activeViewChange.emit(frame + 1);
     this.userQuestionService.showInfo(`"Selected source: ${id}"`)
+
+    this.selectedNode.emit(id);
   }
 
   /**
@@ -441,6 +443,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     this.selectedSegment = new Selection(id, frame);
     this.activeViewChange.emit(frame - 1);
     this.userQuestionService.showInfo(`Selected target: ${id}. Backtrack`);
+
+    this.selectedNode.emit(id);
   }
 
   get canRedo(): boolean {
