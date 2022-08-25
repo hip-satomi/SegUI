@@ -16,10 +16,16 @@ export class TrackingService {
 
   trackingConnector: GlobalTrackingOMEROStorageConnector;
 
+  selectedNodes = [];
+  selectedEdges = [];
+
   constructor(private omeroAPI: OmeroAPIService) { }
 
   loadById(imageId: number, globalSegModel: GlobalSegmentationModel) {
     this.$destroySignal.next();
+
+    this.selectedEdges = [];
+    this.selectedNodes = [];
 
     this.omeroAPI.getLatestFileJSON(imageId, 'GUITracking.json').pipe(
       catchError((err, caught) => {

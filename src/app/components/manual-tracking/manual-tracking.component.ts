@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { Observable, of, Subject } from 'rxjs';
-import { catchError, delay, map, switchMap, tap } from 'rxjs/operators';
-import { AddLinkAction } from 'src/app/models/action';
+import { catchError, delay, map, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { AddLinkAction, ForceTrackEndAction, RemoveLinkAction, RemovePolygon } from 'src/app/models/action';
+import { ChangeType } from 'src/app/models/change';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { Line, Point, Polygon } from 'src/app/models/geometry';
 import { GlobalSegmentationModel } from 'src/app/models/segmentation-model';
@@ -78,8 +79,17 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   /** show tracking overlay */
   showTracking = true;
 
+  showTrackedCells = true;
+
   /** show segmentation overlay */
   showSegmentation = true;
+
+  preventTwoParents = true;
+  maxChildren = 2;
+  preventFrameJumps = true;
+
+  /** true when the user wants to select multiple children */
+  divisionAnnotation = false;
 
   @Input() globalSegModel: GlobalSegmentationModel;
   @Input() activeView: number;
@@ -87,11 +97,16 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   @Input() segUIs: Array<SegmentationUI>;
   @Input() imageId;
 
+  @Output() selectedNode = new EventEmitter<string>();
+
   protected destroySignal: Subject<void> = new Subject<void>();
 
   @Output() changedEvent = new EventEmitter<void>();
 
   trackingConnector: GlobalTrackingOMEROStorageConnector;
+
+  /** image to visualize track ends */
+  trackEndImage = null;
 
 
   @Input() set segUI(value: SegmentationUI) {
@@ -114,16 +129,28 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     console.log("init");
     console.log(`Image id ${this.imageId}`);
 
+    this.trackEndImage = new Image();
+    this.trackEndImage.src = "/assets/close-circle-outline.svg";
   }
 
   ngAfterViewInit() {
-    this.trackingService.$currentTrackingModel.subscribe((trCon) => this.trackingConnector = trCon);
+    this.trackingService.$currentTrackingModel.subscribe((trCon) => {
+      this.trackingConnector = trCon;
+
+      this.trackingConnector.getModel().modelChanged.pipe(
+        takeUntil(this.destroySignal)
+      ).subscribe((modelChange) =>{
+        if (modelChange.changeType == ChangeType.HARD) {
+          this.draw()
+        }
+      });
+    });
 
     // TODO: the delay is dirty!!!!! When not using this.globalSegModel was undefined!!
     setTimeout(() => this.trackingService.loadById(this.imageId, this.globalSegModel), 2000);
   }
 
-  ngOnDestroy() {
+  ngDestroy() {
     this.destroySignal.next();
   }
 
@@ -131,6 +158,27 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     return this.segUI.prepareDraw().pipe(
       switchMap(() => of(this))
     );
+  }
+
+  @HostListener('document:keyup.x', ['$event'])
+  overlayToggle(event) {
+      if(this.show) {
+          // if the brush tool is shown we do toggle the overlay
+          if (this.selectedSegment) {
+            this.trackingConnector.getModel().addAction(new ForceTrackEndAction(this.selectedSegment.id));
+            this.selectedSegment = null;
+          }
+      }
+  }
+
+  @HostListener('document:keydown.d', ['$event'])
+  activateDivisionAnnotation(event) {
+      this.divisionAnnotation = true;
+  }
+
+  @HostListener('document:keyup.d', ['$event'])
+  deactivateDivisionAnnotation(event) {
+      this.divisionAnnotation = false;
   }
 
   /**
@@ -154,8 +202,17 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     const trModel = this.trackingConnector.getModel();
 
+    const forwardTracking = this.selectedSegment && this.selectedSegment.frame < this.activeView;
+
     if (this.showSegmentation) {
-      this.segUIs[this.activeView].drawPolygons(ctx, false);
+      if (this.showTrackedCells) {
+        this.segUIs[this.activeView].drawPolygons(ctx, false);
+      } else {
+        this.segUIs[this.activeView].drawPolygonsAdv(ctx, false, p => {
+          return (this.selectedSegment || trModel.trackingData.listFrom(p[0]).length == 0)
+            && (!forwardTracking || trModel.trackingData.listTo(p[0]).length == 0); // forwardTracking => only show parentless cells
+        });
+      }
     }
 
     if (this.selectedSegment) {
@@ -172,17 +229,30 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       if(this.showTracking) {
         // render outgoing links (red)
         for (const oLink of outgoingLinks) {
-          const sourceCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(oLink.sourceId).center;
-          const targetCenter = this.segUIs[this.activeView+1].segModel.segmentationData.getPolygon(oLink.targetId).center;
-          this.drawArrow(ctx, sourceCenter, targetCenter, "rgb(255, 0, 0)", 1.);
+          const sourceCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(oLink.sourceId)?.center;
+          const targetCenter = this.segUIs[this.activeView+1].segModel.segmentationData.getPolygon(oLink.targetId)?.center;
+          if (sourceCenter && targetCenter) {
+            this.drawArrow(ctx, sourceCenter, targetCenter, "rgb(255, 0, 0)", 1.);
+          }
         }
 
         // render incoming links (green)
         for (const iLink of incomingLinks) {
-          const sourceCenter = this.segUIs[this.activeView-1].segModel.segmentationData.getPolygon(iLink.sourceId).center;
-          const targetCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(iLink.targetId).center;
-          this.drawArrow (ctx, sourceCenter, targetCenter, "rgb(100, 100, 100)", 1.);
+          const sourceCenter = this.segUIs[this.activeView-1].segModel.segmentationData.getPolygon(iLink.sourceId)?.center;
+          const targetCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(iLink.targetId)?.center;
+          if (sourceCenter && targetCenter) {
+            this.drawArrow (ctx, sourceCenter, targetCenter, "rgb(100, 100, 100)", 1.);
+          }
         }
+      }
+    }
+
+    // draw track ends
+    for (const [uuid, poly] of this.segUIs[this.activeView].segModel.getVisiblePolygons()) {
+      if (this.trackingConnector.getModel().trackingData.forcedTrackEnds.has(uuid)) {
+        const center = poly.center;
+        const size = 10;
+        ctx.drawImage(this.trackEndImage, center[0] - size/2, center[1] - size/2, size, size);
       }
     }
 
@@ -256,7 +326,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         if (polygon.isInside([x, y])) {
             // clicke inside a non active polygon
 
-            if (!this.selectedSegment) {
+            if (!this.selectedSegment && this.activeView < this.globalSegModel.segmentationModels.length - 1) {
               this.selectTrackSource(index, this.activeView);
               //this.source = new Selection(index, this.activeView);
 
@@ -268,25 +338,59 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
               let sourceId = null;
               let targetId = null;
               let targetFrame = -1;
+              let sourceFrame = -1;
               if (this.selectedSegment.frame < this.activeView) {
                 // forward track
                 sourceId = this.selectedSegment.id;
+                sourceFrame = this.selectedSegment.frame;
                 targetId = index;
                 targetFrame = this.activeView;
               } else if (this.selectedSegment.frame > this.activeView) {
                 // backward track
                 sourceId = index;
+                sourceFrame = this.activeView;
                 targetId = this.selectedSegment.id;
                 targetFrame = this.selectedSegment.frame;
               } else {
                 this.userQuestionService.showError("Cannot link between segmentations of the same frame!")
                 return true;
               }
+
+              // that's the new link we want to create
+              const link = new Link(sourceId, targetId);
+
+              // safety checks
+              if (this.preventTwoParents) {
+                if (this.trackingConnector.getModel().trackingData.listTo(targetId).length >= 1) {
+                  // we do not allow to have two parents!
+                  this.userQuestionService.showError("This link is not possible as the target cell already has a parent!");
+                  return;
+                }
+              }
+              if (this.trackingConnector.getModel().trackingData.listFrom(sourceId).length >= this.maxChildren) {
+                this.userQuestionService.showError(`This cell already has reached the maximum number of ${this.maxChildren} children`);
+                return;
+              }
+              if (this.preventFrameJumps && Math.abs(sourceFrame - targetFrame) > 1) {
+                this.userQuestionService.showError("Frame jumps are not allowed! Please only link cells in consecutive frames!");
+                return;
+              }
+
+
+
               this.userQuestionService.showInfo(`Linking cells ${sourceId} --> ${targetId}`);
-              this.trackingConnector.getModel().addAction(new AddLinkAction(new Link(sourceId, targetId)));
-              if (this.fastTrackAnnotation) {
+              this.trackingConnector.getModel().addAction(new AddLinkAction(link));
+              if (this.divisionAnnotation) {
+                // do nothing because we want to add another child
+              }
+              else if (this.fastTrackAnnotation) {
                 // continue to track the same object
-                this.selectTrackSource(targetId, targetFrame);
+                if (targetFrame < this.globalSegModel.segmentationModels.length - 1) {
+                  // only when we are not reaching the end!
+                  this.selectTrackSource(targetId, targetFrame);
+                } else {
+                  this.stopTrackAnnotation();
+                }
                 //this.source = new Selection(targetId, targetFrame+1);
                 //this.activeViewChange.emit(this.activeView + 1);
               } else {
@@ -298,10 +402,16 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         }
     }
 
-    this.selectedSegment = null;
-    this.draw();
+    if (this.selectedSegment) {
+      this.stopTrackAnnotation();
+    }
+    //this.draw();
 
     return true;    
+  }
+
+  onPress(event) {
+    return true;
   }
 
   onMove(event: any): boolean {
@@ -342,17 +452,26 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     this.stopTrackAnnotation();
 
+    const trData = this.trackingConnector.getModel().trackingData;
+
     let frame = 0;
     for (const segUI of this.segUIs) {
       let out_candidate = null;
+      // loop over all visible polygons in the segmentation model
       for (const [id, poly] of segUI.segModel.getVisiblePolygons()) {
+        // scan for successors
         const targetList = this.trackingConnector.getModel().trackingData.listFrom(id);
+        // scan for predecessors
         const sourceList = this.trackingConnector.getModel().trackingData.listTo(id);
+
         if (sourceList.length == 0 && frame > 0) {
+          // when we have no parent, we need to find that first
           this.selectTrackTarget(id, frame);
           return;
         }
-        if (targetList.length == 0) {
+        if (targetList.length == 0 && !(trData.forcedTrackEnds.has(id))) {
+          // after the and: if this is a forced track end we do not need any outgoing links!!!
+
           // we have no outgoing link --> we need to track this
           // but having sources is more important --> memorize
           if (!out_candidate) {
@@ -382,6 +501,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     // jump to next cell to select forward tracking
     this.activeViewChange.emit(frame + 1);
     this.userQuestionService.showInfo(`"Selected source: ${id}"`)
+
+    this.selectedNode.emit(id);
   }
 
   /**
@@ -394,27 +515,56 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     this.selectedSegment = new Selection(id, frame);
     this.activeViewChange.emit(frame - 1);
     this.userQuestionService.showInfo(`Selected target: ${id}. Backtrack`);
+
+    this.selectedNode.emit(id);
   }
 
   get canRedo(): boolean {
-    return this.trackingConnector.getModel().canRedo;
+    return this.trackingConnector && this.trackingConnector.getModel().canRedo;
   }
 
   get canUndo(): boolean {
-    return this.trackingConnector.getModel().canUndo;
+    return this.trackingConnector && this.trackingConnector.getModel().canUndo;
   }
 
   redo(): void {
     if (this.canRedo) {
       this.trackingConnector.getModel().redo();
-      this.draw();
     }
   }
 
   undo(): void {
     if (this.canUndo) {
       this.trackingConnector.getModel().undo();
-      this.draw();
     }
+  }
+
+  delete() {
+    console.log("Not yet implemented!");
+
+    const trModel = this.trackingConnector.getModel();
+
+    for (const nodeId of this.trackingService.selectedNodes) {
+
+      const touchedLinks = trModel.trackingData.links.filter(link => nodeId == link.sourceId || nodeId == link.targetId);
+
+      for (const link of touchedLinks) {
+        trModel.addAction(new RemoveLinkAction(link.sourceId, link.targetId));
+      }
+
+      /**const frame = this.globalSegModel.getFrameById(nodeId)
+
+      this.globalSegModel.getLocalModel(frame).addAction(new RemovePolygon(nodeId));*/
+    }
+    this.trackingService.selectedNodes = [];
+
+    for (const edge of this.trackingService.selectedEdges) {
+      const source = edge["source"];
+      const target = edge["target"];
+
+      // remove the link corresponding to the selected edge
+      trModel.addAction(new RemoveLinkAction(source, target));
+    }
+    this.trackingService.selectedEdges = [];
   }
 }

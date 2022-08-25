@@ -40,8 +40,10 @@ enum ActionTypes {
     ChangeLabelColorAction = "ChangeLabelColorAction",
     DeleteLabelAction = "DeleteLabelAction",
 
+    // tracking actions
     AddLinkAction = "AddLinkAction",
-    RemoveLinkAction = "RemoveLinkAction"
+    RemoveLinkAction = "RemoveLinkAction",
+    ForceTrackEndAction = "ForceTrackEndAction"
 }
 
 /**
@@ -715,21 +717,53 @@ export class AddLinkAction extends Action<TrackingData> {
 /** Action to delete link between segmentations */
 @Serializable()
 export class RemoveLinkAction extends Action<TrackingData> {
-    @JsonProperty() linkIndex: number;
+    @JsonProperty() source: string;
+    @JsonProperty() target: string;
 
     /**
      * 
      * @param numSegLayers the number of segmentation layers (e.g. images)
      */
-    constructor(linkIndex: number) {
+    constructor(source: string, target: string) {
         super(ActionTypes.RemoveLinkAction);
-        this.linkIndex = linkIndex;
+        this.source = source;
+        this.target = target
     }
 
     perform(data: TrackingData): void {
-        data.removeLink(data.links[this.linkIndex]);
+        const deleteCandidates = data.links.filter(link => link.sourceId == this.source && link.targetId == this.target);
+        for (const cand of deleteCandidates) {
+            data.removeLink(cand);
+        }
     }
 }
+
+/**
+ * Action to toggle forced track end status
+ */
+@Serializable()
+export class ForceTrackEndAction extends Action<TrackingData> {
+    @JsonProperty() trackEndItemId: string;
+
+    /**
+     * 
+     * @param trackEndItemId id of the last item in the track
+     */
+    constructor(trackEndItemId: string) {
+        super(ActionTypes.ForceTrackEndAction);
+        this.trackEndItemId = trackEndItemId;
+    }
+
+    perform(data: TrackingData): void {
+        if (data.forcedTrackEnds.has(this.trackEndItemId)) {
+            // remove it
+            data.forcedTrackEnds.delete(this.trackEndItemId);
+        } else {
+            data.forcedTrackEnds.add(this.trackEndItemId);
+        }
+    }
+}
+
  
 
 /**
@@ -764,8 +798,10 @@ export class RemoveLinkAction extends Action<TrackingData> {
         [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction],
         [ActionTypes.DeleteLabelAction, DeleteLabelAction],
 
+        // Tracking Actions
         [ActionTypes.AddLinkAction, AddLinkAction],
-        [ActionTypes.RemoveLinkAction, RemoveLinkAction]
+        [ActionTypes.RemoveLinkAction, RemoveLinkAction],
+        [ActionTypes.ForceTrackEndAction, ForceTrackEndAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();

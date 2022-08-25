@@ -1,7 +1,7 @@
 import { Dataset, extractLabels, OmeroAPIService, Project, RoIShape } from './../services/omero-api.service';
 import { OmeroUtils, Utils } from './../models/utils';
 import { Polygon, BoundingBox } from './../models/geometry';
-import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './../models/action';
+import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action, SelectPolygon } from './../models/action';
 import { ModelChanged } from './../models/change';
 import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
@@ -24,6 +24,7 @@ import { StateService } from '../services/state.service';
 import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
 import { OmeroAuthService } from '../services/omero-auth.service';
 import { ManualTrackingComponent } from '../components/manual-tracking/manual-tracking.component';
+import { LineageVisualizerComponent } from '../components/lineage-visualizer/lineage-visualizer.component';
 
 
 /**
@@ -66,6 +67,8 @@ export class HomePage implements Drawer, UIInteraction{
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
   @ViewChild('trackingTool') trackingToolComponent: ManualTrackingComponent;
   @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
+
+  @ViewChild('linViz') lineageVisualizer: LineageVisualizerComponent;
 
   /** the currently active tool */
   tool = null;
@@ -434,7 +437,7 @@ export class HomePage implements Drawer, UIInteraction{
         return;
       }
     }
-    if (this.isSegmentation) {
+    else if (this.isSegmentation) {
       this.segmentationUIs[this.activeView].delete();
     }
   }
@@ -1202,6 +1205,20 @@ export class HomePage implements Drawer, UIInteraction{
         return srsc;
       })
     );
+  }
+
+  selectNode(nodeId: string) {
+    const frame = this.globalSegModel.getFrameById(nodeId);
+
+    if (this.activeView != frame) {
+      this.activeView = frame;
+    }
+
+    this.globalSegModel.getLocalModel(frame).addAction(new SelectPolygon(nodeId));
+  }
+
+  trackSelectedNode(nodeId: string) {
+    this.lineageVisualizer.selectNode(nodeId, false)
   }
 
 }

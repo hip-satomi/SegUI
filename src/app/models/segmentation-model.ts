@@ -467,6 +467,21 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
     }
 
     /**
+     * Compute the frame position of the corresponding object
+     * @param objectId id of the query object
+     * @returns the frame of the corresonding object
+     */
+    getFrameById(objectId: string): number {
+        for (const [index, localModel] of this.segmentationData.localModels.entries()){
+            if (localModel.segmentationData.getPolygon(objectId) != null) {
+                return index;
+            }
+        }
+
+        throw new Error(`Detection with id ${objectId} not found!`)
+    }
+
+    /**
      * 
      * @returns next highest free label id
      */

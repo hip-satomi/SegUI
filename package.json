@@ -34,6 +34,8 @@
     "@msgpack/msgpack": "^2.7.0",
     "angular-resize-event": "^2.1.0",
     "color-convert": "^2.0.1",
+    "cytoscape": "^3.22.1",
+    "cytoscape-dagre": "^2.4.0",
     "dayjs": "^1.10.6",
     "hammerjs": "^2.0.8",
     "lodash": "^4.17.21",

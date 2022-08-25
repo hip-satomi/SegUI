@@ -16,8 +16,40 @@
     <ion-row>
       <ion-col>
         <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracked cells">Show tracked cells</ion-label>
+          <ion-toggle [(ngModel)]="showTrackedCells" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
           <ion-label #tooltip="matTooltip" matTooltip="Show/Hide segmentation overlay">Show Segmentation</ion-label>
           <ion-toggle [(ngModel)]="showSegmentation" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Allow cells only to have a certain amount of children">Max children</ion-label>
+          <ion-input type="number" [(ngModel)]="maxChildren"></ion-input>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Prevent for a tracking action to lead to a cell with two parents">Prevent Two Parents</ion-label>
+          <ion-toggle [(ngModel)]="preventTwoParents"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Prevent a link to skip a frame">Prevent Frame Jumps</ion-label>
+          <ion-toggle [(ngModel)]="preventFrameJumps"></ion-toggle>
         </ion-item>
       </ion-col>
     </ion-row>
@@ -27,6 +59,11 @@
           matTooltip="Select next free cell for tracking annotation">
           Next cell
         </ion-button>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-chip [class.ion-hide]="!divisionAnnotation" color="secondary">MultiChild</ion-chip>
       </ion-col>
     </ion-row>
   </ion-grid>
