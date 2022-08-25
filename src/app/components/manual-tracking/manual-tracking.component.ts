@@ -82,6 +82,9 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   /** show segmentation overlay */
   showSegmentation = true;
 
+  /** true when the user wants to select multiple children */
+  divisionAnnotation = false;
+
   @Input() globalSegModel: GlobalSegmentationModel;
   @Input() activeView: number;
   @Output() activeViewChange = new EventEmitter<number>();
@@ -155,6 +158,15 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       }
   }
 
+  @HostListener('document:keydown.d', ['$event'])
+  activateDivisionAnnotation(event) {
+      this.divisionAnnotation = true;
+  }
+
+  @HostListener('document:keyup.d', ['$event'])
+  deactivateDivisionAnnotation(event) {
+      this.divisionAnnotation = false;
+  }
 
   /**
    * Draw the segmentation using the brushed view
@@ -311,7 +323,10 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
               }
               this.userQuestionService.showInfo(`Linking cells ${sourceId} --> ${targetId}`);
               this.trackingConnector.getModel().addAction(new AddLinkAction(new Link(sourceId, targetId)));
-              if (this.fastTrackAnnotation) {
+              if (this.divisionAnnotation) {
+                // do nothing because we want to add another child
+              }
+              else if (this.fastTrackAnnotation) {
                 // continue to track the same object
                 if (targetFrame < this.globalSegModel.segmentationModels.length - 1) {
                   // only when we are not reaching the end!
