@@ -32,6 +32,14 @@
     <ion-row>
       <ion-col>
         <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Allow cells only to have a certain amount of children">Max children</ion-label>
+          <ion-input type="number" [(ngModel)]="maxChildren"></ion-input>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
           <ion-label #tooltip="matTooltip" matTooltip="Prevent for a tracking action to lead to a cell with two parents">Prevent Two Parents</ion-label>
           <ion-toggle [(ngModel)]="preventTwoParents"></ion-toggle>
         </ion-item>

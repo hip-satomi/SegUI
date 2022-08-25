@@ -85,6 +85,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   showSegmentation = true;
 
   preventTwoParents = true;
+  maxChildren = 2;
 
   /** true when the user wants to select multiple children */
   divisionAnnotation = false;
@@ -343,10 +344,17 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
               // safety checks
               if (this.preventTwoParents) {
                 if (this.trackingConnector.getModel().trackingData.listTo(targetId).length >= 1) {
+                  // we do not allow to have two parents!
                   this.userQuestionService.showError("This link is not possible as the target cell already has a parent!");
                   return;
                 }
               }
+              if (this.trackingConnector.getModel().trackingData.listFrom(sourceId).length >= this.maxChildren) {
+                this.userQuestionService.showError(`This cell already has reached the maximum number of ${this.maxChildren} children`);
+                return;
+              }
+
+
 
               this.userQuestionService.showInfo(`Linking cells ${sourceId} --> ${targetId}`);
               this.trackingConnector.getModel().addAction(new AddLinkAction(link));
