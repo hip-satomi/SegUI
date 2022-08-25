@@ -187,7 +187,7 @@ implements ChangableModel<SimpleTrackingView> {
                     continue;
                 }
                 // add polygon with additional information to the results
-                this._content.segmentation.push({label: this.baseSegmentation.segmentationModels[frameId].getPolygonLabel(uuid), contour: poly.points, id: uuid, frame: frameId});
+                this._content.segmentation.push({label: this.baseSegmentation.segmentationModels[frameId].getPolygonLabel(uuid).name, contour: poly.points, id: uuid, frame: frameId});
             }
         }
 
