@@ -74,8 +74,9 @@ export class LineageVisualizerComponent implements OnInit {
 
   @ViewChild("cytoscape") container;
   cy;
+  trModel;
 
-  @Output() selectNode = new EventEmitter<string>();
+  @Output() selectedNode = new EventEmitter<string>();
 
   constructor(private trackingService: TrackingService) { }
 
@@ -88,8 +89,9 @@ export class LineageVisualizerComponent implements OnInit {
   }
 
   registerTrackingCon(trCon: GlobalTrackingOMEROStorageConnector) {
+    this.trModel = trCon.getModel();
     trCon.getModel().modelChanged.pipe(
-      debounceTime(5000)
+      debounceTime(50000)
     ).subscribe((modelChanged) => {
       if (modelChanged.changeType == ChangeType.HARD) {
         // update visualization
@@ -98,6 +100,10 @@ export class LineageVisualizerComponent implements OnInit {
     });
 
     this.updateFromModel(trCon.getModel());
+  }
+
+  updateLineage() {
+    this.updateFromModel(this.trModel);
   }
 
   updateFromModel(trackingModel: GlobalTrackingModel) {
@@ -249,7 +255,7 @@ export class LineageVisualizerComponent implements OnInit {
         console.log("It is a node!");
 
         // jump to the frame of the node
-        this.selectNode.emit(target["data"]["id"]);
+        this.selectedNode.emit(target["data"]["id"]);
 
         this.trackingService.selectedNodes.push(target["data"]["id"]);
       } else {
@@ -284,6 +290,18 @@ export class LineageVisualizerComponent implements OnInit {
         }
       }
     }
+  }
+
+  selectNode(nodeId: string, allowMultiselect = false) {
+    if (!allowMultiselect) {
+      // deselct all others
+      this.cy.filter('node').unselect();
+    }
+    this.cy.filter(`node[id = "${nodeId}"]`).select();
+  }
+
+  centerSelection() {
+    this.cy.fit(this.cy.filter(':selected'), 25);
   }
 
 }
