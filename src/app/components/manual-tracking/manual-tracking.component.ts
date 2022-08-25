@@ -79,6 +79,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   /** show tracking overlay */
   showTracking = true;
 
+  showTrackedCells = true;
+
   /** show segmentation overlay */
   showSegmentation = true;
 
@@ -189,8 +191,17 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     const trModel = this.trackingConnector.getModel();
 
+    const forwardTracking = this.selectedSegment && this.selectedSegment.frame < this.activeView;
+
     if (this.showSegmentation) {
-      this.segUIs[this.activeView].drawPolygons(ctx, false);
+      if (this.showTrackedCells) {
+        this.segUIs[this.activeView].drawPolygons(ctx, false);
+      } else {
+        this.segUIs[this.activeView].drawPolygonsAdv(ctx, false, p => {
+          return (this.selectedSegment || trModel.trackingData.listFrom(p[0]).length == 0)
+            && (!forwardTracking || trModel.trackingData.listTo(p[0]).length == 0); // forwardTracking => only show parentless cells
+        });
+      }
     }
 
     if (this.selectedSegment) {

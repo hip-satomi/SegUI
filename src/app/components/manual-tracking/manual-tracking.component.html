@@ -16,6 +16,14 @@
     <ion-row>
       <ion-col>
         <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracked cells">Show tracked cells</ion-label>
+          <ion-toggle [(ngModel)]="showTrackedCells" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
           <ion-label #tooltip="matTooltip" matTooltip="Show/Hide segmentation overlay">Show Segmentation</ion-label>
           <ion-toggle [(ngModel)]="showSegmentation" (ionChange)="draw()"></ion-toggle>
         </ion-item>
