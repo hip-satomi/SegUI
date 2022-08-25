@@ -300,6 +300,7 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
         // zip operator combines both observables --> i.e. waits for rest update and model update
         (simpleTrackingView.modelChanged)
         .pipe(
+            debounceTime(5000),
             // switch to backend update observable
             switchMap(() => {
                 return this.update().pipe(
