@@ -107,6 +107,10 @@ export class LineageVisualizerComponent implements OnInit {
   }
 
   updateFromModel(trackingModel: GlobalTrackingModel) {
+    if (!this.cy) {
+      this.initCy();
+    }
+
     const nodes = new Set<string>();
     const edges = new Set();
     for (const link of trackingModel.trackingData.links) {
@@ -178,7 +182,7 @@ export class LineageVisualizerComponent implements OnInit {
     layout.run();
   }
 
-  ngAfterViewInit() {
+  initCy() {
     const [nodes, edges] = line(4, split(line(3, split(line(2), line(5))), line(5, split(line(7), line(4)))));
 
     const cy = cytoscape({
@@ -237,6 +241,9 @@ export class LineageVisualizerComponent implements OnInit {
 
     cy.on("tapselect", (event) => this.cySelect(event));
     cy.on("unselect", (event) => this.cyUnselect(event));
+  }
+
+  ngAfterViewInit() {
   }
 
   /** Deletes currently selected nodes or edges */
