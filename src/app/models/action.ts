@@ -755,7 +755,7 @@ export class ForceTrackEndAction extends Action<TrackingData> {
     }
 
     perform(data: TrackingData): void {
-        if (this.trackEndItemId in data.forcedTrackEnds) {
+        if (data.forcedTrackEnds.has(this.trackEndItemId)) {
             // remove it
             data.forcedTrackEnds.delete(this.trackEndItemId);
         } else {
