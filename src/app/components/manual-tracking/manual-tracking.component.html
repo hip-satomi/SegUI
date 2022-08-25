@@ -31,6 +31,14 @@
     </ion-row>
     <ion-row>
       <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Prevent for a tracking action to lead to a cell with two parents">Prevent Two Parents</ion-label>
+          <ion-toggle [(ngModel)]="preventTwoParents"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
         <ion-button color="secondary" (click)="selectNextCell()" #tooltip="matTooltip"
           matTooltip="Select next free cell for tracking annotation">
           Next cell

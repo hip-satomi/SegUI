@@ -84,6 +84,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   /** show segmentation overlay */
   showSegmentation = true;
 
+  preventTwoParents = true;
+
   /** true when the user wants to select multiple children */
   divisionAnnotation = false;
 
@@ -334,8 +336,20 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
                 this.userQuestionService.showError("Cannot link between segmentations of the same frame!")
                 return true;
               }
+
+              // that's the new link we want to create
+              const link = new Link(sourceId, targetId);
+
+              // safety checks
+              if (this.preventTwoParents) {
+                if (this.trackingConnector.getModel().trackingData.listTo(targetId).length >= 1) {
+                  this.userQuestionService.showError("This link is not possible as the target cell already has a parent!");
+                  return;
+                }
+              }
+
               this.userQuestionService.showInfo(`Linking cells ${sourceId} --> ${targetId}`);
-              this.trackingConnector.getModel().addAction(new AddLinkAction(new Link(sourceId, targetId)));
+              this.trackingConnector.getModel().addAction(new AddLinkAction(link));
               if (this.divisionAnnotation) {
                 // do nothing because we want to add another child
               }
