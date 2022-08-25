@@ -24,6 +24,7 @@ import { StateService } from '../services/state.service';
 import { FlexibleSegmentationComponent } from '../components/flexible-segmentation/flexible-segmentation.component';
 import { OmeroAuthService } from '../services/omero-auth.service';
 import { ManualTrackingComponent } from '../components/manual-tracking/manual-tracking.component';
+import { LineageVisualizerComponent } from '../components/lineage-visualizer/lineage-visualizer.component';
 
 
 /**
@@ -66,6 +67,8 @@ export class HomePage implements Drawer, UIInteraction{
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
   @ViewChild('trackingTool') trackingToolComponent: ManualTrackingComponent;
   @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
+
+  @ViewChild('linViz') lineageVisualizer: LineageVisualizerComponent;
 
   /** the currently active tool */
   tool = null;
@@ -1212,6 +1215,10 @@ export class HomePage implements Drawer, UIInteraction{
     }
 
     this.globalSegModel.getLocalModel(frame).addAction(new SelectPolygon(nodeId));
+  }
+
+  trackSelectedNode(nodeId: string) {
+    this.lineageVisualizer.selectNode(nodeId, false)
   }
 
 }

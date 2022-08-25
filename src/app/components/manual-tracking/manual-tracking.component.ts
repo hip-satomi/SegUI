@@ -93,6 +93,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   @Input() segUIs: Array<SegmentationUI>;
   @Input() imageId;
 
+  @Output() selectedNode = new EventEmitter<string>();
+
   protected destroySignal: Subject<void> = new Subject<void>();
 
   @Output() changedEvent = new EventEmitter<void>();
