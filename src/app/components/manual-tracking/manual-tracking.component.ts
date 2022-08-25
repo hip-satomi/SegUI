@@ -105,6 +105,9 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
   trackingConnector: GlobalTrackingOMEROStorageConnector;
 
+  /** image to visualize track ends */
+  trackEndImage = null;
+
 
   @Input() set segUI(value: SegmentationUI) {
       this._segUI = value;
@@ -126,6 +129,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     console.log("init");
     console.log(`Image id ${this.imageId}`);
 
+    this.trackEndImage = new Image();
+    this.trackEndImage.src = "/assets/close-circle-outline.svg";
   }
 
   ngAfterViewInit() {
@@ -239,6 +244,15 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
             this.drawArrow (ctx, sourceCenter, targetCenter, "rgb(100, 100, 100)", 1.);
           }
         }
+      }
+    }
+
+    // draw track ends
+    for (const [uuid, poly] of this.segUIs[this.activeView].segModel.getVisiblePolygons()) {
+      if (this.trackingConnector.getModel().trackingData.forcedTrackEnds.has(uuid)) {
+        const center = poly.center;
+        const size = 10;
+        ctx.drawImage(this.trackEndImage, center[0] - size/2, center[1] - size/2, size, size);
       }
     }
 
