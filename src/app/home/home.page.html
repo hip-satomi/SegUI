@@ -45,13 +45,14 @@
 <!-- Middle content-->
 <ion-content [fullscreen]="true" appMovableArea>
   <!-- A bit dirty to have it outside the content-->
-  <app-lineage-visualizer (selectNode)="selectNode($event)" [class.ion-hide]="!trackingTool.show"></app-lineage-visualizer>
+  <app-lineage-visualizer #linViz (selectedNode)="selectNode($event)" [class.ion-hide]="!trackingTool.show"></app-lineage-visualizer>
 
   <!-- Tools -->
   <div #toolContainer>
   </div>
 
-  <app-manual-tracking #trackingTool class="popover" [appMovable]="true" (changedEvent)="draw()" [segUI]="curSegUI" [segUIs]="segmentationUIs" [globalSegModel]="globalSegModel" [(activeView)]="activeView" [imageId]="(imageSetId | async)">
+  <app-manual-tracking #trackingTool class="popover" [appMovable]="true" (changedEvent)="draw()" [segUI]="curSegUI" [segUIs]="segmentationUIs" [globalSegModel]="globalSegModel" [(activeView)]="activeView" [imageId]="(imageSetId | async)"
+    (selectedNode)="trackSelectedNode($event)">
   </app-manual-tracking>
 
   <app-flexible-segmentation #flexSegTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
