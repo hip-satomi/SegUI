@@ -86,6 +86,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
   preventTwoParents = true;
   maxChildren = 2;
+  preventFrameJumps = true;
 
   /** true when the user wants to select multiple children */
   divisionAnnotation = false;
@@ -323,14 +324,17 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
               let sourceId = null;
               let targetId = null;
               let targetFrame = -1;
+              let sourceFrame = -1;
               if (this.selectedSegment.frame < this.activeView) {
                 // forward track
                 sourceId = this.selectedSegment.id;
+                sourceFrame = this.selectedSegment.frame;
                 targetId = index;
                 targetFrame = this.activeView;
               } else if (this.selectedSegment.frame > this.activeView) {
                 // backward track
                 sourceId = index;
+                sourceFrame = this.activeView;
                 targetId = this.selectedSegment.id;
                 targetFrame = this.selectedSegment.frame;
               } else {
@@ -351,6 +355,10 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
               }
               if (this.trackingConnector.getModel().trackingData.listFrom(sourceId).length >= this.maxChildren) {
                 this.userQuestionService.showError(`This cell already has reached the maximum number of ${this.maxChildren} children`);
+                return;
+              }
+              if (this.preventFrameJumps && Math.abs(sourceFrame - targetFrame) > 1) {
+                this.userQuestionService.showError("Frame jumps are not allowed! Please only link cells in consecutive frames!");
                 return;
               }
 
