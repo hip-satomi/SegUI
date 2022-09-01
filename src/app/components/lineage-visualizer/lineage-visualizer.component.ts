@@ -244,6 +244,7 @@ export class LineageVisualizerComponent implements OnInit {
   }
 
   ngAfterViewInit() {
+    this.initCy();
   }
 
   /** Deletes currently selected nodes or edges */
