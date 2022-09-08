@@ -434,7 +434,7 @@ export class RoIData {
   id: number;
 
   @JsonProperty({type: RoIShape})
-  shapes: Array<RoIShape>;
+  shapes: Array<RoIShape> = [];
 }
 
 /**
