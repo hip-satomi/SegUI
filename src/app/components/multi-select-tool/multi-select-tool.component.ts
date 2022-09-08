@@ -67,7 +67,7 @@ export class MultiSelectToolComponent extends Tool {
           }
       }
 
-      this.localSegModel.addAction(new JointAction(...actions));
+      this.localSegModel.addAction(new JointAction(actions));
 
       return true;
   }

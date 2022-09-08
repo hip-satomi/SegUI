@@ -956,8 +956,10 @@ export class HomePage implements Drawer, UIInteraction{
               actions.push(new AddLabelAction(new AnnotationLabel(firstFreeLabelId + index, label, true, 'random', true)));
             }
 
+            console.log(`Number of actions: ${actions.length}`);
+
             // add all actions in one go (also undoable as one)
-            srsc.getModel().addAction(new JointAction(...actions));
+            srsc.getModel().addAction(new JointAction(actions));
             
             return srsc;
           }),
