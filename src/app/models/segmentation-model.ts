@@ -183,7 +183,7 @@ export class SegmentationModel {
         const actions = this.addNewPolygonActions(labelId);
 
         // add all these actions as a joint action
-        this.addAction(new JointAction(...actions));
+        this.addAction(new JointAction(actions));
     }
 
     /**
@@ -436,7 +436,7 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
 
         // create default label
         if (initConfigActions.length >= 0) {
-            this.actionManager.addAction(new JointAction(...initConfigActions));
+            this.actionManager.addAction(new JointAction(initConfigActions));
         }
     }
 
@@ -645,7 +645,7 @@ export class LocalSegmentationModel {
         const actions = this.addNewPolygonActions(labelId);
 
         // add all these actions as a joint action
-        this.addAction(new JointAction(...actions));
+        this.addAction(new JointAction(actions));
     }
 
     get activeLabels(): Array<AnnotationLabel> {

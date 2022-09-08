@@ -333,7 +333,7 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
     }
 
     // join all the new polygon actions
-    const finalAction = new JointAction(...actions);
+    const finalAction = new JointAction(actions);
 
     // apply the actions to the current segmentation model
     this.temporarySegModel.addAction(finalAction);
@@ -410,9 +410,9 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
     }
 
     // join actions
-    const jointAction = new JointAction(...deleteActions, ...addActions);
+    const jointAction = new JointAction(deleteActions.concat(addActions));
     const jointLocalActions = this.localSegModel.wrapAction(jointAction);
-    this.globalSegModel.addAction(new JointAction(...addLabelActions, jointLocalActions));
+    this.globalSegModel.addAction(new JointAction(addLabelActions.concat(jointLocalActions)));
 
     // clear segmentation model
     this.data = [];

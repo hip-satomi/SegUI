@@ -512,7 +512,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             }
 
             if (actions.length > 0) {
-                this.localSegModel.addAction(new JointAction(...actions), false);
+                this.localSegModel.addAction(new JointAction(actions), false);
             }
 
             this.changedEvent.emit();
