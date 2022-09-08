@@ -348,8 +348,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
             const removalId = this.segModel.activePolygonId;
 
             const jointAction = 
-                new JointAction(
-                    new RemovePolygon(removalId));
+                new JointAction([new RemovePolygon(removalId)]);
 
             this.segModel.addAction(jointAction);
         }
