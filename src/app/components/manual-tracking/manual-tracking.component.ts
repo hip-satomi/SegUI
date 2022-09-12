@@ -232,7 +232,12 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
           const sourceCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(oLink.sourceId)?.center;
           const targetCenter = this.segUIs[this.activeView+1].segModel.segmentationData.getPolygon(oLink.targetId)?.center;
           if (sourceCenter && targetCenter) {
-            this.drawArrow(ctx, sourceCenter, targetCenter, "rgb(255, 0, 0)", 1.);
+            let color = "rgb(255, 0, 0)"
+            if (outgoingLinks.length > 1) {
+              color = "rgb(0, 0, 255)"
+            }
+
+            this.drawArrow(ctx, sourceCenter, targetCenter, color, 1.);
           }
         }
 
