@@ -199,6 +199,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         pencil = this.pencil;
     }
 
+    if (!pencil) {
+      console.warn("Cannot draw tracking due to unedfined pencil!");
+      return;
+    }
+
     // clear the view
     pencil.clear();
 
