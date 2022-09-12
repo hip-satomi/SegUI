@@ -57,8 +57,8 @@ export class TrackingData implements ClearableStorage {
             this.links.push(link);
 
             // add outgoing and incoming links
-            this.outgoingLinks[link.sourceId] = [...(this.outgoingLinks.get(link.sourceId) || []), link];
-            this.incomingLinks[link.targetId] = [...(this.incomingLinks.get(link.targetId) || []), link]
+            this.outgoingLinks[link.sourceId] = [...(this.outgoingLinks[link.sourceId] || []), link];
+            this.incomingLinks[link.targetId] = [...(this.incomingLinks.get[link.targetId] || []), link]
 
         }
     }
