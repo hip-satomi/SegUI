@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, Optional } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -22,11 +22,13 @@ export class ImportDialogComponent implements OnInit {
 
   public cR = ImportDialogComponent;
 
-  constructor(public dialogRef: MatDialogRef<ImportDialogComponent>,
-            @Inject(MAT_DIALOG_DATA) public data: {imageId: number},
+  constructor(@Optional() public dialogRef: MatDialogRef<ImportDialogComponent>,
+              @Inject(MAT_DIALOG_DATA) public data: {imageId: number},
             private omeroAPI: OmeroAPIService) {
     this.imageId = data.imageId;
+  }
 
+  ngOnInit() {
     // check OMERO RoI count
     this.omeroAPI.getImageInfo(this.imageId).pipe(
       tap(info => {
@@ -48,7 +50,4 @@ export class ImportDialogComponent implements OnInit {
   close(result) {
     this.dialogRef.close(result);
   }
-
-  ngOnInit() {}
-
 }
