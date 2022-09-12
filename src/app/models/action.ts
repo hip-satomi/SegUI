@@ -870,7 +870,7 @@ export class JointAction<T> extends Action<T>{
      * Creats a grouped action based on a list of actions
      * @param actions list of actions
      */
-    constructor(...actions: Action<T>[]) {
+    constructor(actions: Action<T>[]) {
         super(ActionTypes.JointAction);
         this.actions = actions;
     }

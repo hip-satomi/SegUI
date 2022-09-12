@@ -22,6 +22,7 @@ import { AiServiceComponent } from '../components/ai-service/ai-service.componen
 import { AiParameterComponent } from '../components/ai-parameter/ai-parameter.component';
 import { ManualTrackingComponent } from '../components/manual-tracking/manual-tracking.component';
 import { LineageVisualizerComponent } from '../components/lineage-visualizer/lineage-visualizer.component';
+import { ImportDialogComponent } from '../components/import-dialog/import-dialog.component';
 
 @NgModule({
   declarations: [
@@ -40,7 +41,8 @@ import { LineageVisualizerComponent } from '../components/lineage-visualizer/lin
     AiServiceComponent,
     AiParameterComponent,
     ManualTrackingComponent,
-    LineageVisualizerComponent
+    LineageVisualizerComponent,
+    ImportDialogComponent
   ],
   exports: [
     ImageDisplayComponent,
@@ -58,7 +60,8 @@ import { LineageVisualizerComponent } from '../components/lineage-visualizer/lin
     AiServiceComponent,
     AiParameterComponent,
     ManualTrackingComponent,
-    LineageVisualizerComponent
+    LineageVisualizerComponent,
+    ImportDialogComponent
   ],
   imports: [
     CommonModule,

@@ -42,8 +42,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     _segUI: SegmentationUI;
 
     @Input() set segUI(value: SegmentationUI) {
-    this._segUI = value;
-    this.changedEvent.emit();
+        this._segUI = value;
+        this.changedEvent.emit();
     }
 
     get segUI() {
@@ -178,55 +178,55 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
      * @param ctx the canvas context to draw
      */
     draw(pencil: Pencil = null): void {
-    if (pencil) {
-        this.pencil = pencil;
-        this.ctx = pencil.canvasCtx;
-        this.canvasElement = pencil.canvasElement;
-    } else {
-        // if no new pencil is used we fallback to last one
-        pencil = this.pencil;
-    }
+        if (pencil) {
+            this.pencil = pencil;
+            this.ctx = pencil.canvasCtx;
+            this.canvasElement = pencil.canvasElement;
+        } else {
+            // if no new pencil is used we fallback to last one
+            pencil = this.pencil;
+        }
 
-    // TODO: why can the pencil be null?
-    if(!pencil) {
-        return;
-    }
+        // TODO: why can the pencil be null?
+        if(!pencil) {
+            return;
+        }
 
-    // clear the view
-    pencil.clear();
+        // clear the view
+        pencil.clear();
 
-    const ctx = pencil.canvasCtx;
+        const ctx = pencil.canvasCtx;
 
-    if (this.currentPolygon) {
-        // get current polygon color for brush visualization
-        ctx.strokeStyle = this.getPolyColor(this.localSegModel.activePolygonId, this.currentPolygon);
-    } else {
-        ctx.strokeStyle = 'rgb(255, 0, 0)';
-    }
+        if (this.currentPolygon) {
+            // get current polygon color for brush visualization
+            ctx.strokeStyle = this.getPolyColor(this.localSegModel.activePolygonId, this.currentPolygon);
+        } else {
+            ctx.strokeStyle = 'rgb(255, 0, 0)';
+        }
 
-    // draw the circle around the pointer
-    if (this.pointerPos) {
-        // set the line width
-        ctx.lineWidth = this.lineWidth;
-        ctx.beginPath();
-        ctx.arc(this.pointerPos.x, this.pointerPos.y, this.brushSize, 0, 2 * Math.PI);
-        ctx.stroke();
-    }
+        // draw the circle around the pointer
+        if (this.pointerPos) {
+            // set the line width
+            ctx.lineWidth = this.lineWidth;
+            ctx.beginPath();
+            ctx.arc(this.pointerPos.x, this.pointerPos.y, this.brushSize, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
 
-    // 1. Draw all other detections
-    if (this.showOverlay) {
-        // draw
-        this.segUI.drawPolygonsAdv(ctx, false,
-            // filter only polygons with visible label
-            (p: [string, Polygon]) => {
-                return this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(p[0])].visible
-            },
-            ({uuid, poly}) => this.getPolyColor(uuid, poly)
-        );
-    }
+        // 1. Draw all other detections
+        if (this.showOverlay) {
+            // draw
+            this.segUI.drawPolygonsAdv(ctx, false,
+                // filter only polygons with visible label
+                (p: [string, Polygon]) => {
+                    return this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(p[0])].visible
+                },
+                ({uuid, poly}) => this.getPolyColor(uuid, poly)
+            );
+        }
 
-    // 2. draw the backgound image
-    this.segUI.drawImage(ctx);
+        // 2. draw the backgound image
+        this.segUI.drawImage(ctx);
     }
 
     /**
@@ -512,7 +512,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             }
 
             if (actions.length > 0) {
-                this.localSegModel.addAction(new JointAction(...actions), false);
+                this.localSegModel.addAction(new JointAction(actions), false);
             }
 
             this.changedEvent.emit();

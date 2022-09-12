@@ -1,4 +1,4 @@
-import { Dataset, extractLabels, OmeroAPIService, Project, RoIShape } from './../services/omero-api.service';
+import { Dataset, extractLabels, OmeroAPIService, OmeroType, Project, RoIShape } from './../services/omero-api.service';
 import { OmeroUtils, Utils } from './../models/utils';
 import { Polygon, BoundingBox } from './../models/geometry';
 import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action, SelectPolygon } from './../models/action';
@@ -10,7 +10,7 @@ import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
-import { SimpleSegmentationView as SimpleSegmentationView, GlobalSegmentationModel, LocalSegmentationModel, SegCollData } from './../models/segmentation-model';
+import { SimpleSegmentationView as SimpleSegmentationView, GlobalSegmentationModel, LocalSegmentationModel, SegCollData, SimpleSegmentation } from './../models/segmentation-model';
 import { ActionSheetController, AlertController, LoadingController, NavController } from '@ionic/angular';
 import { Component, ViewChild, HostListener, ViewContainerRef } from '@angular/core';
 
@@ -25,6 +25,8 @@ import { FlexibleSegmentationComponent } from '../components/flexible-segmentati
 import { OmeroAuthService } from '../services/omero-auth.service';
 import { ManualTrackingComponent } from '../components/manual-tracking/manual-tracking.component';
 import { LineageVisualizerComponent } from '../components/lineage-visualizer/lineage-visualizer.component';
+import { MatDialog } from '@angular/material/dialog';
+import { ImportDialogComponent } from '../components/import-dialog/import-dialog.component';
 
 
 /**
@@ -127,7 +129,8 @@ export class HomePage implements Drawer, UIInteraction{
               private userQuestions: UserQuestionsService,
               private stateService: StateService,
               private navCtrl: NavController,
-              private omeroAuth: OmeroAuthService) {
+              private omeroAuth: OmeroAuthService,
+              private dialog: MatDialog) {
 
     // record navigation history
     this.router.events.subscribe((event) => {
@@ -502,17 +505,10 @@ export class HomePage implements Drawer, UIInteraction{
             let srscPipeline: Observable<GlobalSegmentationOMEROStorageConnector>;
 
             if (content.segm === null) {
-              // there is no existing segmentation json --> try to load from omero
-              srscPipeline = this.omeroImport(false).pipe(
-                //map((srsc: GlobalSegmentationOMEROStorageConnector) => 'hello'),
-                catchError(e => {
-                  // loading from OMERO failed or has been rejected
-                  return this.createSegmentationConnector(imageSetId, content.urls).pipe(
-                    // enforce an update
-                    tap((srsc) => srsc.update().subscribe())
-                  );
-                })
-              )
+              srscPipeline = this.createSegmentationConnector(imageSetId, content.urls).pipe(
+                // enforce an update
+                tap((srsc) => srsc.update().subscribe())
+              );
             } else {
               // load the existing model file
               srscPipeline = of(1).pipe(
@@ -973,8 +969,10 @@ export class HomePage implements Drawer, UIInteraction{
               actions.push(new AddLabelAction(new AnnotationLabel(firstFreeLabelId + index, label, true, 'random', true)));
             }
 
+            console.log(`Number of actions: ${actions.length}`);
+
             // add all actions in one go (also undoable as one)
-            srsc.getModel().addAction(new JointAction(...actions));
+            srsc.getModel().addAction(new JointAction(actions));
             
             return srsc;
           }),
@@ -1078,6 +1076,98 @@ export class HomePage implements Drawer, UIInteraction{
         if(err?.message !== 'User did abort the action') {
           this.userQuestions.showError(`Failed import from omero: ${JSON.stringify(err)}`)
         }
+        return throwError(err);
+      })
+    ).subscribe();
+  }
+
+
+  /**
+   * 
+   * @param fileName filename of the simple segmentation attachment. Defaults to 'pred_simpleSegmentation.json'
+   * @param reload whether to reload the view (not needed when initializing currently).
+   * @param showLoading whether to show a loading icon during import
+   */
+  simpleSegImport(fileName: string="pred_simpleSegmentation.json", reload=true, showLoading=false) {
+    // create progress loader
+    const loading = this.loadingCtrl.create({
+      message: 'Importing data from simple segmentation...',
+      backdropDismiss: true
+    });
+
+    // 1. Check whether OMERO has ROI data available
+    this.imageSetId.pipe(
+      take(1),
+      tap(() => {
+        if (showLoading) {
+          loading.then(l => l.present());
+        }
+      }),
+      switchMap((imageId) => {
+        // get image urls (used to get the number of images in the sequence)
+        return this.omeroAPI.getImageUrls(imageId).pipe(
+          switchMap((urls) => {
+            // download the latest json file for simple segmentation
+            return this.omeroAPI.getLatestFileJSON(imageId, fileName, OmeroType.Image).pipe(
+              map((simpleSegmentation: Array<SimpleSegmentation>) => {
+                // create new segmenation model
+                const numSegmentationLayers = urls.length;
+                const holder = new GlobalSegmentationModel(this.ngUnsubscribe, numSegmentationLayers);
+
+                // create all the labels
+                const labels = new Set<string>();
+                for(const overlay of simpleSegmentation) {
+                  for (const detection of overlay.detections) {
+                    labels.add(detection.label);
+                  }
+                }
+
+                const labelActions = []
+
+                let labelId = 0;
+                const labelLookup = new Map<string, number>();
+                for (const label of labels) {
+                  labelActions.push(new AddLabelAction(new AnnotationLabel(labelId, label)));
+                  labelLookup.set(label, labelId);
+                  labelId += 1;
+                }
+
+                // array for all actions
+                const all_actions: Array<Action<SegCollData>> = labelActions;
+
+                // create all the polygons
+                for(const overlay of simpleSegmentation) {
+                  const frame = overlay.frame;
+                  for(const detection of overlay.detections) {
+                    all_actions.push(new LocalAction(new AddPolygon(new Polygon(...detection.contour), labelLookup.get(detection.label)), frame));
+                  }
+                }
+
+                // add all the actions to the model in a joint effort
+                holder.addAction(new JointAction(all_actions));
+
+                // return the new storage instance
+                return new GlobalSegmentationOMEROStorageConnector(this.omeroAPI, holder, imageId);
+              })
+            )
+          }),
+          switchMap((srsc: GlobalSegmentationOMEROStorageConnector) => {
+            // update new segmentation to the backend
+            return srsc.update().pipe(
+              map(() => srsc)
+            );
+          }),
+          tap(() => {
+            if (reload) {
+              this.imageSetId.next(imageId)
+            }
+          }),
+          finalize(() => loading.then(l => l.dismiss()))   
+        );
+      }),
+      catchError((err) => {
+        this.userQuestions.showError(`Failed import from omero: ${err.message}`)
+        // omero import has to error out
         return throwError(err);
       })
     ).subscribe();
@@ -1219,6 +1309,38 @@ export class HomePage implements Drawer, UIInteraction{
 
   trackSelectedNode(nodeId: string) {
     this.lineageVisualizer.selectNode(nodeId, false)
+  }
+
+  /**
+   * Handling button click to import data
+   */
+  openImportModal() {
+    this.imageSetId.pipe(
+      tap(imageId => {
+        // create the import dialog
+        const dialogRef = this.dialog.open(ImportDialogComponent, {
+          data: {imageId}
+        });
+
+        // react on closing the dialog
+        dialogRef.afterClosed().subscribe(result => {
+          console.log(`Dialog result: ${result}`); // Pizza!
+
+          if (result == ImportDialogComponent.IMPORT_SEG_OMERO) {
+            // load segmentation from OMERO RoIs
+            this.omeroImport(true, true).subscribe();
+          } else if(result == ImportDialogComponent.IMPORT_SEG_SIMPLE) {
+            // load segmentation from simple segmentation format
+            this.userQuestions.alertAsk("Segmentation Import", "This segmentation import will recreate your segmentation data and <b>cannot be undone</b>!<br /><br /> Do you want to proceed?").subscribe(
+              () => this.simpleSegImport()
+            )
+          } else if(result == ImportDialogComponent.IMPORT_SEG_FILE) {
+            // TODO: import simple segmentation from json file
+            this.userQuestions.showError("Not yet Implemented! Coming soon...")
+          }
+        });
+      })
+    ).subscribe();
   }
 
 }

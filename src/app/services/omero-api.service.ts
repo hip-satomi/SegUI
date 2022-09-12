@@ -5,16 +5,18 @@
 
 import { Point } from './../models/geometry';
 import { Serializable, JsonProperty, deserialize } from 'typescript-json-serializer';
-import { map, tap, mergeMap, switchMap, combineAll, catchError } from 'rxjs/operators';
+import { map, tap, mergeMap, switchMap, combineAll, catchError, toArray, reduce } from 'rxjs/operators';
 import { DataResponse } from './omero-auth.service';
 import { HttpClient} from '@angular/common/http';
-import { Observable, of, combineLatest, from, throwError } from 'rxjs';
+import { Observable, of, combineLatest, from, throwError, concat } from 'rxjs';
 import { Injectable } from '@angular/core';
 import * as dayjs from 'dayjs';
 import { UserQuestionsService } from './user-questions.service';
 import { SegCollData } from '../models/segmentation-model';
 import { OmeroUtils } from '../models/utils';
 import { AnnotationLabel } from '../models/segmentation-data';
+
+var _ = require('lodash');
 
 /**
  * Rewrite omero api urls into our urls (they get redirected again).
@@ -479,7 +481,7 @@ export interface RenderChannel {
   inverted: boolean;
 }
 
-enum OmeroType {
+export enum OmeroType {
   Image = "image",
   Dataset = "dataset",
   Project = "project"
@@ -644,10 +646,13 @@ export class OmeroAPIService {
     // create rendering strings
     const individualChannelRenders = []
     for (const channel of channels) {
-      let renderString = `${channel.c}|${channel.min}:${channel.max}$${channel.color}`;
+      let renderString = `${channel.c}|${channel.min}:${channel.max}`;
       // if a lut is defined include that
       if (channel.lut !== undefined) {
         renderString += `$${channel.lut}`;
+      } else {
+        // use color for rendering
+        renderString += `$${channel.color}`;
       }
       // check more specialized parameters
       const maps = [];
@@ -725,12 +730,16 @@ export class OmeroAPIService {
         const renderChannels = [];
         let index = 0;
         for(const channel of rdef.c) {
+          if (!channel.active) {
+            // channel is not active --> we do not include it into the rendering
+            continue;
+          }
           const start = channel.start;
           const end = channel.end;
           const color = channel.color;
           const lut = channel.lut;
           const inverted = channel.inverted || false;
-          renderChannels.push({min: start, max: end, c: index+1, color, inverted});
+          renderChannels.push({min: start, max: end, c: index+1, color, inverted, lut});
           index += 1;
         }
         
@@ -878,6 +887,8 @@ export class OmeroAPIService {
    * @returns 
    */
   deleteRois(imageSetId, roiList: Array<[number, number]>, max=1000) {
+    console.log("DeleteRoIs");
+
     const list = []
 
     for(let i = 0; i < Math.ceil(roiList.length / max); i++) {
@@ -901,12 +912,36 @@ export class OmeroAPIService {
       );
     }
 
-    return of(...list).pipe(
+    const requestObservables = list.map((post_data: RoIModData) => {
+      return this.modifyRois(post_data);
+    });
+
+    // dividing by 4 means 4 parralel requests
+    const chunkSize = Math.ceil(requestObservables.length / 4);
+
+    // make into chunks
+    const chunkedRequests = _.chunk(
+      requestObservables,
+      chunkSize
+    );
+
+    // combine into a single observable
+    const requests$ = combineLatest(
+      chunkedRequests.map(chunk => {
+        return concat(...chunk).pipe(toArray());
+      }
+      )
+    );
+    //map((chunkResults => (chunkResults as Array<Array<PagedResponse<T>>>).flat(1)));
+
+    return requests$;
+
+    /*return of(...list).pipe(
       map((post_data: RoIModData) => {
         return this.modifyRois(post_data);
       }),
       combineAll()
-    );
+    );*/
   }
 
   /**
@@ -917,7 +952,7 @@ export class OmeroAPIService {
    * @returns 
    */
   createRois(imageSetId: number, roiList: SegCollData, max=1000) {
-
+    console.log("Create RoIs");
     // 1. Need to get image information
     return this.getImage(imageSetId).pipe(
       map(res => {
@@ -953,13 +988,37 @@ export class OmeroAPIService {
             combineAll()
           );
         }
+
+        const requestObservables = list.map((post_data: RoIModData) => {
+          return this.modifyRois(post_data);
+        });
+
+        // dividing by 4 means 4 parralel requests
+        const chunkSize = Math.ceil(requestObservables.length / 4);
+
+        // make into chunks
+        const chunkedRequests = _.chunk(
+          requestObservables,
+          chunkSize
+        );
+
+        // combine into a single observable
+        const requests$ = combineLatest(
+          chunkedRequests.map(chunk => {
+            return concat(...chunk).pipe(toArray());
+          }
+          )
+        );
+        //map((chunkResults => (chunkResults as Array<Array<PagedResponse<T>>>).flat(1)));
+
+        return requests$;
     
-        return of(...list).pipe(
+        /*return of(...list).pipe(
           map((post_data: RoIModData) => {
             return this.modifyRois(post_data);
           }),
           combineAll()
-        );
+        );*/
       })
     )
   }
@@ -990,6 +1049,9 @@ export class OmeroAPIService {
 
   /**
    * Loads all pages of the backend and combines the result in array
+   * 
+   * Requests are chunked such that for large number of pages we do not run into timeouts
+   * 
    * @param url backend url
    * @param c class type for deserialization
    * @param limit the limit you request with first api call (later adapts automatically to max limit provided by API)
@@ -1012,23 +1074,46 @@ export class OmeroAPIService {
         const maxLimit = result.meta.maxLimit;
         const totalCount = result.meta.totalCount;
 
-        const requestList: Array<Observable<PagedResponse<T>>> = [];
+        const requestObservables: Array<Observable<PagedResponse<T>>> = [];
 
-        requestList.push(of(result))
+        requestObservables.push(of(result))
 
         if (totalCount > limit) {
           for(let i = 0; i < Math.ceil((totalCount - limit) / maxLimit); i++) {
-            requestList.push(this.httpClient.get(url, {params: {limit: maxLimit + '', offset: limit + i * maxLimit + '', ...params}}).pipe(unpackPage));
+            requestObservables.push(this.httpClient.get(url, {params: {limit: maxLimit + '', offset: limit + i * maxLimit + '', ...params}}).pipe(unpackPage));
           }
         }
 
-        return of(...requestList).pipe(
+        // dividing by 4 means 4 parralel requests
+        const chunkSize = Math.ceil(requestObservables.length / 4);
+
+        // make into chunks
+        const chunkedRequests = _.chunk(
+          requestObservables,
+          chunkSize
+        );
+
+        // combine into a single observable
+        const requests$ = combineLatest(
+          chunkedRequests.map(chunk => {
+            return concat(...chunk).pipe(toArray());
+          }
+          )
+        );
+        //map((chunkResults => (chunkResults as Array<Array<PagedResponse<T>>>).flat(1)));
+
+        return requests$;
+
+        /*return .pipe(
           // combine all requests (executed in parallel)
           combineAll(),
-        )
+        )*/
       }),
+      map((data) => (data as Array<Array<PagedResponse<T>>>).reduce((a,b) => a.concat(b), [])),
       // unpack, concatenated and deserialize
-      map((data: Array<PagedResponse<T>>) => data.map(d => d.data).reduce((a,b) => a.concat(b)).map(rawData => deserialize(rawData, c))),
+      map((data: Array<PagedResponse<T>>) =>{
+        return data.map(d => d.data).reduce((a,b) => a.concat(b), []).map(rawData => deserialize(rawData, c))
+      }),
       map(resArray => <Array<T>>resArray)
     );
   }
