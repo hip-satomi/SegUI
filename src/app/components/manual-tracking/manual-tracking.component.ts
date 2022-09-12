@@ -107,6 +107,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
   /** image to visualize track ends */
   trackEndImage = null;
+  /** image to visualize track begins */
+  trackStartImage = null;
 
 
   @Input() set segUI(value: SegmentationUI) {
@@ -131,6 +133,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     this.trackEndImage = new Image();
     this.trackEndImage.src = "/assets/close-circle-outline.svg";
+    this.trackStartImage = new Image();
+    this.trackStartImage.src = "/assets/locate-outline.svg"
   }
 
   ngAfterViewInit() {
@@ -248,6 +252,13 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
           if (sourceCenter && targetCenter) {
             this.drawArrow (ctx, sourceCenter, targetCenter, "rgb(100, 100, 100)", 1.);
           }
+        }
+
+        // visualize birth events
+        if (incomingLinks.length == 0) {
+          const center = poly.center;
+          const size = 10;
+          ctx.drawImage(this.trackStartImage, center[0] - size/2, center[1] - size/2, size, size);  
         }
       }
     }
