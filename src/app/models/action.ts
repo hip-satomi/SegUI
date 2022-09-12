@@ -200,11 +200,15 @@ export class AddPolygon extends Action<SegmentationData> {
     @JsonProperty()
     labelId: number;
 
-    constructor(poly: Polygon, labelId: number) {
+    constructor(poly: Polygon, labelId: number, uuid: string=null) {
         super(ActionTypes.AddPolygon);
 
         this.labelId = labelId;
-        this.uuid = uuidv4();
+        if (uuid == null) {
+            // generate a new uuid when no is defined (e.g. upon creation of the polygon)
+            uuid = uuidv4();
+        }
+        this.uuid = uuid;
         this.poly = poly;
     }
 
