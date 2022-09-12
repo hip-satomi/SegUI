@@ -87,7 +87,7 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
             filter((changeEvent: ModelChanged<GlobalSegmentationModel>) => {
                 return changeEvent.changeType === ChangeType.HARD;
             }),
-            debounceTime(5000),
+            debounceTime(20000),
             switchMap((changeEvent: ModelChanged<GlobalSegmentationModel>) => {
                 return this.update().pipe(
                     catchError((err) => {
