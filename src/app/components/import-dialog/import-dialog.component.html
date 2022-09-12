@@ -18,6 +18,17 @@
         <ion-button (click)="close(cR.IMPORT_SEG_FILE)" [disabled]="true">Import from File</ion-button>
       </ion-col>
     </ion-row>
+    <ion-row>
+      <ion-col><h2>Tracking</h2></ion-col>
+      <ion-col>
+      </ion-col>
+      <ion-col>
+        <ion-button (click)="close(cR.IMPORT_TRACK_SIMPLE)" [disabled]="!(simpleTrackAvailable$ | async)">Import Pred</ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button [disabled]="true">Import from File</ion-button>
+      </ion-col>
+    </ion-row>
   </ion-grid>
 </div>
 <div mat-dialog-actions>
