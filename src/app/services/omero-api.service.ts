@@ -481,7 +481,7 @@ export interface RenderChannel {
   inverted: boolean;
 }
 
-enum OmeroType {
+export enum OmeroType {
   Image = "image",
   Dataset = "dataset",
   Project = "project"

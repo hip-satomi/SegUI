@@ -20,6 +20,7 @@ import { FlexibleSegmentationComponent } from '../components/flexible-segmentati
 import { ImageCardComponent } from '../components/image-card/image-card.component';
 import { AiServiceComponent } from '../components/ai-service/ai-service.component';
 import { AiParameterComponent } from '../components/ai-parameter/ai-parameter.component';
+import { ImportDialogComponent } from '../components/import-dialog/import-dialog.component';
 
 @NgModule({
   declarations: [
@@ -36,7 +37,8 @@ import { AiParameterComponent } from '../components/ai-parameter/ai-parameter.co
     FlexibleSegmentationComponent,
     ImageCardComponent,
     AiServiceComponent,
-    AiParameterComponent
+    AiParameterComponent,
+    ImportDialogComponent
   ],
   exports: [
     ImageDisplayComponent,
@@ -52,7 +54,8 @@ import { AiParameterComponent } from '../components/ai-parameter/ai-parameter.co
     FlexibleSegmentationComponent,
     ImageCardComponent,
     AiServiceComponent,
-    AiParameterComponent
+    AiParameterComponent,
+    ImportDialogComponent
   ],
   imports: [
     CommonModule,
