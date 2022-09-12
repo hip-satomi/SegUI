@@ -85,7 +85,7 @@ export class LineageVisualizerComponent implements OnInit {
       (trCon) => {
         this.registerTrackingCon(trCon);
       }
-    )
+    );
   }
 
   registerTrackingCon(trCon: GlobalTrackingOMEROStorageConnector) {
@@ -241,10 +241,6 @@ export class LineageVisualizerComponent implements OnInit {
 
     cy.on("tapselect", (event) => this.cySelect(event));
     cy.on("unselect", (event) => this.cyUnselect(event));
-  }
-
-  ngAfterViewInit() {
-    this.initCy();
   }
 
   /** Deletes currently selected nodes or edges */

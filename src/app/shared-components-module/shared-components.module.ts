@@ -67,7 +67,7 @@ import { LineageVisualizerComponent } from '../components/lineage-visualizer/lin
     MatTooltipModule,
     RouterModule,
     ColorPickerModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
   ]
 })
 export class SharedComponentsModule { }
