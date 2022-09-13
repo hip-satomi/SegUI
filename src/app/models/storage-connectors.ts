@@ -88,7 +88,7 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
             filter((changeEvent: ModelChanged<GlobalSegmentationModel>) => {
                 return changeEvent.changeType === ChangeType.HARD;
             }),
-            debounceTime(20000),
+            debounceTime(60000),
             switchMap((changeEvent: ModelChanged<GlobalSegmentationModel>) => {
                 return this.update().pipe(
                     catchError((err) => {
@@ -241,7 +241,7 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
             filter((changeEvent: ModelChanged<GlobalTrackingModel>) => {
                 return changeEvent.changeType === ChangeType.HARD;
             }),
-            debounceTime(5000),
+            debounceTime(60000),
             switchMap((changeEvent: ModelChanged<GlobalTrackingModel>) => {
                 return this.update().pipe(
                     catchError((err) => {
@@ -300,7 +300,7 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
         // zip operator combines both observables --> i.e. waits for rest update and model update
         (simpleTrackingView.modelChanged)
         .pipe(
-            debounceTime(5000),
+            debounceTime(60000),
             // switch to backend update observable
             switchMap(() => {
                 return this.update().pipe(
