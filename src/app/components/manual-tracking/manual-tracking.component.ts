@@ -1,6 +1,6 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
-import { Observable, of, Subject } from 'rxjs';
-import { catchError, delay, map, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { asyncScheduler, Observable, of, Subject } from 'rxjs';
+import { catchError, debounceTime, delay, map, switchMap, takeUntil, tap, throttleTime } from 'rxjs/operators';
 import { AddLinkAction, ForceTrackEndAction, JointAction, RemoveLinkAction, RemovePolygon } from 'src/app/models/action';
 import { ChangeType } from 'src/app/models/change';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
@@ -98,6 +98,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   cuttingMode = false;
   cuttingLine: Array<Point> = [];
 
+  drawEvent$ = new Subject<Pencil>();
+
   @Input() globalSegModel: GlobalSegmentationModel;
   @Input() activeView: number;
   @Output() activeViewChange = new EventEmitter<number>();
@@ -142,6 +144,12 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     this.trackEndImage.src = "/assets/close-circle-outline.svg";
     this.trackStartImage = new Image();
     this.trackStartImage.src = "/assets/locate-outline.svg"
+
+    // debounced drawing to reduce load
+    this.drawEvent$.pipe(
+      throttleTime(30, asyncScheduler, { trailing: true }),
+      tap((pencil: Pencil) => this.__draw(pencil))
+    ).subscribe();
   }
 
   ngAfterViewInit() {
@@ -197,11 +205,15 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       this.divisionAnnotation = false;
   }
 
+  draw(pencil: Pencil = null): void {
+    this.drawEvent$.next(pencil);
+  }
+
   /**
    * Draw the segmentation using the brushed view
    * @param ctx the canvas context to draw
    */
-  draw(pencil: Pencil = null): void {
+  __draw(pencil: Pencil = null): void {
     if (pencil) {
         this.pencil = pencil;
         this.ctx = pencil.canvasCtx;
