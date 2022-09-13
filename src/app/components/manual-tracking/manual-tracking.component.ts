@@ -1,7 +1,7 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { Observable, of, Subject } from 'rxjs';
 import { catchError, delay, map, switchMap, takeUntil, tap } from 'rxjs/operators';
-import { AddLinkAction, ForceTrackEndAction, RemoveLinkAction, RemovePolygon } from 'src/app/models/action';
+import { AddLinkAction, ForceTrackEndAction, JointAction, RemoveLinkAction, RemovePolygon } from 'src/app/models/action';
 import { ChangeType } from 'src/app/models/change';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { Line, Point, Polygon } from 'src/app/models/geometry';
@@ -14,6 +14,10 @@ import { UIUtils, Utils } from 'src/app/models/utils';
 import { OmeroAPIService } from 'src/app/services/omero-api.service';
 import { TrackingService } from 'src/app/services/tracking.service';
 import { UserQuestionsService } from 'src/app/services/user-questions.service';
+import {
+  checkIntersection,
+  colinearPointWithinSegment
+} from 'line-intersect';
 
 class Selection {
   id: string;
@@ -90,6 +94,9 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
   /** true when the user wants to select multiple children */
   divisionAnnotation = false;
+
+  cuttingMode = false;
+  cuttingLine: Array<Point> = [];
 
   @Input() globalSegModel: GlobalSegmentationModel;
   @Input() activeView: number;
@@ -180,6 +187,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       this.divisionAnnotation = true;
   }
 
+  @HostListener('document:keydown.alt', ['$event'])
+  activateCutting(event) {
+      this.cuttingMode = !this.cuttingMode;
+  }
+
   @HostListener('document:keyup.d', ['$event'])
   deactivateDivisionAnnotation(event) {
       this.divisionAnnotation = false;
@@ -227,6 +239,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     if (this.selectedSegment) {
         // forward track
         UIUtils.drawSingle(this.segUIs[this.selectedSegment.frame].segModel.segmentationData.getPolygon(this.selectedSegment.id).points, false, ctx, "ff0000");
+    }
+
+    if (this.cuttingMode && this.cuttingLine.length == 2) {
+      // draw cutting line
+      this.drawLine(ctx, this.cuttingLine[0], this.cuttingLine[1], "rgb(255, 255, 255)", 1)
     }
 
     // draw existing trackings
@@ -464,6 +481,99 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     return false;
   }
+
+  onPanStart(event: any): boolean {
+    if (this.cuttingMode) {
+      event.preventDefault();
+
+      // Notify change event
+      //this.changedEvent.emit();
+      //this.draw();
+      const pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+      this.cuttingLine = [[pointerPos.x, pointerPos.y]];
+      return true;
+    }
+
+    return false;
+  }
+
+  onPan(event: any): boolean {
+    if (this.cuttingMode) {
+      const pointerPos = Utils.screenPosToModelPos(Utils.getMousePosTouch(this.canvasElement, event), this.ctx);
+
+      const point: Point = [pointerPos.x, pointerPos.y]
+
+      if (this.cuttingLine.length == 2) {
+        this.cuttingLine[1] = point;
+      } else {
+        this.cuttingLine.push(point);
+      }
+
+      // Notify change
+      //this.changedEvent.emit();
+      this.draw();
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 
+   * @param lineA first line
+   * @param lineB second line
+   * @returns true when the lines are intersecting and false otherwise
+   */
+  lineIntersection(lineA: [Point, Point], lineB: [Point, Point]): boolean {
+    return checkIntersection(...lineA[0], ...lineA[1], ...lineB[0], ...lineB[1]).type == "intersecting";
+  }
+
+  onPanEnd(event: any): boolean {
+    // TODO: remove all the edges
+
+    if (this.cuttingMode) {
+      const trModel = this.trackingConnector.getModel();
+      const segModel = this.globalSegModel.getLocalModel(this.activeView);
+
+      // TODO: this is unsafe when the outgoing edge leads not to the next view
+      const nextModel = this.globalSegModel.getLocalModel(this.activeView+1);
+
+      // array for links to cut
+      const cuttedLinks: Array<Link> = [];
+
+      // loop over visible polyogns
+      for (const [index, polygon] of segModel.getVisiblePolygons()) {
+        // list of the outgoing edges
+        const outgoingEdges = trModel.trackingData.listFrom(index);
+        for (const link of outgoingEdges) {
+          // create line for the link
+          const linkLine: [Point, Point] = [polygon.center, nextModel.segmentationData.getPolygon(link.targetId).center];
+
+          // check whether line intersects with the human drawn line
+          if(this.lineIntersection(linkLine, this.cuttingLine as [Point, Point])) {
+            cuttedLinks.push(link);
+          }
+        }
+      }
+
+      // removing action into a joint action
+      const removeActions = [];
+      for (const link of cuttedLinks) {
+        removeActions.push(new RemoveLinkAction(link.sourceId, link.targetId));
+      }
+
+      console.log(cuttedLinks);
+      trModel.addAction(new JointAction(removeActions));
+
+      this.userQuestionService.showInfo(`Removed ${removeActions.length} tracking links!`)
+
+      this.cuttingLine = [];
+      //this.changedEvent.emit();
+      this.draw();
+      return true;
+    }
+  }
+
 
   /**
    * Selects earliest cell to annotate
