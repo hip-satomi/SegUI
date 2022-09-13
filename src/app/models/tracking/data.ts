@@ -74,8 +74,8 @@ export class TrackingData implements ClearableStorage {
         for (const link of links) {
 
             // remove outgoing and incoming links
-            this.outgoingLinks[link.sourceId] = this.outgoingLinks[link.sourceId].filter((link: Link) => link.targetId != link.targetId);
-            this.incomingLinks[link.targetId] = this.incomingLinks[link.targetId].filter((link: Link) => link.sourceId != link.sourceId);
+            this.outgoingLinks[link.sourceId] = this.outgoingLinks[link.sourceId].filter((l: Link) => l.targetId != link.targetId);
+            this.incomingLinks[link.targetId] = this.incomingLinks[link.targetId].filter((l: Link) => l.sourceId != link.sourceId);
 
             const index = this.links.indexOf(link);
             this.links.splice(index, 1);
