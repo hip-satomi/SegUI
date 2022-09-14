@@ -550,7 +550,7 @@ export class HomePage implements Drawer, UIInteraction{
             const derived = new SimpleSegmentationView(content.srsc.getModel());
             const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, content.srsc);
             // if we create a new segmentation -> update also the simple storage
-            derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'), () => console.error("Failed to create or"));
+            //derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'), () => console.error("Failed to create or"));
 
             return {...content, derived};
           }),
