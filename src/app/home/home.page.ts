@@ -1441,7 +1441,7 @@ export class HomePage implements Drawer, UIInteraction{
           } else if(result == ImportDialogComponent.IMPORT_SEG_SIMPLE) {
             // load segmentation from simple segmentation format
             this.userQuestions.alertAsk("Segmentation Import", "This segmentation import will recreate your segmentation data and <b>cannot be undone</b>!<br /><br /> Do you want to proceed?").subscribe(
-              () => this.simpleSegImport()
+              () => this.simpleSegImport("pred_simpleSegmentation.json", true, true)
             )
           } else if(result == ImportDialogComponent.IMPORT_SEG_FILE) {
             // TODO: import simple segmentation from json file
@@ -1449,7 +1449,7 @@ export class HomePage implements Drawer, UIInteraction{
           }
           else if(result == ImportDialogComponent.IMPORT_TRACK_SIMPLE) {
             this.userQuestions.alertAsk("Tracking Import", "The tracking import will recreate your segmentation and tracking data and <b>cannot be undone</b>!<br /><br /> Do you want to proceed?").subscribe(
-              () => this.simpleTrackImport()
+              () => this.simpleTrackImport("pred_simpleTracking.json", true, true)
             )
           }
         });
