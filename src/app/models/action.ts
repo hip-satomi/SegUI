@@ -449,7 +449,13 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
      * @param segmentationData 
      */
     perform(segmentationData: SegmentationData) {
-        segmentationData.getPolygon(this.polygonId).setPoints(Utils.clone(this.newPoints));
+        const poly = segmentationData.getPolygon(this.polygonId);
+        if (poly == null) {
+            console.error("Change polygon points: polygon not found!")
+        }
+        else {
+            poly.setPoints(Utils.clone(this.newPoints));
+        }
     }
 }
 
