@@ -1417,7 +1417,9 @@ export class HomePage implements Drawer, UIInteraction{
   }
 
   trackSelectedNode(nodeId: string) {
-    this.lineageVisualizer.selectNode(nodeId, false)
+    if (this.lineageVisualizer) {
+      this.lineageVisualizer.selectNode(nodeId, false)
+    }
   }
 
   /**
