@@ -100,7 +100,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
   drawEvent$ = new Subject<Pencil>();
 
-  @Input() globalSegModel: GlobalSegmentationModel;
+  @Input() _globalSegModel: GlobalSegmentationModel;
   @Input() activeView: number;
   @Output() activeViewChange = new EventEmitter<number>();
   @Input() segUIs: Array<SegmentationUI>;
@@ -127,6 +127,17 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
   get segUI() {
       return this._segUI;
+  }
+
+  @Input() set globalSegModel(segModel) {
+    this._globalSegModel = segModel;
+    if (segModel) {
+      this.trackingService.loadById(this.imageId, this.globalSegModel);
+    }
+  }
+
+  get globalSegModel() {
+    return this._globalSegModel;
   }
 
 
@@ -164,9 +175,6 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         }
       });
     });
-
-    // TODO: the delay is dirty!!!!! When not using this.globalSegModel was undefined!!
-    setTimeout(() => this.trackingService.loadById(this.imageId, this.globalSegModel), 2000);
   }
 
   ngDestroy() {

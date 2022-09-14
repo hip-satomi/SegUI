@@ -313,7 +313,7 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
                 );
             })
         ).subscribe(() => {
-            //console.log('Updated SimpleTracking backend!');
+            console.log('Updated SimpleTracking backend!');
         });
     }
 
