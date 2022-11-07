@@ -299,6 +299,17 @@ export class HomePage implements Drawer, UIInteraction{
     );
   }
 
+  ionViewWillLeave() {
+    
+    // sync with backend when leaving view
+    this.imageSetId.pipe(
+      take(1),
+      switchMap((id) => {
+        return this.dataConnectorService.save(id);
+      })
+    );
+  }
+
   // Redirect Mouse & Touch interactions
   onPointerDown(event: any): boolean {
     if (this.tool) {
@@ -558,7 +569,7 @@ export class HomePage implements Drawer, UIInteraction{
             // add the simple model
             // TODO the construction here is a little bit weird
             const derived = new SimpleSegmentationView(content.srsc.getModel());
-            const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, content.srsc);
+            const derivedConnector = new SimpleSegmentationOMEROStorageConnector(this.omeroAPI, derived, content.srsc.imageSetId);
             // if we create a new segmentation -> update also the simple storage
             //derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'), () => console.error("Failed to create or"));
 

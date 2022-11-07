@@ -32,7 +32,10 @@ export class DataConnectorService {
 
     // loop over all data connectors and initiate saving
     for(const sc of this.connectorMap.get(id)) {
-      obs.push(sc.update());
+      if (!sc.backendInSync) {
+        // backend is not up-to-date: need to sync manually
+        obs.push(sc.update());
+      }
     }
 
     // force sequential storing
@@ -49,5 +52,14 @@ export class DataConnectorService {
    */
   clear(id) {
     this.connectorMap.delete(id);
+  }
+
+  /**
+   * 
+   * @param id if imageSet
+   * @returns True if all the data storers are in sync with the backend!
+   */
+  inSync(id): boolean {
+    return this.connectorMap.get(id).map((sc) => sc.backendInSync).reduce((a,b) => a && b, true)
   }
 }

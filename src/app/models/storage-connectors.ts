@@ -88,6 +88,8 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
             filter((changeEvent: ModelChanged<GlobalSegmentationModel>) => {
                 return changeEvent.changeType === ChangeType.HARD;
             }),
+            // we have a hard change: mark model out of sync with backend
+            tap(() => this.backendInSync = false),
             debounceTime(60000),
             switchMap((changeEvent: ModelChanged<GlobalSegmentationModel>) => {
                 return this.update().pipe(
@@ -110,8 +112,10 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
     public update(): Observable<any> {
         const segModelJSON: string = JSON.stringify(serialize(this.model));
         return this.omeroAPI.updateFile(this.imageSetId, 'GUISegmentation.json', segModelJSON).pipe(
+            // just synced with the backend
+            tap(() => this.backendInSync = true),
             // notify the update
-            tap(() => this.updateEvent.emit(this))
+            tap(() => this.updateEvent.emit(this)),
         );
     }
 }
@@ -124,7 +128,7 @@ export class GlobalSegmentationOMEROStorageConnector extends StorageConnector<Gl
 export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<SimpleSegmentationView> {
 
     omeroAPI: OmeroAPIService;
-    parentOMERO: GlobalSegmentationOMEROStorageConnector;
+    omeroId: number;
 
     updateEvent: EventEmitter<SimpleSegmentationOMEROStorageConnector> = new EventEmitter();
 
@@ -135,16 +139,22 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
      */
     constructor(omeroAPI: OmeroAPIService,
                 model: SimpleSegmentationView,
-                parentOMERO: GlobalSegmentationOMEROStorageConnector) {
+                omeroId: number) {
         super(model);
 
         this.omeroAPI = omeroAPI;
-        this.parentOMERO = parentOMERO;
+        this.omeroId = omeroId;
 
         // listen to parent rest events
         // zip operator combines both observables --> i.e. waits for rest update and model update
-        zip(parentOMERO.updateEvent, model.modelChanged)
+        model.modelChanged
         .pipe(
+            filter((changeEvent: ModelChanged<SimpleSegmentationView>) => {
+                return changeEvent.changeType === ChangeType.HARD;
+            }),
+            // we have a hard change: mark model out of sync with backend
+            tap(() => this.backendInSync = false),
+            debounceTime(60000),
             // switch to backend update observable
             switchMap(() => {
                 return this.update().pipe(
@@ -166,7 +176,12 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
      */
     public update() {
         const data: string = JSON.stringify(this.model.content);
-        return this.omeroAPI.updateFile(this.parentOMERO.imageSetId, 'simpleSegmentation.json', data);
+        return this.omeroAPI.updateFile(this.omeroId, 'simpleSegmentation.json', data).pipe(
+            // just synced with the backend
+            tap(() => this.backendInSync = true),
+            // notify the update
+            tap(() => this.updateEvent.emit(this))
+        );
     }
 }
 
@@ -241,6 +256,8 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
             filter((changeEvent: ModelChanged<GlobalTrackingModel>) => {
                 return changeEvent.changeType === ChangeType.HARD;
             }),
+            // we have a hard change: mark model out of sync with backend
+            tap(() => this.backendInSync = false),
             debounceTime(60000),
             switchMap((changeEvent: ModelChanged<GlobalTrackingModel>) => {
                 return this.update().pipe(
@@ -263,6 +280,8 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
     public update(): Observable<any> {
         const segModelJSON: string = JSON.stringify(serialize(this.model));
         return this.omeroAPI.updateFile(this.imageSetId, 'GUITracking.json', segModelJSON).pipe(
+            // just synced with the backend
+            tap(() => this.backendInSync = true),
             // notify the update
             tap(() => this.updateEvent.emit(this))
         );
@@ -300,6 +319,8 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
         // zip operator combines both observables --> i.e. waits for rest update and model update
         (simpleTrackingView.modelChanged)
         .pipe(
+            // we have a hard change: mark model out of sync with backend
+            tap(() => this.backendInSync = false),
             debounceTime(60000),
             // switch to backend update observable
             switchMap(() => {
@@ -322,6 +343,11 @@ export class SimpleSegmentationOMEROStorageConnector extends StorageConnector<Si
      */
     public update() {
         const data: string = JSON.stringify(serialize(this.model.content));
-        return this.omeroAPI.updateFile(this.imageSetId, 'simpleTracking.json', data);
+        return this.omeroAPI.updateFile(this.imageSetId, 'simpleTracking.json', data).pipe(
+            // just synced with the backend
+            tap(() => this.backendInSync = true),
+            // notify the update
+            tap(() => this.updateEvent.emit(this))
+        );
     }
 }
