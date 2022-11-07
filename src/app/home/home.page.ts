@@ -26,6 +26,7 @@ import { OmeroAuthService } from '../services/omero-auth.service';
 import { MatDialog } from '@angular/material/dialog';
 import { ImportDialogComponent } from '../components/import-dialog/import-dialog.component';
 import { StorageConnector } from '../models/storage';
+import { DataConnectorService } from '../services/data-connector.service';
 
 
 /**
@@ -102,8 +103,6 @@ export class HomePage implements Drawer, UIInteraction{
   /** current image stack omero id */
   imageSetId = new ReplaySubject<number>(1);
 
-  dataConnectors: Array<StorageConnector<any>> = [];
-
   // drawing utilities
   pencil: Pencil;
   drawingSubscription: Subscription;
@@ -132,7 +131,8 @@ export class HomePage implements Drawer, UIInteraction{
               private navCtrl: NavController,
               private omeroAuth: OmeroAuthService,
               private dialog: MatDialog,
-              private animationCtrl: AnimationController) {
+              private animationCtrl: AnimationController,
+              private dataConnectorService: DataConnectorService) {
 
     // record navigation history
     this.router.events.subscribe((event) => {
@@ -479,6 +479,8 @@ export class HomePage implements Drawer, UIInteraction{
    * @param imageSetId image set id
    */
   loadImageSetById(imageSetId: number) {
+    this.dataConnectorService.clear(imageSetId);
+
     // get image urls
     return this.omeroAPI.getImageUrls(imageSetId).pipe(
       switchMap((urls: string[]) => {
@@ -559,7 +561,8 @@ export class HomePage implements Drawer, UIInteraction{
         );
       }), 
       tap((content) => {
-        this.dataConnectors = [content.srsc, content.derivedConnector];
+        // register data connectors for enforced storing
+        this.dataConnectorService.register(imageSetId, [content.srsc, content.derivedConnector]);
       }),
       switchMap(() => this.route.paramMap.pipe(take(1))),
       switchMap(params => {
@@ -1324,18 +1327,25 @@ export class HomePage implements Drawer, UIInteraction{
   }
 
   /**
-   * Run save click animation
+   * Enforce saving data models to the backend
    */
   clickSave() {
     console.log('Click anim');
 
-    const obs = [];
-    for(const sc of this.dataConnectors) {
-      obs.push(sc.update());
-    }
-
-    combineLatest(obs).pipe(
+    // show the loading dialog
+    const loading = this.loadingCtrl.create({
+      message: 'Saving annotations to OMERO...',
+      backdropDismiss: false
+    });
+    of(loading.then(ld => ld.present()))
+    .pipe(
+      switchMap(() => this.imageSetId.pipe(take(1))),
+      switchMap((id) => {
+        // initiate saving
+        return this.dataConnectorService.save(id);
+      }),
       tap(()=> {
+        // when saving was successful: we do an animation!
         this.animationCtrl.create()
         .addElement(this.saveIcon.el)
         .duration(1000)
@@ -1345,6 +1355,10 @@ export class HomePage implements Drawer, UIInteraction{
           { offset: 0.5, color: 'green', transform: 'scale(1.5) rotate(25deg)' },
           { offset: 1, color: 'var(--color)', transform: 'scale(1) rotate(0)' }
         ]).play();
+      }),
+      finalize(() => {
+        // stop showing loading
+        loading.then((ld) => ld.dismiss());
       })
     ).subscribe(() => {console.log('Saving successful'); this.userQuestions.showInfo("Manual saving successful!")}, () => {console.error("Saving failed"); this.userQuestions.showError("Manual saving failed!")});
   }
