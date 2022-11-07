@@ -1,6 +1,6 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
-import { of } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { asyncScheduler, of, Subject } from 'rxjs';
+import { switchMap, tap, throttleTime } from 'rxjs/operators';
 import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction, SelectPolygon} from 'src/app/models/action';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { MaxErrorApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
@@ -81,6 +81,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     /* track the polygons that get changed while drawing */
     changedPolygons = new Map<string, Polygon>();
 
+    drawEvent$ = new Subject<Pencil>();
+
     @Output()
     changedEvent = new EventEmitter<void>();
 
@@ -90,6 +92,12 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
         // get brush state from state service
         this.brushState = stateService.brushState;
+
+        // debounced drawing to reduce load
+        this.drawEvent$.pipe(
+            throttleTime(30, asyncScheduler, { trailing: true }),
+            tap((pencil: Pencil) => this.__draw(pencil))
+        ).subscribe();  
     }
 
     ngOnInit() {}
@@ -173,11 +181,15 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
         }
     }
 
+    draw(pencil: Pencil = null): void {
+        this.drawEvent$.next(pencil);
+    }
+    
     /**
      * Draw the segmentation using the brushed view
      * @param ctx the canvas context to draw
      */
-    draw(pencil: Pencil = null): void {
+    __draw(pencil: Pencil = null): void {
         if (pencil) {
             this.pencil = pencil;
             this.ctx = pencil.canvasCtx;
