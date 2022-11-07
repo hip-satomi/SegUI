@@ -44,7 +44,10 @@ export class TrackingData implements ClearableStorage {
      * @returns true when the link is already in the data
      */
     hasLink(link: Link): boolean {
-        return this.links.filter(l => l.sourceId == link.sourceId && l.targetId == link.targetId).length >= 1
+        if (!this.outgoingLinks.has(link.sourceId)) {
+            return false;
+        }
+        return this.outgoingLinks[link.sourceId].includes(link.targetId)
     }
 
     /**
