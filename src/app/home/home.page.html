@@ -3,6 +3,9 @@
   <ion-toolbar>
     <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
     <ion-buttons slot="end">
+      <ion-button (click)="clickSave()" #tooltip="matTooltip"
+        matTooltip="Save annotation information"><ion-icon #saveIcon name="save-outline"></ion-icon></ion-button>
+
       <ion-button (click)="openImportModal()" #tooltip="matTooltip"
         matTooltip="Import segmentation"><ion-icon name="download-outline"></ion-icon> Import</ion-button>
       <ion-button (click)="omeroExport()" #tooltip="matTooltip"

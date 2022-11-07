@@ -11,7 +11,7 @@ import { ImageDisplayComponent } from './../components/image-display/image-displ
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SimpleSegmentationView as SimpleSegmentationView, GlobalSegmentationModel, LocalSegmentationModel, SegCollData, SimpleSegmentation } from './../models/segmentation-model';
-import { ActionSheetController, AlertController, LoadingController, NavController } from '@ionic/angular';
+import { ActionSheetController, AlertController, AnimationController, LoadingController, NavController } from '@ionic/angular';
 import { Component, ViewChild, HostListener, ViewContainerRef } from '@angular/core';
 
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
@@ -66,6 +66,9 @@ export class HomePage implements Drawer, UIInteraction{
   @ViewChild('flexSegTool') flexSegTool: FlexibleSegmentationComponent;
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
   @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
+
+  // get the save icon (used for animation)
+  @ViewChild('saveIcon') saveIcon;
 
   /** the currently active tool */
   tool = null;
@@ -125,7 +128,8 @@ export class HomePage implements Drawer, UIInteraction{
               private stateService: StateService,
               private navCtrl: NavController,
               private omeroAuth: OmeroAuthService,
-              private dialog: MatDialog) {
+              private dialog: MatDialog,
+              private animationCtrl: AnimationController) {
 
     // record navigation history
     this.router.events.subscribe((event) => {
@@ -1310,6 +1314,23 @@ export class HomePage implements Drawer, UIInteraction{
         });
       })
     ).subscribe();
+  }
+
+  /**
+   * Run save click animation
+   */
+  clickSave() {
+    console.log('Click anim');
+
+    this.animationCtrl.create()
+    .addElement(this.saveIcon.el)
+    .duration(1000)
+    .iterations(1)
+    .keyframes([
+      { offset: 0, color: 'var(--color)', transform: 'scale(1) rotate(0)' },
+      { offset: 0.5, color: 'green', transform: 'scale(1.5) rotate(25deg)' },
+      { offset: 1, color: 'var(--color)', transform: 'scale(1) rotate(0)' }
+    ]).play();
   }
 
 }
