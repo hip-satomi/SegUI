@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { combineLatest, Observable } from 'rxjs';
+import { combineLatest, concat, Observable } from 'rxjs';
+import { toArray } from 'rxjs/operators';
 import { StorageConnector } from '../models/storage';
 
 @Injectable({
@@ -34,7 +35,12 @@ export class DataConnectorService {
       obs.push(sc.update());
     }
 
-    return combineLatest(obs)
+    // force sequential storing
+    const request$ = combineLatest(
+      [concat(...obs).pipe(toArray())]
+    );
+
+    return request$;
   }
 
   /**
