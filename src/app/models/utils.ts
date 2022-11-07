@@ -1,8 +1,6 @@
 import { Point } from './geometry';
 import { multiply, inv } from 'mathjs';
 import * as simplify from 'simplify-js';
-import { SegCollData} from './segmentation-model';
-import { pointsToString, RoIData } from '../services/omero-api.service';
 
 var convert = require('color-convert');
 
@@ -303,95 +301,4 @@ export class UIUtils {
     ctx.restore();
   }
 
-}
-
-export class OmeroUtils {
-
-  /**
-   * Creating a list of roi and shape ids to be deleted to clear the omero overlay
-   * @param roiData List of RoIs 
-   * @returns [(roi id, shape id), ...]
-   */
-  static createRoIDeletionList(roiData: Array<RoIData>): Array<[number, number]> {
-
-    let deletion_list: Array<[number, number]> = [];
-
-    // loop over rois
-    for (const roi of roiData) {
-      // filter for polygons only
-      const remove_candidates = roi.shapes.filter(shape => shape.type === 'http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon');
-      // convert to (roi id, shape id)
-      const remove_list = remove_candidates.map(shape => shape.id).map(shape_id => [roi.id, shape_id] as [number, number]);
-      // add to the removal list
-      deletion_list = deletion_list.concat(remove_list);
-    }
-
-    return deletion_list;
-  }
-
-  /**
-   * Create a list of json RoIs that can be passed to the web interface for creation
-   * @param segHolder the segmentation information for the image stack
-   * @param sizeZ the z dimension
-   * @param sizeT the t dimension
-   * @returns a list of omero Polygons RoIs that can be passed to the web interface
-   */
-  static createNewRoIList(segHolder: SegCollData, sizeZ: number, sizeT: number) {
-
-    // obtain the output node
-    let mode: string;
-    if (sizeZ == 1 && sizeT >= 1) {
-      mode = "t";
-    } else if (sizeZ >= 1 && sizeT == 1) {
-      mode = "z";
-    } else if (sizeZ >= 1 && sizeT >= 1) {
-      mode = "zt";
-    } else {
-      throw new Error("Cannot obtain omero Export mode!");
-    }
-
-    const new_list = [];
-    // loop over all image slices
-    for (const [index, slice] of segHolder.segData.entries()) {
-      let z: number, t: number;
-      if (mode == "t") {
-        z = 0;
-        t = index;
-      } else if(mode == "z") {
-        z = index;
-        t = 0;
-      } else if(mode == "zt") {
-        t = index % sizeZ;
-        z = index - (t*sizeZ);
-      }
-      // loop over all annotated polygons in the slice
-      for (const [id, poly] of slice.getPolygons()) {
-        if(poly.numPoints == 0) {
-          continue;
-        }
-        const roi_data = {
-          "@type": "http://www.openmicroscopy.org/Schemas/OME/2016-06#Polygon",
-          Area:	0.,
-          FillColor:	-256,
-          Length: -1,
-          oldId: "-6:-850",
-          Points: pointsToString(poly.points),
-          StrokeColor: -65281,
-          StrokeWidth: {
-            "@type":	"TBD#LengthI",
-            Symbol:	"px",
-            Unit:	"PIXEL",
-            Value:	1
-          },
-          // set the label name as a comment
-          Text: segHolder.getLabelById(slice.getPolygonLabel(id)).name,
-          TheT:	t,
-          TheZ:	z,
-        }
-        new_list.push(roi_data);
-      }
-    }
-
-    return new_list;
-  }
 }
