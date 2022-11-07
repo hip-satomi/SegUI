@@ -5,7 +5,7 @@ import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './
 import { ModelChanged } from './../models/change';
 import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
-import { EMPTY, from, Observable, of, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
+import { combineLatest, from, Observable, of, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
 import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
@@ -25,6 +25,7 @@ import { FlexibleSegmentationComponent } from '../components/flexible-segmentati
 import { OmeroAuthService } from '../services/omero-auth.service';
 import { MatDialog } from '@angular/material/dialog';
 import { ImportDialogComponent } from '../components/import-dialog/import-dialog.component';
+import { StorageConnector } from '../models/storage';
 
 
 /**
@@ -100,6 +101,8 @@ export class HomePage implements Drawer, UIInteraction{
 
   /** current image stack omero id */
   imageSetId = new ReplaySubject<number>(1);
+
+  dataConnectors: Array<StorageConnector<any>> = [];
 
   // drawing utilities
   pencil: Pencil;
@@ -543,17 +546,21 @@ export class HomePage implements Drawer, UIInteraction{
             // if we create a new segmentation -> update also the simple storage
             derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'), () => console.error("Failed to create or"));
 
-            return {...content, derived};
+            return {...content, derived, derivedConnector};
           }),
           tap(async (content) => {
             this.pencil = new Pencil(this.imageDisplay.ctx, this.imageDisplay.canvasElement);
 
             //this.stateService.imageSetId = imageSetId;
             await this.importSegmentation(content.srsc.getModel(), content.derived, content.urls);
+
             //await this.importTracking(content.trsc.getModel());
           }),
         );
       }), 
+      tap((content) => {
+        this.dataConnectors = [content.srsc, content.derivedConnector];
+      }),
       switchMap(() => this.route.paramMap.pipe(take(1))),
       switchMap(params => {
         return this.curSegUI.loadImage().pipe(
@@ -1322,15 +1329,23 @@ export class HomePage implements Drawer, UIInteraction{
   clickSave() {
     console.log('Click anim');
 
-    this.animationCtrl.create()
-    .addElement(this.saveIcon.el)
-    .duration(1000)
-    .iterations(1)
-    .keyframes([
-      { offset: 0, color: 'var(--color)', transform: 'scale(1) rotate(0)' },
-      { offset: 0.5, color: 'green', transform: 'scale(1.5) rotate(25deg)' },
-      { offset: 1, color: 'var(--color)', transform: 'scale(1) rotate(0)' }
-    ]).play();
-  }
+    const obs = [];
+    for(const sc of this.dataConnectors) {
+      obs.push(sc.update());
+    }
 
+    combineLatest(obs).pipe(
+      tap(()=> {
+        this.animationCtrl.create()
+        .addElement(this.saveIcon.el)
+        .duration(1000)
+        .iterations(1)
+        .keyframes([
+          { offset: 0, color: 'var(--color)', transform: 'scale(1) rotate(0)' },
+          { offset: 0.5, color: 'green', transform: 'scale(1.5) rotate(25deg)' },
+          { offset: 1, color: 'var(--color)', transform: 'scale(1) rotate(0)' }
+        ]).play();
+      })
+    ).subscribe(() => {console.log('Saving successful'); this.userQuestions.showInfo("Manual saving successful!")}, () => {console.error("Saving failed"); this.userQuestions.showError("Manual saving failed!")});
+  }
 }
