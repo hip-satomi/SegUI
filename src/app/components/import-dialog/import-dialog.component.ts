@@ -23,6 +23,8 @@ export class ImportDialogComponent implements OnInit {
 
   public static IMPORT_TRACK_SIMPLE = "trackSimple";
 
+  public static IMPORT_CLOSE_DIALOG = "close";
+
   public cR = ImportDialogComponent;
 
   constructor(@Optional() public dialogRef: MatDialogRef<ImportDialogComponent>,
