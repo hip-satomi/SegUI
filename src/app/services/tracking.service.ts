@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, ReplaySubject, Subject } from 'rxjs';
-import { catchError, delay, switchMap, tap } from 'rxjs/operators';
+import { catchError, delay, map, switchMap, tap } from 'rxjs/operators';
 import { GlobalSegmentationModel } from '../models/segmentation-model';
 import { GlobalTrackingOMEROStorageConnector, SimpleTrackingOMEROStorageConnector } from '../models/storage-connectors';
 import { SimpleTrackingView } from '../models/tracking/model';
+import { DataConnectorService } from './data-connector.service';
 import { OmeroAPIService } from './omero-api.service';
 
 @Injectable({
@@ -19,7 +20,8 @@ export class TrackingService {
   selectedNodes = [];
   selectedEdges = [];
 
-  constructor(private omeroAPI: OmeroAPIService) { }
+  constructor(private omeroAPI: OmeroAPIService,
+    private dataConnectorService: DataConnectorService) { }
 
   loadById(imageId: number, globalSegModel: GlobalSegmentationModel) {
     this.$destroySignal.next();
@@ -38,15 +40,17 @@ export class TrackingService {
           return of(GlobalTrackingOMEROStorageConnector.createNew(this.omeroAPI, imageId, this.$destroySignal));
         }
       }),
-      tap(trCon => {
+      tap((trCon: GlobalTrackingOMEROStorageConnector) => {
         this.trackingConnector = trCon;
         this.$currentTrackingModel.next(trCon);
       }),
-      // TODO: the delay is dirty!!!!! When not using this.globalSegModel was undefined!!
-      //delay(2000),
-      tap(trCon => {
-        new SimpleTrackingOMEROStorageConnector(this.omeroAPI, imageId, new SimpleTrackingView(trCon.getModel(), globalSegModel));
-      })
+      map(trCon => {
+        return [trCon, new SimpleTrackingOMEROStorageConnector(this.omeroAPI, imageId, new SimpleTrackingView(trCon.getModel(), globalSegModel))];
+      }),
+      tap((connectors) => {
+        // register tracking connectors
+        this.dataConnectorService.register(imageId, connectors);
+      }),
     ).subscribe();
   }
 }
