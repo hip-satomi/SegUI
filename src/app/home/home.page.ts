@@ -1,5 +1,5 @@
-import { Dataset, extractLabels, OmeroAPIService, OmeroType, Project, RoIShape } from './../services/omero-api.service';
-import { OmeroUtils, Utils } from './../models/utils';
+import { Dataset, extractLabels, OmeroAPIService, OmeroType, Project, RoIShape, OmeroUtils } from './../services/omero-api.service';
+import { Utils } from './../models/utils';
 import { Polygon, BoundingBox } from './../models/geometry';
 import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './../models/action';
 import { ModelChanged } from './../models/change';
