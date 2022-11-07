@@ -1,3 +1,5 @@
+import { Observable } from "rxjs";
+
 /**
  * The storage connector handles the representation of an object in a storage e.g. database, local storage or rest api
  */
@@ -15,7 +17,7 @@ export abstract class StorageConnector<M> {
     /**
      * Should be called when the model changes and updates the object representation
      */
-    abstract update();
+    abstract update(): Observable<any>;
 
     getModel(): M {
         return this.model;
