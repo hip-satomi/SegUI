@@ -33,7 +33,7 @@
       <ion-col>
         <ion-item>
           <ion-label #tooltip="matTooltip" matTooltip="Allow cells only to have a certain amount of children">Max children</ion-label>
-          <ion-input type="number" [(ngModel)]="maxChildren"></ion-input>
+          <ion-input type="number" [(ngModel)]="maxChildren" class="ion-text-right" #tooltip="matTooltip" matTooltip="Limits the amount of children a cell can have in the tracking!"></ion-input>
         </ion-item>
       </ion-col>
     </ion-row>
