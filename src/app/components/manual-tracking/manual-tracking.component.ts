@@ -599,8 +599,6 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
    * Selects earliest cell to annotate
    */
   selectNextCell(): void {
-    // TODO: this function has a problem with divisions!!! We also need to check whether all cells have an incoming edge. If they do not we have to backtrack and then continue tracking forward!
-
     this.stopTrackAnnotation();
 
     const trData = this.trackingConnector.getModel().trackingData;
@@ -620,7 +618,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
           this.selectTrackTarget(id, frame);
           return;
         }
-        if (targetList.length == 0 && !(trData.forcedTrackEnds.has(id))) {
+        if (targetList.length == 0 && !(trData.forcedTrackEnds.has(id)) && frame < (this.segUIs.length-1)) {
           // after the and: if this is a forced track end we do not need any outgoing links!!!
 
           // we have no outgoing link --> we need to track this
@@ -639,6 +637,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
       frame += 1;
     }
+
+    this.userQuestionService.showInfo("No cells with missing links found! Seems you have a fully annotated tracking!");
   }
 
   /**
