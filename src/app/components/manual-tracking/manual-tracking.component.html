@@ -1,5 +1,5 @@
 <div [class.ion-hide]="!show">
-  <ion-toolbar>Tracking Tool
+  <ion-toolbar #tooltip="matTooltip" matTooltip="Drag here...">Tracking Tool
     <ion-button slot='end' (click)="close()">
       <ion-icon name="close-outline"></ion-icon>
     </ion-button>
@@ -8,7 +8,7 @@
     <ion-row>
       <ion-col>
         <ion-item>
-          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracking overlay">Show Tracking</ion-label>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracking overlay">Show tracking links in image viewer</ion-label>
           <ion-toggle [(ngModel)]="showTracking" (ionChange)="draw()"></ion-toggle>
         </ion-item>
       </ion-col>
@@ -16,7 +16,7 @@
     <ion-row>
       <ion-col>
         <ion-item>
-          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracked cells">Show tracked cells</ion-label>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracked cell segmentation">Show tracked cell segmentation</ion-label>
           <ion-toggle [(ngModel)]="showTrackedCells" (ionChange)="draw()"></ion-toggle>
         </ion-item>
       </ion-col>
@@ -40,7 +40,7 @@
     <ion-row>
       <ion-col>
         <ion-item>
-          <ion-label #tooltip="matTooltip" matTooltip="Prevent for a tracking action to lead to a cell with two parents">Prevent Two Parents</ion-label>
+          <ion-label #tooltip="matTooltip" matTooltip="Prevent tracking linking leading to a cell with two parents">Single parent only</ion-label>
           <ion-toggle [(ngModel)]="preventTwoParents"></ion-toggle>
         </ion-item>
       </ion-col>
