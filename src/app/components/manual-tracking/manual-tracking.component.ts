@@ -203,7 +203,7 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       this.divisionAnnotation = true;
   }
 
-  @HostListener('document:keydown.alt', ['$event'])
+  @HostListener('document:keydown.c', ['$event'])
   activateCutting(event) {
       this.cuttingMode = !this.cuttingMode;
   }

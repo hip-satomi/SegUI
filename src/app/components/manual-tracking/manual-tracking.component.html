@@ -54,18 +54,31 @@
       </ion-col>
     </ion-row>
     <ion-row>
+      <h2>Mode:</h2>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Annotate multiple children. Does not jump to the next frame after making a tracking link. Hold 'd' on your keyboard to enter the mode.">Annotate Divisions</ion-label>
+          <ion-toggle [(ngModel)]="divisionAnnotation"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Go to link cutting mode: Allows to draw lines by drag and drop and all links touched by the line are removed. You can also press 'c' to enter the mode.">Link Cutting</ion-label>
+          <ion-toggle [(ngModel)]="cuttingMode"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>       
+    <ion-row>
       <ion-col>
         <ion-button color="secondary" (click)="selectNextCell()" #tooltip="matTooltip"
           matTooltip="Select next free cell for tracking annotation">
           Next cell
         </ion-button>
       </ion-col>
-    </ion-row>
-    <ion-row>
-      <ion-col>
-        <ion-chip [class.ion-hide]="!divisionAnnotation" color="secondary">MultiChild</ion-chip>
-        <ion-chip [class.ion-hide]="!cuttingMode" color="secondary">CuttingMode</ion-chip>
-      </ion-col>
-    </ion-row>
+    </ion-row> 
   </ion-grid>
 </div>
