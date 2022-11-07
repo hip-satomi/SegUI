@@ -1454,7 +1454,11 @@ export class HomePage implements Drawer, UIInteraction{
 
           if (result == ImportDialogComponent.IMPORT_SEG_OMERO) {
             // load segmentation from OMERO RoIs
-            this.omeroImport(true, true).subscribe();
+            this.omeroImport(true, true).pipe(
+              // prevents reopening import dialog
+              // TODO: do not do the fix but find the reason why the dialog is opening again
+              tap(() => this.dialog.closeAll())
+            ).subscribe();
           } else if(result == ImportDialogComponent.IMPORT_SEG_SIMPLE) {
             // load segmentation from simple segmentation format
             this.userQuestions.alertAsk("Segmentation Import", "This segmentation import will recreate your segmentation data and <b>cannot be undone</b>!<br /><br /> Do you want to proceed?").subscribe(
