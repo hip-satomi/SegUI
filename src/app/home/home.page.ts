@@ -5,13 +5,13 @@ import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action } from './
 import { ModelChanged } from './../models/change';
 import { GlobalSegmentationOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
 import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
-import { EMPTY, from, Observable, of, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
+import { combineLatest, from, Observable, of, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
 import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
 import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SimpleSegmentationView as SimpleSegmentationView, GlobalSegmentationModel, LocalSegmentationModel, SegCollData, SimpleSegmentation } from './../models/segmentation-model';
-import { ActionSheetController, AlertController, LoadingController, NavController } from '@ionic/angular';
+import { ActionSheetController, AlertController, AnimationController, LoadingController, NavController } from '@ionic/angular';
 import { Component, ViewChild, HostListener, ViewContainerRef } from '@angular/core';
 
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
@@ -25,6 +25,8 @@ import { FlexibleSegmentationComponent } from '../components/flexible-segmentati
 import { OmeroAuthService } from '../services/omero-auth.service';
 import { MatDialog } from '@angular/material/dialog';
 import { ImportDialogComponent } from '../components/import-dialog/import-dialog.component';
+import { StorageConnector } from '../models/storage';
+import { DataConnectorService } from '../services/data-connector.service';
 
 
 /**
@@ -66,6 +68,9 @@ export class HomePage implements Drawer, UIInteraction{
   @ViewChild('flexSegTool') flexSegTool: FlexibleSegmentationComponent;
   @ViewChild('brushTool') brushToolComponent: BrushComponent;
   @ViewChild('multiSelectTool') multiSelectComponent: MultiSelectToolComponent;
+
+  // get the save icon (used for animation)
+  @ViewChild('saveIcon') saveIcon;
 
   /** the currently active tool */
   tool = null;
@@ -125,7 +130,9 @@ export class HomePage implements Drawer, UIInteraction{
               private stateService: StateService,
               private navCtrl: NavController,
               private omeroAuth: OmeroAuthService,
-              private dialog: MatDialog) {
+              private dialog: MatDialog,
+              private animationCtrl: AnimationController,
+              private dataConnectorService: DataConnectorService) {
 
     // record navigation history
     this.router.events.subscribe((event) => {
@@ -472,6 +479,8 @@ export class HomePage implements Drawer, UIInteraction{
    * @param imageSetId image set id
    */
   loadImageSetById(imageSetId: number) {
+    this.dataConnectorService.clear(imageSetId);
+
     // get image urls
     return this.omeroAPI.getImageUrls(imageSetId).pipe(
       switchMap((urls: string[]) => {
@@ -539,17 +548,22 @@ export class HomePage implements Drawer, UIInteraction{
             // if we create a new segmentation -> update also the simple storage
             derivedConnector.update().pipe(take(1)).subscribe(() => console.log('Enforced creation update!'), () => console.error("Failed to create or"));
 
-            return {...content, derived};
+            return {...content, derived, derivedConnector};
           }),
           tap(async (content) => {
             this.pencil = new Pencil(this.imageDisplay.ctx, this.imageDisplay.canvasElement);
 
             //this.stateService.imageSetId = imageSetId;
             await this.importSegmentation(content.srsc.getModel(), content.derived, content.urls);
+
             //await this.importTracking(content.trsc.getModel());
           }),
         );
       }), 
+      tap((content) => {
+        // register data connectors for enforced storing
+        this.dataConnectorService.register(imageSetId, [content.srsc, content.derivedConnector]);
+      }),
       switchMap(() => this.route.paramMap.pipe(take(1))),
       switchMap(params => {
         return this.curSegUI.loadImage().pipe(
@@ -1312,4 +1326,40 @@ export class HomePage implements Drawer, UIInteraction{
     ).subscribe();
   }
 
+  /**
+   * Enforce saving data models to the backend
+   */
+  clickSave() {
+    console.log('Click anim');
+
+    // show the loading dialog
+    const loading = this.loadingCtrl.create({
+      message: 'Saving annotations to OMERO...',
+      backdropDismiss: false
+    });
+    of(loading.then(ld => ld.present()))
+    .pipe(
+      switchMap(() => this.imageSetId.pipe(take(1))),
+      switchMap((id) => {
+        // initiate saving
+        return this.dataConnectorService.save(id);
+      }),
+      tap(()=> {
+        // when saving was successful: we do an animation!
+        this.animationCtrl.create()
+        .addElement(this.saveIcon.el)
+        .duration(1000)
+        .iterations(1)
+        .keyframes([
+          { offset: 0, color: 'var(--color)', transform: 'scale(1) rotate(0)' },
+          { offset: 0.5, color: 'green', transform: 'scale(1.5) rotate(25deg)' },
+          { offset: 1, color: 'var(--color)', transform: 'scale(1) rotate(0)' }
+        ]).play();
+      }),
+      finalize(() => {
+        // stop showing loading
+        loading.then((ld) => ld.dismiss());
+      })
+    ).subscribe(() => {console.log('Saving successful'); this.userQuestions.showInfo("Manual saving successful!")}, () => {console.error("Saving failed"); this.userQuestions.showError("Manual saving failed!")});
+  }
 }
