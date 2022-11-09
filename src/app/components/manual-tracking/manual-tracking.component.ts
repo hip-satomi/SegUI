@@ -55,6 +55,31 @@ const draw_arrow = ( context, fromx, fromy, tox, toy ) => {
   context.stroke();
 }
 
+function sqr(x) { 
+  return x * x 
+}
+
+function dist2(v, w) { 
+  return sqr(v.x - w.x) + sqr(v.y - w.y) 
+}
+
+function distToSegmentSquared(p, v, w) {
+  var l2 = dist2(v, w);
+    
+  if (l2 == 0) return dist2(p, v);
+    
+  var t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    
+  if (t < 0) return dist2(p, v);
+  if (t > 1) return dist2(p, w);
+    
+  return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+}
+
+function distToSegment(p, v, w) { 
+  return Math.sqrt(distToSegmentSquared(p, v, w));
+}
+
 @Component({
   selector: 'app-manual-tracking',
   templateUrl: './manual-tracking.component.html',
@@ -287,17 +312,29 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
               color = "rgb(0, 0, 255)"
             }
 
-            this.drawArrow(ctx, sourceCenter, targetCenter, color, 1.);
+            if(Utils.euclideanDistance(sourceCenter, targetCenter) < 2) {
+              this.drawCircle(ctx, sourceCenter, color, .5);
+            } else {
+              this.drawArrow(ctx, sourceCenter, targetCenter, color, 1.);
+            }
           }
         }
 
-        // render incoming links (green)
+        // render incoming links (gray)
         for (const iLink of incomingLinks) {
           const sourceCenter = this.segUIs[this.activeView-1].segModel.segmentationData.getPolygon(iLink.sourceId)?.center;
           const targetCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(iLink.targetId)?.center;
           if (sourceCenter && targetCenter) {
-            this.drawArrow (ctx, sourceCenter, targetCenter, "rgb(100, 100, 100)", 1.);
+
+            const color = "rgb(100, 100, 100)"
+
+            if(Utils.euclideanDistance(sourceCenter, targetCenter) < 2) {
+              this.drawCircle(ctx, sourceCenter, color, .5);
+            } else {
+              this.drawArrow(ctx, sourceCenter, targetCenter, color, 1.);
+            }
           }
+
         }
 
         // visualize birth events
@@ -336,6 +373,24 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
     draw_arrow(ctx, ...from, ...to);
+  }
+
+  /**
+   * Draws an arrow on the canvas
+   * @param ctx canvas context
+   * @param from source point
+   * @param to target point
+   * @param color color of the arrow
+   * @param width stroke width
+   */
+   drawCircle(ctx, from: Point, color: string, radius: number, width: number = 1) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+
+    // draw circle
+    ctx.beginPath();
+    ctx.arc(from[0], from[1], radius, 0, 2 * Math.PI);
+    ctx.stroke();
   }
 
   /**
@@ -571,8 +626,16 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
           const linkLine: [Point, Point] = [polygon.center, nextModel.segmentationData.getPolygon(link.targetId).center];
 
           // check whether line intersects with the human drawn line
-          if(this.lineIntersection(linkLine, this.cuttingLine as [Point, Point])) {
-            cuttedLinks.push(link);
+          if (Utils.euclideanDistance(linkLine[0], linkLine[1]) > 1) {
+            if(this.lineIntersection(linkLine, this.cuttingLine as [Point, Point])) {
+              cuttedLinks.push(link);
+            }
+          } else {
+            // for super short links intersection can be difficult
+            const distance = distToSegment(pointToPosition(polygon.center), pointToPosition(this.cuttingLine[0]), pointToPosition(this.cuttingLine[1]));
+            if (distance < 2) {
+              cuttedLinks.push(link);
+            }
           }
         }
       }
