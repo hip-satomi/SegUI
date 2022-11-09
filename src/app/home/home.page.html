@@ -16,7 +16,7 @@
 
       <ion-button (click)="toggleTool(trackingToolComponent)" type="button" [color]="isToolActive(trackingToolComponent) ? 'primary' : ''"
         #tooltip="matTooltip" matTooltip="Open the manual tracking tool">
-        <ion-icon name="brush-outline"></ion-icon>TRACK
+        <ion-icon name="git-network-outline"></ion-icon>TRACK
       </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(flexSegTool)" type="button" #tooltip="matTooltip"
         matTooltip="Advanced deep-learning based segmentation proposals" [color]="isToolActive(flexSegTool) ? 'primary' : ''">
