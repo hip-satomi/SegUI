@@ -9,6 +9,10 @@ export interface Position {
     y: number;
 }
 
+export const pointToPosition = (p: Point): Position => {
+  return {x: p[0], y: p[1]};
+}
+
 export const dotLineLength = (x: number, y: number, x0: number, y0: number, x1: number, y1: number, o) => {
     const lineLength = (x: number, y: number, x0: number, y0: number) => {
       return Math.sqrt((x -= x0) * x + (y -= y0) * y);
@@ -201,7 +205,7 @@ export class UIUtils {
    * @param p index in the global polygon list
    */
   static drawSingle(points: Point[], active: boolean, ctx, color: string) {
-    ctx.globalCompositeOperation = 'destination-over';
+    ctx.globalCompositeOperation = 'source-over'; //'destination-over';
     ctx.fillStyle = 'rgb(255,255,255)';
     ctx.strokeStyle = color;
     // small line width (to allow precise segmentation)

@@ -384,6 +384,11 @@ export class SegmentationUI implements UIInteraction, Drawer {
         pencil.clear();
 
         const ctx = pencil.canvasCtx;
+
+        if (drawImage) {
+            this.drawImage(ctx);
+        }
+
         //this.drawPolygons(ctx);
         this.drawPolygonsAdv(ctx, true,
             // filter only polygons with visible label
@@ -402,9 +407,6 @@ export class SegmentationUI implements UIInteraction, Drawer {
             }
 
         );
-        if (drawImage) {
-            this.drawImage(ctx);
-        }
     }
 
     /**

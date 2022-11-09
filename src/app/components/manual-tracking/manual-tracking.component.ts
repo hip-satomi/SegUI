@@ -245,6 +245,10 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     const forwardTracking = this.selectedSegment && this.selectedSegment.frame < this.activeView;
 
+    // 1. draw the backgound image
+    this.segUIs[this.activeView].drawImage(ctx);
+
+    // draw the overlay
     if (this.showSegmentation) {
       if (this.showTrackedCells) {
         this.segUIs[this.activeView].drawPolygons(ctx, false);
@@ -318,9 +322,6 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     if (this.selectedSegment && this.line) {
       this.drawArrow(ctx, this.line.points[0], this.line.points[1], "rgb(255, 0, 0)", 1);
     }
-
-    // 2. draw the backgound image
-    this.segUIs[this.activeView].drawImage(ctx);
   }
 
   /**

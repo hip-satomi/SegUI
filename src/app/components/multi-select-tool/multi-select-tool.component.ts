@@ -106,17 +106,10 @@ export class MultiSelectToolComponent extends Tool {
       ctx.strokeStyle = 'rgb(255, 0, 0)';
       ctx.fillText('Rectangle Tool', 10, 50);
 
-      if (this.rectangle) {
-          ctx.strokeStyle = 'rgb(255, 0, 0)';
-          ctx.fillStyle = 'rgb(255, 0, 0, 0.2)';
-          this.rectangle.draw(ctx);
-          /*ctx.fillRect(this.rectangleStartPos.x,
-              this.rectangleStartPos.y,
-              this.rectangleEndPos.x - this.rectangleStartPos.x,
-              this.rectangleEndPos.y - this.rectangleStartPos.y);*/
-      }
+      // 1. draw the backgound image
+      this.segUI.drawImage(ctx);
 
-      // 1. Draw all other detections
+      // 2. Draw all other detections
       this.segUI.drawPolygons(ctx, false, ([uuid, poly]) => {
           return !this.rectangle?.isInside(poly.center);
       });
@@ -125,8 +118,18 @@ export class MultiSelectToolComponent extends Tool {
               poly.draw(ctx, true);
           }
       }
-      // 2. draw the backgound image
-      this.segUI.drawImage(ctx);
+
+      // 3. draw rectangle
+      if (this.rectangle) {
+        ctx.strokeStyle = 'rgb(255, 0, 0)';
+        ctx.fillStyle = 'rgb(255, 0, 0, 0.2)';
+        this.rectangle.draw(ctx);
+        /*ctx.fillRect(this.rectangleStartPos.x,
+            this.rectangleStartPos.y,
+            this.rectangleEndPos.x - this.rectangleStartPos.x,
+            this.rectangleEndPos.y - this.rectangleStartPos.y);*/
+    }
+
   }
 
   /**
