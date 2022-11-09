@@ -90,7 +90,7 @@ const drawSingle = (points: Point[], active: boolean, ctx, color: string, stroke
   // perform the filling
   if (!color.startsWith('rgb')) {
     const fillColor = hexToRgb(color);
-    ctx.fillStyle = `rgba(${fillColor.r}, ${fillColor.g}, ${fillColor.b}, ${((Math.sin(ticks)+1)*0.5)*0.65+0.1})`;
+    ctx.fillStyle = `rgba(${fillColor.r}, ${fillColor.g}, ${fillColor.b}, ${((Math.sin(ticks)+1)*0.5)*0.25+0.1})`;
   } else {
     ctx.fillStyle = color;
   }
