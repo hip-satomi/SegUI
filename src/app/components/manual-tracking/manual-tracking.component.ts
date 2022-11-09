@@ -80,6 +80,39 @@ function distToSegment(p, v, w) {
   return Math.sqrt(distToSegmentSquared(p, v, w));
 }
 
+const drawSingle = (points: Point[], active: boolean, ctx, color: string, strokeColor: string) => {
+  ctx.globalCompositeOperation = 'source-over'; //'destination-over';
+  ctx.strokeStyle = strokeColor;
+  // small line width (to allow precise segmentation)
+  ctx.lineWidth = .2;
+
+  const ticks = new Date().getTime()/1000;
+
+  // perform the filling
+  if (!color.startsWith('rgb')) {
+    const fillColor = hexToRgb(color);
+    ctx.fillStyle = `rgba(${fillColor.r}, ${fillColor.g}, ${fillColor.b}, ${((Math.sin(ticks)+1)*0.5)*0.65+0.1})`;
+  } else {
+    ctx.fillStyle = color;
+  }
+  ctx.strokeStyle = ctx.fillStyle;
+
+  // create the path for polygon
+  ctx.beginPath();
+  for (const point of points) {
+    if (active) {
+      ctx.fillRect(point[0] - 1, point[1] - 1, 2, 2);
+      ctx.strokeRect(point[0] - 1, point[1] - 1, 2, 2);
+    }
+    ctx.lineTo(point[0], point[1]);
+  }
+  ctx.closePath();
+
+  ctx.fill();
+  ctx.stroke();
+}
+
+
 @Component({
   selector: 'app-manual-tracking',
   templateUrl: './manual-tracking.component.html',
@@ -200,6 +233,12 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         }
       });
     });
+
+    // pulsing drawing when we would like to make a connection
+    interval(1000/30).pipe(
+      filter(() => this.show && (this.line != null)),
+      tap(() => this.draw())
+    ).subscribe();
   }
 
   ngDestroy() {
@@ -273,6 +312,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     // 1. draw the backgound image
     this.segUIs[this.activeView].drawImage(ctx);
 
+    if (this.selectedSegment) {
+      // forward track
+      drawSingle(this.segUIs[this.selectedSegment.frame].segModel.segmentationData.getPolygon(this.selectedSegment.id).points, false, ctx, "#ffffff", "#ffffff");
+    }
+
     // draw the overlay
     if (this.showSegmentation) {
       if (this.showTrackedCells) {
@@ -283,11 +327,6 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
             && (!forwardTracking || trModel.trackingData.listTo(p[0]).length == 0); // forwardTracking => only show parentless cells
         });
       }
-    }
-
-    if (this.selectedSegment) {
-        // forward track
-        UIUtils.drawSingle(this.segUIs[this.selectedSegment.frame].segModel.segmentationData.getPolygon(this.selectedSegment.id).points, false, ctx, "ff0000");
     }
 
     if (this.cuttingMode && this.cuttingLine.length == 2) {
