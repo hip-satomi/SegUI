@@ -312,19 +312,20 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
     this.segUIs[this.activeView].drawImage(ctx);
 
     if (this.selectedSegment) {
-      // forward track
+      // forward track: draw parent in frame before
       drawSingle(this.segUIs[this.selectedSegment.frame].segModel.segmentationData.getPolygon(this.selectedSegment.id).points, false, ctx, "#ffffff", "#ffffff");
     }
 
     // draw the overlay
     if (this.showSegmentation) {
       if (this.showTrackedCells) {
-        this.segUIs[this.activeView].drawPolygons(ctx, false);
+        this.segUIs[this.activeView].drawPolygonsAdv(ctx, false, p => true, ({uuid, poly}) => "#ffff00");
       } else {
         this.segUIs[this.activeView].drawPolygonsAdv(ctx, false, p => {
           return (this.selectedSegment || trModel.trackingData.listFrom(p[0]).length == 0)
             && (!forwardTracking || trModel.trackingData.listTo(p[0]).length == 0); // forwardTracking => only show parentless cells
-        });
+        },
+        ({uuid, poly}) => "#ffff00");
       }
     }
 
