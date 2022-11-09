@@ -357,7 +357,15 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
 
     // draw linking line
     if (this.selectedSegment && this.line) {
-      this.drawArrow(ctx, this.line.points[0], this.line.points[1], "rgb(255, 0, 0)", 1);
+
+      // make it red
+      const color = "rgb(255, 0, 0)";
+
+      if(Utils.euclideanDistance(this.line.points[0], this.line.points[1]) < 2) {
+        this.drawCircle(ctx, this.line.points[0], color, .5);
+      } else {
+        this.drawArrow(ctx, this.line.points[0], this.line.points[1], color, 1.);
+      }
     }
   }
 
