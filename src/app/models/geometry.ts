@@ -411,6 +411,5 @@ export class MaxErrorApproxCircle extends ApproxCircle {
     constructor(centerX: number, centerY: number, radius: number, error: number) {
         // according to: https://math.stackexchange.com/questions/4132060/compute-number-of-regular-polgy-sides-to-approximate-circle-to-defined-precision
         super(centerX, centerY, radius, Math.ceil(Math.PI / Math.sqrt(2 * error)))
-        console.log(`Number of circle points: ${Math.ceil(Math.PI / Math.sqrt(2 * error))}`)
     }
 }
