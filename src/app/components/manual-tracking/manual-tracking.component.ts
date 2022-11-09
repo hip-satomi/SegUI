@@ -1,5 +1,5 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
-import { asyncScheduler, interval, Observable, of, Subject } from 'rxjs';
+import { asyncScheduler, interval, Observable, of, Subject, Subscription } from 'rxjs';
 import { filter, switchMap, takeUntil, takeWhile, tap, throttleTime } from 'rxjs/operators';
 import { AddLinkAction, ForceTrackEndAction, JointAction, RemoveLinkAction } from 'src/app/models/action';
 import { ChangeType } from 'src/app/models/change';
@@ -176,6 +176,8 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
   /** image to visualize track begins */
   trackStartImage = null;
 
+  intervalSub: Subscription = null;
+
 
   @Input() set segUI(value: SegmentationUI) {
       this._segUI = value;
@@ -232,19 +234,26 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
         }
       });
     });
-
-    // pulsing drawing when we would like to make a connection
-    interval(1000/30).pipe(
-      filter(() => this.show && (this.line != null)),
-      tap(() => this.draw())
-    ).subscribe();
   }
 
   ngDestroy() {
     this.destroySignal.next();
+    // unsubscribe from render loop
+    if (this.intervalSub) {
+      this.intervalSub.unsubscribe();
+    }
   }
 
   prepareDraw(): Observable<Drawer> {
+    // TODO: that's a bit dirty here. But placing in ngAfterViewInit will lead to test failing due to timeout
+    // Create a render loop for pulsing drawing when we would like to make a connection
+    if (this.intervalSub == null) {
+      this.intervalSub = interval(1000/30).pipe(
+        // only run when this tool is active and we are connecting cells
+        filter(() => this.show && (this.line != null)),
+        tap(() => this.draw())
+      ).subscribe();
+    }
     return this.segUI.prepareDraw().pipe(
       switchMap(() => of(this))
     );
