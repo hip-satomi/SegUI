@@ -36,6 +36,8 @@ export class TrackingData implements ClearableStorage {
      */
     clear() {
         this.links = [];
+        this.outgoingLinks = new Map<string, Array<Link>>();
+        this.incomingLinks = new Map<string, Array<Link>>();
     }
 
     /**
