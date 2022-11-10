@@ -1,6 +1,6 @@
 {
-  "name": "segmentation",
-  "version": "0.0.2",
+  "name": "seg-track-ui",
+  "version": "0.0.3",
   "author": "Johannes Seiffarth",
   "homepage": "https://ionicframework.com/",
   "scripts": {

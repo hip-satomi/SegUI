@@ -40,6 +40,8 @@ cache:
 stages:
   - setup
   - test
+  - versioning
+  - publish
 
 install:
   stage: setup
@@ -47,21 +49,6 @@ install:
     - npm install -g @angular/cli @ionic/cli
     - npm install
     - ionic build
-
-build-docker:
-  stage: setup
-  image: $CI_REGISTRY/satomi/segtrackui/docker:20.10.8
-  services:
-    - name: $CI_REGISTRY/satomi/segtrackui/docker:20.10.8-dind
-      alias: docker
-  script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_BRANCH || echo "Pulling existing image failed"
-    - docker build --cache-from $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_BRANCH -t $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:latest -t $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_SHORT_SHA -t $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_BRANCH -f docker/Dockerfile --build-arg BUILD_IMAGE=$BUILD_IMAGE --build-arg DEPLOY_IMAGE=$DEPLOY_IMAGE .
-    - docker push $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_SHORT_SHA
-    - docker push $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_BRANCH
-    - if [ "$CI_COMMIT_BRANCH" = "main" ]; then docker push $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:latest; fi
-    
 
 
 test:
@@ -84,6 +71,48 @@ test:
         coverage_report: 
           coverage_format: cobertura
           path: ./builds/cobertura.xml
+
+
+bump-version:
+  image: python:3.8
+  stage: versioning
+  #extends: .deploy_common
+  script:
+    - set -e
+    - pip install twine bump2version
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git log
+    # list tags
+    - git tag
+    - bump2version patch
+    - cat .bumpversion.cfg
+    # push version change but skip ci
+    #- git remote set-url origin "https://${CI_PUSH_NAME}:${CI_PUSH_TOKEN}@jugit.fz-juelich.de/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}.git"
+    #- git push -o ci.skip --tags origin HEAD:${CI_COMMIT_REF_NAME}
+
+
+build-docker:
+  stage: publish
+  image: $CI_REGISTRY/satomi/segtrackui/docker:20.10.8
+  services:
+    - name: $CI_REGISTRY/satomi/segtrackui/docker:20.10.8-dind
+      alias: docker
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_BRANCH || echo "Pulling existing image failed"
+    - docker build --cache-from $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_BRANCH -t $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:latest -t $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_SHORT_SHA -t $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_BRANCH -f docker/Dockerfile --build-arg BUILD_IMAGE=$BUILD_IMAGE --build-arg DEPLOY_IMAGE=$DEPLOY_IMAGE .
+    - docker push $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:$CI_COMMIT_BRANCH
+    - if [ "$CI_COMMIT_BRANCH" = "main" ]; then docker push $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/server:latest; fi
+
+.deploy_common:
+  # only run on default branch
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+
+
 
 #build-job:       # This job runs in the build stage, which runs first.
 #  stage: build
