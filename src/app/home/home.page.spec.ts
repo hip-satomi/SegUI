@@ -1,6 +1,7 @@
 import { OverlayModule } from '@angular/cdk/overlay';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -37,7 +38,7 @@ describe('HomePage', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ HomePage ],
-      imports: [IonicModule.forRoot(), RouterTestingModule, HttpClientTestingModule, MatTooltipModule, OverlayModule, SharedComponentsModule, IonicStorageModule.forRoot()],
+      imports: [IonicModule.forRoot(), RouterTestingModule, HttpClientTestingModule, MatTooltipModule, OverlayModule, SharedComponentsModule, IonicStorageModule.forRoot(), MatDialogModule],
       providers: [
         {
           provide: ActivatedRoute,

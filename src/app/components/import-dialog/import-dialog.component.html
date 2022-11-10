@@ -1,0 +1,36 @@
+<h1 mat-dialog-title>Import Options</h1>
+<div mat-dialog-content>
+  <p>Import options for image {{imageId}}. You can selecte from different resources to import segmentation/tracking information into the UI.</p>
+  
+  <ion-grid>
+    <ion-row>
+      <ion-col>
+        <h2>Segmentation</h2>
+      </ion-col>
+      <ion-col>
+        <ion-button (click)="close(cR.IMPORT_SEG_OMERO)" [disabled]="(omeroRoICount$ | async) == 0">Import OMERO RoIs</ion-button>
+        <ion-label>Number of OMERO RoIs: {{(omeroRoICount$ | async)}}</ion-label>
+      </ion-col>
+      <ion-col>
+        <ion-button (click)="close(cR.IMPORT_SEG_SIMPLE)" [disabled]="!(simpleSegAvailable$ | async)">Import Pred</ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button (click)="close(cR.IMPORT_SEG_FILE)" [disabled]="true">Import from File</ion-button>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col><h2>Tracking</h2></ion-col>
+      <ion-col>
+      </ion-col>
+      <ion-col>
+        <ion-button (click)="close(cR.IMPORT_TRACK_SIMPLE)" [disabled]="!(simpleTrackAvailable$ | async)">Import Pred</ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button [disabled]="true">Import from File</ion-button>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</div>
+<div mat-dialog-actions>
+  <ion-button mat-dialog-close (click)="close(cR.IMPORT_CLOSE_DIALOG)">Close</ion-button>
+</div>

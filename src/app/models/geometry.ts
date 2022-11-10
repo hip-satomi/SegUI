@@ -43,6 +43,10 @@ export class BoundingBox {
 
         return x >= this.x && x <= this.x + this.w && y > this.y && y < this.y + this.h;
     }
+
+    get center(): Point {
+        return [this.x+this.w/2, this.y+this.h/2];
+    }
 }
 
 /**
@@ -169,7 +173,7 @@ export class Polygon {
     /**
      * get the bouding box of the polygon
      */
-    get boundingBox() {
+    get boundingBox(): BoundingBox {
         if(!this._cached_bounding_box) {
             // if it is not cached --> create it
             this.updateBoundingBox();
@@ -276,7 +280,7 @@ export class Polygon {
         if (this.numPoints === 0) {
             return [0, 0];
         }
-        return mean(this.points, 0);
+        return this.boundingBox.center;
     }
 
     /**
@@ -366,6 +370,12 @@ export class Rectangle extends Polygon {
     }
 }
 
+export class Line extends Polygon {
+    constructor(startX: number, startY: number, endX: number, endY: number) {
+        super([startX, startY], [endX, endY]);
+    }
+}
+
 /**
  * An approximated circle polygon class
  * 
@@ -401,6 +411,5 @@ export class MaxErrorApproxCircle extends ApproxCircle {
     constructor(centerX: number, centerY: number, radius: number, error: number) {
         // according to: https://math.stackexchange.com/questions/4132060/compute-number-of-regular-polgy-sides-to-approximate-circle-to-defined-precision
         super(centerX, centerY, radius, Math.ceil(Math.PI / Math.sqrt(2 * error)))
-        console.log(`Number of circle points: ${Math.ceil(Math.PI / Math.sqrt(2 * error))}`)
     }
 }

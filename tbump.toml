@@ -1,5 +1,5 @@
 [version]
-current = "0.0.3"
+current = "0.1.0"
 regex = '''
   (?P<major>\d+)
   \.
@@ -9,8 +9,8 @@ regex = '''
 '''
 
 [git]
-message_template = "Bump to {new_version}"
-tag_template = "v{new_version}"
+message_template = "Bump to version {new_version}"
+tag_template = "{new_version}"
 
 [[file]]
 src = "package.json"
@@ -22,4 +22,4 @@ search = '"version": "{current_version}"'
 
 [[file]]
 src = "src/assets/info.json"
-search = '"version": "v{current_version}"'
+search = '"version": "{current_version}"'

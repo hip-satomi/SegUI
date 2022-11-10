@@ -113,9 +113,12 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
 
     this.oldPencil = pencil;
 
-    // display the old overlay
+    // display the old overlay and image
     if (this.showOverlay) {
-      this.segUI.draw(pencil, false);//drawPolygons(pencil.canvasCtx, false);
+      this.segUI.draw(pencil, true);//drawPolygons(pencil.canvasCtx, false);
+    } else {
+      // only draw image
+      this.segUI.drawImage(pencil.canvasCtx);
     }
 
     // display the new overlay
@@ -124,10 +127,6 @@ export class FlexibleSegmentationComponent extends Tool implements Drawer {
         poly.draw(pencil.canvasCtx, false);
       })
     }
-    
-    
-    // draw the image in the background
-    this.segUI.drawImage(pencil.canvasCtx);
   }
 
   /**
