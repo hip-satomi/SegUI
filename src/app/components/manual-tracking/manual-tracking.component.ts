@@ -338,9 +338,13 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       }
     }
 
-    if (this.cuttingMode && this.cuttingLine.length == 2) {
-      // draw cutting line
-      this.drawLine(ctx, this.cuttingLine[0], this.cuttingLine[1], "rgb(255, 255, 255)", 1)
+    // draw track ends
+    for (const [uuid, poly] of this.segUIs[this.activeView].segModel.getVisiblePolygons()) {
+      if (this.trackingConnector.getModel().trackingData.forcedTrackEnds.has(uuid)) {
+        const center = poly.center;
+        const size = 10;
+        ctx.drawImage(this.trackEndImage, center[0] - size/2, center[1] - size/2, size, size);
+      }
     }
 
     // draw existing trackings
@@ -350,7 +354,33 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       const incomingLinks = trModel.trackingData.listTo(uuid);
 
       if(this.showTracking) {
-        // render outgoing links (red)
+
+        // 1. Visualize birth events
+        if (incomingLinks.length == 0) {
+          const center = poly.center;
+          const size = 10;
+          ctx.drawImage(this.trackStartImage, center[0] - size/2, center[1] - size/2, size, size);  
+          console.log("Birth event");
+        }
+        
+        // 2. render incoming links (gray)
+        for (const iLink of incomingLinks) {
+          const sourceCenter = this.segUIs[this.activeView-1].segModel.segmentationData.getPolygon(iLink.sourceId)?.center;
+          const targetCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(iLink.targetId)?.center;
+          if (sourceCenter && targetCenter) {
+
+            const color = "rgb(100, 100, 100)"
+
+            if(Utils.euclideanDistance(sourceCenter, targetCenter) < 2) {
+              this.drawCircle(ctx, sourceCenter, color, .5);
+            } else {
+              this.drawArrow(ctx, sourceCenter, targetCenter, color, 1.);
+            }
+          }
+
+        }
+
+        // 3. render outgoing links (red)
         for (const oLink of outgoingLinks) {
           const sourceCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(oLink.sourceId)?.center;
           const targetCenter = this.segUIs[this.activeView+1].segModel.segmentationData.getPolygon(oLink.targetId)?.center;
@@ -368,38 +398,6 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
           }
         }
 
-        // render incoming links (gray)
-        for (const iLink of incomingLinks) {
-          const sourceCenter = this.segUIs[this.activeView-1].segModel.segmentationData.getPolygon(iLink.sourceId)?.center;
-          const targetCenter = this.segUIs[this.activeView].segModel.segmentationData.getPolygon(iLink.targetId)?.center;
-          if (sourceCenter && targetCenter) {
-
-            const color = "rgb(100, 100, 100)"
-
-            if(Utils.euclideanDistance(sourceCenter, targetCenter) < 2) {
-              this.drawCircle(ctx, sourceCenter, color, .5);
-            } else {
-              this.drawArrow(ctx, sourceCenter, targetCenter, color, 1.);
-            }
-          }
-
-        }
-
-        // visualize birth events
-        if (incomingLinks.length == 0) {
-          const center = poly.center;
-          const size = 10;
-          ctx.drawImage(this.trackStartImage, center[0] - size/2, center[1] - size/2, size, size);  
-        }
-      }
-    }
-
-    // draw track ends
-    for (const [uuid, poly] of this.segUIs[this.activeView].segModel.getVisiblePolygons()) {
-      if (this.trackingConnector.getModel().trackingData.forcedTrackEnds.has(uuid)) {
-        const center = poly.center;
-        const size = 10;
-        ctx.drawImage(this.trackEndImage, center[0] - size/2, center[1] - size/2, size, size);
       }
     }
 
@@ -414,6 +412,11 @@ export class ManualTrackingComponent extends Tool implements Drawer, OnInit {
       } else {
         this.drawArrow(ctx, this.line.points[0], this.line.points[1], color, 1.);
       }
+    }
+
+    if (this.cuttingMode && this.cuttingLine.length == 2) {
+      // draw cutting line
+      this.drawLine(ctx, this.cuttingLine[0], this.cuttingLine[1], "rgb(255, 255, 255)", 1)
     }
   }
 
