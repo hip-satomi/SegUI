@@ -6,6 +6,9 @@ import { Observable } from "rxjs";
 export abstract class StorageConnector<M> {
     protected model: M;
 
+    /** If true: all changes have been successfully synced to the backend. If false: there are new changes that have to be synced to the backend. */
+    backendInSync = false;
+
     /**
      * Bind the storage connector with a specific model instance
      * @param model the model instance

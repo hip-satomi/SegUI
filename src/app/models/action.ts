@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JsonProperty, Serializable, deserialize, serialize } from 'typescript-json-serializer';
 import { SegCollData } from './segmentation-model';
 import * as dayjs from 'dayjs';
+import { Link, TrackingData } from './tracking/data';
 
 /** List of different action types */
 enum ActionTypes {
@@ -37,7 +38,12 @@ enum ActionTypes {
     ChangeLabelActivityAction = "ChangeLabelActivityAction",
     ChangeLabelVisibilityAction = "ChangeLabelVisibilityAction",
     ChangeLabelColorAction = "ChangeLabelColorAction",
-    DeleteLabelAction = "DeleteLabelAction"
+    DeleteLabelAction = "DeleteLabelAction",
+
+    // tracking actions
+    AddLinkAction = "AddLinkAction",
+    RemoveLinkAction = "RemoveLinkAction",
+    ForceTrackEndAction = "ForceTrackEndAction"
 }
 
 /**
@@ -194,11 +200,15 @@ export class AddPolygon extends Action<SegmentationData> {
     @JsonProperty()
     labelId: number;
 
-    constructor(poly: Polygon, labelId: number) {
+    constructor(poly: Polygon, labelId: number, uuid: string=null) {
         super(ActionTypes.AddPolygon);
 
         this.labelId = labelId;
-        this.uuid = uuidv4();
+        if (uuid == null) {
+            // generate a new uuid when no is defined (e.g. upon creation of the polygon)
+            uuid = uuidv4();
+        }
+        this.uuid = uuid;
         this.poly = poly;
     }
 
@@ -439,7 +449,13 @@ export class ChangePolygonPoints extends Action<SegmentationData> {
      * @param segmentationData 
      */
     perform(segmentationData: SegmentationData) {
-        segmentationData.getPolygon(this.polygonId).setPoints(Utils.clone(this.newPoints));
+        const poly = segmentationData.getPolygon(this.polygonId);
+        if (poly == null) {
+            console.error("Change polygon points: polygon not found!")
+        }
+        else {
+            poly.setPoints(Utils.clone(this.newPoints));
+        }
     }
 }
 
@@ -684,6 +700,82 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
     }
 }
 
+/*************************
+ **** Tracking Actions ***
+ *************************
+*/
+
+/** Action to link two segmentations */
+@Serializable()
+export class AddLinkAction extends Action<TrackingData> {
+    @JsonProperty() link: Link;
+
+    /**
+     * 
+     * @param numSegLayers the number of segmentation layers (e.g. images)
+     */
+    constructor(link: Link) {
+        super(ActionTypes.AddLinkAction);
+        this.link = link;
+    }
+
+    perform(data: TrackingData): void {
+        data.addLink(this.link)
+    }
+}
+
+/** Action to delete link between segmentations */
+@Serializable()
+export class RemoveLinkAction extends Action<TrackingData> {
+    @JsonProperty() source: string;
+    @JsonProperty() target: string;
+
+    /**
+     * 
+     * @param numSegLayers the number of segmentation layers (e.g. images)
+     */
+    constructor(source: string, target: string) {
+        super(ActionTypes.RemoveLinkAction);
+        this.source = source;
+        this.target = target
+    }
+
+    perform(data: TrackingData): void {
+        const deleteCandidates = data.links.filter(link => link.sourceId == this.source && link.targetId == this.target);
+        for (const cand of deleteCandidates) {
+            data.removeLink(cand);
+        }
+    }
+}
+
+/**
+ * Action to toggle forced track end status
+ */
+@Serializable()
+export class ForceTrackEndAction extends Action<TrackingData> {
+    @JsonProperty() trackEndItemId: string;
+
+    /**
+     * 
+     * @param trackEndItemId id of the last item in the track
+     */
+    constructor(trackEndItemId: string) {
+        super(ActionTypes.ForceTrackEndAction);
+        this.trackEndItemId = trackEndItemId;
+    }
+
+    perform(data: TrackingData): void {
+        if (data.forcedTrackEnds.has(this.trackEndItemId)) {
+            // remove it
+            data.forcedTrackEnds.delete(this.trackEndItemId);
+        } else {
+            data.forcedTrackEnds.add(this.trackEndItemId);
+        }
+    }
+}
+
+ 
+
 /**
  * Restores action with their corresponding types
  * 
@@ -714,7 +806,12 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
         [ActionTypes.ChangeLabelActivityAction, ChangeLabelActivityAction],
         [ActionTypes.ChangeLabelVisibilityAction, ChangeLabelVisibilityAction],
         [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction],
-        [ActionTypes.DeleteLabelAction, DeleteLabelAction]
+        [ActionTypes.DeleteLabelAction, DeleteLabelAction],
+
+        // Tracking Actions
+        [ActionTypes.AddLinkAction, AddLinkAction],
+        [ActionTypes.RemoveLinkAction, RemoveLinkAction],
+        [ActionTypes.ForceTrackEndAction, ForceTrackEndAction]
     ];
 
     const lookup = new Map<ActionTypes, any>();

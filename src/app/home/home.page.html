@@ -14,6 +14,10 @@
       <a ion-button href="https://github.com/hip-satomi/ObiWan-Microbi/issues/new" target="_blank" #tooltip="matTooltip"
         matTooltip="Please report problems/feature requests for the software here"><ion-icon name="bug-outline"></ion-icon> ISSUES</a>
 
+      <ion-button (click)="toggleTool(trackingToolComponent)" type="button" [color]="isToolActive(trackingToolComponent) ? 'primary' : ''"
+        #tooltip="matTooltip" matTooltip="Open the manual tracking tool">
+        <ion-icon name="git-network-outline"></ion-icon>TRACK
+      </ion-button>
       <ion-button *ngIf="isSegmentation" (click)="toggleTool(flexSegTool)" type="button" #tooltip="matTooltip"
         matTooltip="Advanced deep-learning based segmentation proposals" [color]="isToolActive(flexSegTool) ? 'primary' : ''">
         <ion-icon name="rocket-outline"></ion-icon>SEG
@@ -43,10 +47,16 @@
 
 <!-- Middle content-->
 <ion-content [fullscreen]="true" appMovableArea>
+  <!-- A bit dirty to have it outside the content-->
+  <!--<app-lineage-visualizer #linViz (selectedNode)="selectNode($event)" [class.ion-hide]="!trackingTool.show"></app-lineage-visualizer>-->
 
   <!-- Tools -->
   <div #toolContainer>
   </div>
+
+  <app-manual-tracking #trackingTool class="popover" [appMovable]="true" (changedEvent)="draw()" [segUI]="curSegUI" [segUIs]="segmentationUIs" [globalSegModel]="globalSegModel" [(activeView)]="activeView" [imageId]="(imageSetId | async)"
+    (selectedNode)="trackSelectedNode($event)">
+  </app-manual-tracking>
 
   <app-flexible-segmentation #flexSegTool class="popover" [appMovable]="true" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-flexible-segmentation>
@@ -66,6 +76,7 @@
 
   <!-- Image Display-->
   <app-image-display #imageDisplay [drawer]="this" [interactor]="this" cdkOverlayOrigin #origin="cdkOverlayOrigin"></app-image-display>
+
 </ion-content>
 
 <!-- Label annotation manager -->

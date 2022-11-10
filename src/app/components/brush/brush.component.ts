@@ -216,7 +216,10 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             ctx.strokeStyle = 'rgb(255, 0, 0)';
         }
 
-        // draw the circle around the pointer
+        // 1. draw the backgound image
+        this.segUI.drawImage(ctx);
+
+        // 2. draw the circle around the pointer
         if (this.pointerPos) {
             // set the line width
             ctx.lineWidth = this.lineWidth;
@@ -225,7 +228,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             ctx.stroke();
         }
 
-        // 1. Draw all other detections
+        // 3. Draw all other detections
         if (this.showOverlay) {
             // draw
             this.segUI.drawPolygonsAdv(ctx, false,
@@ -236,9 +239,6 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
                 ({uuid, poly}) => this.getPolyColor(uuid, poly)
             );
         }
-
-        // 2. draw the backgound image
-        this.segUI.drawImage(ctx);
     }
 
     /**

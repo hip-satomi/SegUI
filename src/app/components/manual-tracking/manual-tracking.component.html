@@ -1,0 +1,84 @@
+<div [class.ion-hide]="!show">
+  <ion-toolbar #tooltip="matTooltip" matTooltip="Drag here...">Tracking Tool
+    <ion-button slot='end' (click)="close()">
+      <ion-icon name="close-outline"></ion-icon>
+    </ion-button>
+  </ion-toolbar>
+  <ion-grid>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracking overlay">Show tracking links in image viewer</ion-label>
+          <ion-toggle [(ngModel)]="showTracking" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide tracked cell segmentation">Show tracked cell segmentation</ion-label>
+          <ion-toggle [(ngModel)]="showTrackedCells" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Show/Hide segmentation overlay">Show Segmentation</ion-label>
+          <ion-toggle [(ngModel)]="showSegmentation" (ionChange)="draw()"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Allow cells only to have a certain amount of children">Max children</ion-label>
+          <ion-input type="number" [(ngModel)]="maxChildren" class="ion-text-right" #tooltip="matTooltip" matTooltip="Limits the amount of children a cell can have in the tracking!"></ion-input>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Prevent tracking linking leading to a cell with two parents">Single parent only</ion-label>
+          <ion-toggle [(ngModel)]="preventTwoParents"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Prevent a link to skip a frame">Prevent Frame Jumps</ion-label>
+          <ion-toggle [(ngModel)]="preventFrameJumps"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <h2>Mode:</h2>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Annotate multiple children. Does not jump to the next frame after making a tracking link. Hold 'd' on your keyboard to enter the mode.">Annotate Divisions</ion-label>
+          <ion-toggle [(ngModel)]="divisionAnnotation"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label #tooltip="matTooltip" matTooltip="Go to link cutting mode: Allows to draw lines by drag and drop and all links touched by the line are removed. You can also press 'c' to enter the mode.">Link Cutting</ion-label>
+          <ion-toggle [(ngModel)]="cuttingMode"></ion-toggle>
+        </ion-item>
+      </ion-col>
+    </ion-row>       
+    <ion-row>
+      <ion-col>
+        <ion-button color="secondary" (click)="selectNextCell()" #tooltip="matTooltip"
+          matTooltip="Select next cell with missing tracking annotation">
+          Next missing link
+        </ion-button>
+      </ion-col>
+    </ion-row> 
+  </ion-grid>
+</div>

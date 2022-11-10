@@ -68,7 +68,7 @@ export class SegmentationUI implements UIInteraction, Drawer {
      * Loads the image. Promise resolves when the image is fully loaded.
      * Promise rejects when the timeout finishes first!
      */
-    loadImage(timeout = 10000, numRetries=5): Observable<any> {
+    loadImage(timeout = 30000, numRetries=5): Observable<any> {
         return of(1).pipe(
             switchMap(() => {
                 if (this.image && this.image.complete && this.image.naturalWidth !== 0) {
@@ -384,6 +384,11 @@ export class SegmentationUI implements UIInteraction, Drawer {
         pencil.clear();
 
         const ctx = pencil.canvasCtx;
+
+        if (drawImage) {
+            this.drawImage(ctx);
+        }
+
         //this.drawPolygons(ctx);
         this.drawPolygonsAdv(ctx, true,
             // filter only polygons with visible label
@@ -402,9 +407,6 @@ export class SegmentationUI implements UIInteraction, Drawer {
             }
 
         );
-        if (drawImage) {
-            this.drawImage(ctx);
-        }
     }
 
     /**

@@ -99,4 +99,19 @@ export class Tool extends UIInteraction {
         this.visibilityChange.next(this.show);
     }
 
+    get canUndo() {
+        return false;
+    }
+
+    get canRedo() {
+        return false;
+    }
+
+    undo() {
+        throw new Error("Undo is not implemented!");
+    }
+
+    redo() {
+        throw new Error("Redo is not implemented!");
+    }
 }

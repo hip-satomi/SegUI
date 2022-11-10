@@ -20,6 +20,8 @@ import { FlexibleSegmentationComponent } from '../components/flexible-segmentati
 import { ImageCardComponent } from '../components/image-card/image-card.component';
 import { AiServiceComponent } from '../components/ai-service/ai-service.component';
 import { AiParameterComponent } from '../components/ai-parameter/ai-parameter.component';
+import { ManualTrackingComponent } from '../components/manual-tracking/manual-tracking.component';
+import { LineageVisualizerComponent } from '../components/lineage-visualizer/lineage-visualizer.component';
 import { ImportDialogComponent } from '../components/import-dialog/import-dialog.component';
 
 @NgModule({
@@ -38,6 +40,8 @@ import { ImportDialogComponent } from '../components/import-dialog/import-dialog
     ImageCardComponent,
     AiServiceComponent,
     AiParameterComponent,
+    ManualTrackingComponent,
+    LineageVisualizerComponent,
     ImportDialogComponent
   ],
   exports: [
@@ -55,6 +59,8 @@ import { ImportDialogComponent } from '../components/import-dialog/import-dialog
     ImageCardComponent,
     AiServiceComponent,
     AiParameterComponent,
+    ManualTrackingComponent,
+    LineageVisualizerComponent,
     ImportDialogComponent
   ],
   imports: [
@@ -64,7 +70,7 @@ import { ImportDialogComponent } from '../components/import-dialog/import-dialog
     MatTooltipModule,
     RouterModule,
     ColorPickerModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
   ]
 })
 export class SharedComponentsModule { }

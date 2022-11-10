@@ -15,10 +15,15 @@ export class ImportDialogComponent implements OnInit {
 
   omeroRoICount$ = new BehaviorSubject<number>(0);
   simpleSegAvailable$ = new BehaviorSubject<boolean>(false);
+  simpleTrackAvailable$ = new BehaviorSubject<boolean>(false);
 
   public static IMPORT_SEG_OMERO = "segOMERO";
   public static IMPORT_SEG_SIMPLE = "segSimple";
   public static IMPORT_SEG_FILE = "segFile"
+
+  public static IMPORT_TRACK_SIMPLE = "trackSimple";
+
+  public static IMPORT_CLOSE_DIALOG = "close";
 
   public cR = ImportDialogComponent;
 
@@ -45,6 +50,17 @@ export class ImportDialogComponent implements OnInit {
         );
       })
     ).subscribe();
+
+    // check simple seg file annotation
+    this.omeroAPI.getFileAnnotations(this.imageId, OmeroType.Image).pipe(
+      tap(annotations => {
+        this.simpleTrackAvailable$.next(
+          // check whether a file with the correct name is available
+          annotations.filter(ann => ann.file.name == "pred_simpleTracking.json").length == 1
+        );
+      })
+    ).subscribe();
+
   }
 
   close(result) {
