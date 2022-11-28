@@ -1,7 +1,7 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { asyncScheduler, of, Subject } from 'rxjs';
 import { switchMap, tap, throttleTime } from 'rxjs/operators';
-import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction, SelectPolygon} from 'src/app/models/action';
+import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction, RemovePolygon, SelectPolygon} from 'src/app/models/action';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { MaxErrorApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { GlobalSegmentationModel, LocalSegmentationModel } from 'src/app/models/segmentation-model';
@@ -82,6 +82,9 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     changedPolygons = new Map<string, Polygon>();
 
     drawEvent$ = new Subject<Pencil>();
+
+    //overlapMode = "prevent";
+    showOverlay = true;
 
     @Output()
     changedEvent = new EventEmitter<void>();
@@ -450,7 +453,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             // simplify polygon points
             this.currentPolygon.setPoints(Utils.simplifyPointList(this.currentPolygon.points, this.simplificationTolerance));
 
-            if (this.preventOverlap) {
+            if (this.overlapMode != "no") {
 
                 // check on other polygons
                 const tree = new RBush();
@@ -481,8 +484,16 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
                     const conflictPolygon = this.localSegModel.segmentationData.getPolygon(uuid);
                     // detailed intersection test (slow)
                     if(this.currentPolygon.isIntersecting(conflictPolygon)) {
-                        conflictPolygon.subtract(this.currentPolygon);
-                        this.changedPolygons.set(uuid, conflictPolygon);
+
+                        switch(this.overlapMode) {
+                            case "prevent":
+                                conflictPolygon.subtract(this.currentPolygon);
+                                this.changedPolygons.set(uuid, conflictPolygon);
+                                break;
+                            case "merge":
+                                this.currentPolygon.join(conflictPolygon);
+                                this.localSegModel.addAction(new RemovePolygon(uuid));
+                        }
                     }
                 }
             }
@@ -593,20 +604,12 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
         this.brushState.simplificationTolerance = tol;
     }
 
-    get showOverlay() {
-        return this.brushState.showOverlay;
+    get overlapMode() {
+        return this.brushState.overlapMode;
     }
 
-    set showOverlay(show: boolean) {
-        this.brushState.showOverlay = show;
-    }
-
-    get preventOverlap() {
-        return this.brushState.preventOverlap;
-    }
-
-    set preventOverlap(prevOverlap: boolean) {
-        this.brushState.preventOverlap = prevOverlap;
+    set overlapMode(overlapMode) {
+        this.brushState.overlapMode = overlapMode;
     }
 
 }

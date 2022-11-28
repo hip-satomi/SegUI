@@ -407,6 +407,15 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
     }
 
     /**
+     * Checks whether label with name already exists
+     * @param labelName the name of the label
+     * @returns true if label exists and false otherwise
+     */
+    hasLabel(labelName: string): boolean {
+        return this.labels.filter(label => label.name == labelName).length > 0
+    }
+
+    /**
      * Creates a global segmentation model for an image stack
      * @param destroySignal distroy signal to stop processing pipelines when necessary (e.g. when another model is used)
      * @param numSegmentationLayers number of frames in the image stack

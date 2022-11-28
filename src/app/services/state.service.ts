@@ -6,7 +6,7 @@ export class BrushState {
   brushSize: number = 2;
   simplificationTolerance: number = 0.2;
   showOverlay = true;
-  preventOverlap = true;
+  overlapMode = "prevent";
 };
 
 @Injectable({
