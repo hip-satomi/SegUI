@@ -320,7 +320,6 @@ export class Polygon {
      * @param other polygon
      */
     subtract(other: Polygon) {
-        const pointsCopy = Utils.clone(this.points);
         try {
             const points = this.takeLargest(polygon.subtract(this.points, other.points));
             this.points = points;
