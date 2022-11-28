@@ -1124,7 +1124,7 @@ export class HomePage implements Drawer, UIInteraction{
     });
 
     // 1. Check whether OMERO has ROI data available
-    this.imageSetId.pipe(
+    return this.imageSetId.pipe(
       take(1),
       tap(() => {
         if (showLoading) {
@@ -1134,30 +1134,36 @@ export class HomePage implements Drawer, UIInteraction{
       switchMap((imageId) => {
         // get image urls (used to get the number of images in the sequence)
         return this.omeroAPI.getImageUrls(imageId).pipe(
-          switchMap((urls) => {
+          switchMap((urls) => this.createSegmentationConnector(imageId, urls)),          
+          switchMap((srsc) => {
             // download the latest json file for simple segmentation
             return this.omeroAPI.getLatestFileJSON(imageId, fileName, OmeroType.Image).pipe(
               map((simpleSegmentation: Array<SimpleSegmentation>) => {
                 // create new segmenation model
-                const numSegmentationLayers = urls.length;
-                const holder = new GlobalSegmentationModel(this.ngUnsubscribe, numSegmentationLayers);
+                const holder: GlobalSegmentationModel = srsc.getModel();
 
                 // create all the labels
                 const labels = new Set<string>();
                 for(const overlay of simpleSegmentation) {
                   for (const detection of overlay.detections) {
+                    // only add the label when it is not yet in the segmentation model
                     labels.add(detection.label);
                   }
                 }
 
                 const labelActions = []
 
-                let labelId = 0;
                 const labelLookup = new Map<string, number>();
                 for (const label of labels) {
-                  labelActions.push(new AddLabelAction(new AnnotationLabel(labelId, label)));
+                  let labelId = -1;
+                  if (!holder.hasLabel(label)) {
+                    labelId = holder.nextLabelId();
+                    labelActions.push(new AddLabelAction(new AnnotationLabel(labelId, label)));
+                  } else {
+                    labelId = holder.labels.filter(labelObj => labelObj.name == label)[0].id;
+                  }
+                  
                   labelLookup.set(label, labelId);
-                  labelId += 1;
                 }
 
                 // array for all actions
@@ -1174,8 +1180,8 @@ export class HomePage implements Drawer, UIInteraction{
                 // add all the actions to the model in a joint effort
                 holder.addAction(new JointAction(all_actions));
 
-                // return the new storage instance
-                return new GlobalSegmentationOMEROStorageConnector(this.omeroAPI, holder, imageId);
+                // return the storage instance
+                return srsc;
               })
             )
           }),
@@ -1198,7 +1204,7 @@ export class HomePage implements Drawer, UIInteraction{
         // omero import has to error out
         return throwError(err);
       })
-    ).subscribe();
+    );
   }
 
   /**
@@ -1472,16 +1478,18 @@ export class HomePage implements Drawer, UIInteraction{
             ).subscribe();
           } else if(result == ImportDialogComponent.IMPORT_SEG_SIMPLE) {
             // load segmentation from simple segmentation format
-            this.userQuestions.alertAsk("Segmentation Import", "This segmentation import will recreate your segmentation data and <b>cannot be undone</b>!<br /><br /> Do you want to proceed?").subscribe(
-              () => this.simpleSegImport("pred_simpleSegmentation.json", true, true)
-            )
+            this.userQuestions.alertAsk("Segmentation Import", "This segmentation import will recreate your segmentation data and <b>cannot be undone</b>!<br /><br /> Do you want to proceed?").pipe(
+              switchMap(() => this.simpleSegImport("pred_simpleSegmentation.json", true, true)),
+              tap(() => this.dialog.closeAll())
+            ).subscribe()
           } else if(result == ImportDialogComponent.IMPORT_SEG_FILE) {
             // TODO: import simple segmentation from json file
-            this.userQuestions.showError("Not yet Implemented! Coming soon...")
+            this.userQuestions.showError("Not yet Implemented! Coming soon..."),
+            tap(() => this.dialog.closeAll())
           }
           else if(result == ImportDialogComponent.IMPORT_TRACK_SIMPLE) {
             this.userQuestions.alertAsk("Tracking Import", "The tracking import will recreate your segmentation and tracking data and <b>cannot be undone</b>!<br /><br /> Do you want to proceed?").subscribe(
-              () => this.simpleTrackImport("pred_simpleTracking.json", true, true)
+              () =>  {this.simpleTrackImport("pred_simpleTracking.json", true, true); this.dialog.closeAll()}
             )
           }
         });
