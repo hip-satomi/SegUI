@@ -1,35 +1,13 @@
-<!-- Header items-->
-<ion-header [translucent]="true">
+<ion-header class="mobile-header">
   <ion-toolbar>
-    <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
-    <ion-buttons slot="end">
+    <app-simple-navigation [project]="(project$ | async)" [dataset]="(dataset$ | async)"></app-simple-navigation>
+    <ion-buttons class="ion-text-right" slot="end">
       <ion-button (click)="clickSave()" #tooltip="matTooltip"
         matTooltip="Save annotation information"><ion-icon #saveIcon name="save-outline"></ion-icon></ion-button>
 
-      <ion-button (click)="openImportModal()" #tooltip="matTooltip"
-        matTooltip="Import segmentation"><ion-icon name="download-outline"></ion-icon> Import</ion-button>
-      <ion-button (click)="omeroExport()" #tooltip="matTooltip"
-        matTooltip="Export segmentation to OMERO"><ion-icon name="share-outline"></ion-icon> Export</ion-button>
+      <ion-button *ngFor="let tool of buttons" (tap)="clickHeaderButton(tool.value)"><ion-icon [name]="tool.icon"></ion-icon></ion-button>
+      <ion-button *ngFor="let tool of tools" (tap)="selectedTool(tool.value)" [ngClass]="{'active-item' : tool.active}"><ion-icon [name]="tool.icon"></ion-icon></ion-button>
 
-      <a ion-button href="https://github.com/hip-satomi/ObiWan-Microbi/issues/new" target="_blank" #tooltip="matTooltip"
-        matTooltip="Please report problems/feature requests for the software here"><ion-icon name="bug-outline"></ion-icon> ISSUES</a>
-
-      <ion-button (click)="toggleTool(trackingToolComponent)" type="button" [color]="isToolActive(trackingToolComponent) ? 'primary' : ''"
-        #tooltip="matTooltip" matTooltip="Open the manual tracking tool">
-        <ion-icon name="git-network-outline"></ion-icon>TRACK
-      </ion-button>
-      <ion-button *ngIf="isSegmentation" (click)="toggleTool(flexSegTool)" type="button" #tooltip="matTooltip"
-        matTooltip="Advanced deep-learning based segmentation proposals" [color]="isToolActive(flexSegTool) ? 'primary' : ''">
-        <ion-icon name="rocket-outline"></ion-icon>SEG
-      </ion-button>
-      <ion-button *ngIf="isSegmentation" (click)="toggleTool(brushToolComponent)" type="button" [color]="isToolActive(brushToolComponent) ? 'primary' : ''"
-        #tooltip="matTooltip" matTooltip="Open the brush segmentation tool">
-        <ion-icon name="brush-outline"></ion-icon>Brush
-      </ion-button>
-      <ion-button *ngIf="isSegmentation" (click)="toggleTool(multiSelectComponent)" type="button" [color]="isToolActive(multiSelectComponent) ? 'primary' : ''"
-        #tooltip="matTooltip" matTooltip="Open multi-select tool">
-        <ion-icon name="scan-outline"></ion-icon>
-      </ion-button>
       <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px" #tooltip="matTooltip"
         matTooltip="Undo (Ctrl+Z)">
         <ion-icon name="arrow-undo-outline"></ion-icon>
@@ -38,12 +16,39 @@
         matTooltip="Redo (Ctrl+Y)">
         <ion-icon name="arrow-redo-outline"></ion-icon>
       </ion-button>
-      <ion-button [disabled]="!canSave" (click)="done()">
+      <ion-button [disabled]="!canDone" (click)="done()">
         <ion-icon name="checkmark-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
+
+<ion-header class="header">
+  <ion-toolbar>
+    <app-simple-navigation [project]="(project$ | async)" [dataset]="(dataset$ | async)"></app-simple-navigation>
+    <ion-buttons class="ion-text-right" slot="end">
+      <ion-button (click)="clickSave()" #tooltip="matTooltip"
+        matTooltip="Save annotation information"><ion-icon #saveIcon name="save-outline"></ion-icon></ion-button>
+
+      <ion-button *ngFor="let tool of buttons" (tap)="clickHeaderButton(tool.value)"><ion-icon [name]="tool.icon"></ion-icon>{{tool.name}}</ion-button>
+      <ion-button *ngFor="let tool of tools" (tap)="selectedTool(tool.value)" [ngClass]="{'active-item' : tool.active}"><ion-icon [name]="tool.icon"></ion-icon>{{tool.name}}</ion-button>
+
+      <ion-button [disabled]="!canUndo" (click)="undo()" style="padding-right:10px" #tooltip="matTooltip"
+        matTooltip="Undo (Ctrl+Z)">
+        <ion-icon name="arrow-undo-outline"></ion-icon>
+      </ion-button>
+      <ion-button [disabled]="!canRedo" (click)="redo()" style="padding-right:10xpx" #tooltip="matTooltip"
+        matTooltip="Redo (Ctrl+Y)">
+        <ion-icon name="arrow-redo-outline"></ion-icon>
+      </ion-button>
+      <ion-button [disabled]="!canDone" (click)="done()">
+        <ion-icon name="checkmark-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+
 
 <!-- Middle content-->
 <ion-content [fullscreen]="true" appMovableArea>
@@ -66,13 +71,6 @@
 
   <app-multi-select-tool #multiSelectTool class="popover" [appMovable]="true" (changedEvent)="draw()" [globalSegModel]="globalSegModel" [localSegModel]="curSegModel" [segUI]="curSegUI">
   </app-multi-select-tool>
-
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Segmentation</ion-title>
-    </ion-toolbar>
-
-  </ion-header>
 
   <!-- Image Display-->
   <app-image-display #imageDisplay [drawer]="this" [interactor]="this" cdkOverlayOrigin #origin="cdkOverlayOrigin"></app-image-display>

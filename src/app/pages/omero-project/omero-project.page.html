@@ -1,7 +1,7 @@
 <ion-header>
   <ion-toolbar>
     <ion-title>
-      <app-simple-navigation [project$]="project$"></app-simple-navigation>
+      <app-simple-navigation [project]="(project$ | async)"></app-simple-navigation>
     </ion-title>
   </ion-toolbar>
 </ion-header>

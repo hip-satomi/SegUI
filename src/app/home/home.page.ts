@@ -4,7 +4,7 @@ import { Polygon, BoundingBox } from './../models/geometry';
 import { AddPolygon, JointAction, LocalAction, AddLabelAction, Action, SelectPolygon, AddLinkAction } from './../models/action';
 import { ModelChanged } from './../models/change';
 import { GlobalSegmentationOMEROStorageConnector, GlobalTrackingOMEROStorageConnector, SimpleSegmentationOMEROStorageConnector } from './../models/storage-connectors';
-import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError } from 'rxjs/operators';
+import { map, take, mergeMap, switchMap, tap, finalize, takeUntil, combineAll, throttleTime, catchError, timeout } from 'rxjs/operators';
 import { combineLatest, from, Observable, of, ReplaySubject, Subject, Subscription, throwError } from 'rxjs';
 import { Pencil, UIInteraction } from './../models/drawing';
 import { ImageDisplayComponent } from './../components/image-display/image-display.component';
@@ -12,7 +12,7 @@ import { Drawer } from 'src/app/models/drawing';
 import { SegmentationUI } from './../models/segmentation-ui';
 import { SimpleSegmentationView as SimpleSegmentationView, GlobalSegmentationModel, LocalSegmentationModel, SegCollData, SimpleSegmentation } from './../models/segmentation-model';
 import { ActionSheetController, AlertController, AnimationController, LoadingController, NavController } from '@ionic/angular';
-import { Component, ViewChild, HostListener, ViewContainerRef } from '@angular/core';
+import { Component, ViewChild, HostListener, ViewContainerRef, ElementRef } from '@angular/core';
 
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import * as dayjs from 'dayjs';
@@ -33,6 +33,7 @@ import { DataConnectorService } from '../services/data-connector.service';
 // imports for tracking
 import { GlobalTrackingModel } from '../models/tracking/model';
 import { Link } from '../models/tracking/data';
+import { Tool } from '../components/header/header.component';
 
 
 /**
@@ -80,9 +81,85 @@ export class HomePage implements Drawer, UIInteraction{
   // get the save icon (used for animation)
   @ViewChild('saveIcon') saveIcon;
 
+  @ViewChild('productbtn', { read: ElementRef }) productbtn: ElementRef;
+  @ViewChild('dropdownbox', { read: ElementRef }) dropdownbox: ElementRef;
+  _dropdown = false;
+
+  get dropdown() {
+    return this._dropdown;
+  }
+
+  set dropdown(value: boolean) {
+    this._dropdown = value;
+
+    // move dropdown to
+    if (this.dropdown) {
+      const rect = this.productbtn.nativeElement.getBoundingClientRect();
+      //setTimeout(() => this.dropdownbox.nativeElement.style.left = rect.left, 100);
+      
+      console.log("set dropdown");
+    }
+    //
+  }
+
   /** the currently active tool */
   tool = null;
 
+  toolType = Tool;
+
+  buttons = [
+    {
+      name: "Import",
+      icon: "download-outline",
+      value: Tool.IMPORT,
+      active: false,
+    },
+    {
+      name: "Export",
+      icon: "share-outline",
+      value: Tool.EXPORT,
+      active: false,
+    },
+    {
+      name: "Issues",
+      icon: "bug-outline",
+      value: Tool.ISSUE,
+      active: false,
+    },
+  ]
+
+  tools = [
+    {
+      name: "View",
+      icon: "image-outline",
+      value: Tool.DEFAULT,
+      active: true,
+    },
+    {
+      name: "Track",
+      icon: "git-network-outline",
+      value: Tool.TRACK,
+      active: false,
+    },
+    {
+      name: "Seg",
+      icon: "rocket-outline",
+      value: Tool.SEG,
+      active: false,
+    },
+    {
+      name: "Brush",
+      icon: "brush-outline",
+      value: Tool.BRUSH,
+      active: false,
+    },
+    {
+      name: "Multi-Select",
+      icon: "scan-outline",
+      value: Tool.MULTI_SEL,
+      active: false
+    }
+  ];
 
   /** segmentation user interface */
   segmentationUIs: SegmentationUI[] = [];
@@ -1396,6 +1473,29 @@ export class HomePage implements Drawer, UIInteraction{
   }
 
   /**
+   * Is called when the button of a tool is clicked
+   * @param tool the tool associated with the button
+   */
+   setTool(tool) {
+    of(1).pipe(
+      map(() => {
+          this.stateService.openTool = "";
+          this.tool?.close();
+
+          this.tool = tool;
+          // open new tool
+          if (this.tool) {
+            this.stateService.openTool = this.tool.name;
+            this.tool.open();
+          }
+    
+          // draw -> via new tool
+          this.draw();
+      })
+    ).subscribe();
+  }
+
+  /**
    * 
    * @param tool the tool component
    * @returns true if the current tool component is active, i.e. presented to the user
@@ -1532,5 +1632,79 @@ export class HomePage implements Drawer, UIInteraction{
         loading.then((ld) => ld.dismiss());
       })
     ).subscribe(() => {console.log('Saving successful'); this.userQuestions.showInfo("Manual saving successful!")}, () => {console.error("Saving failed"); this.userQuestions.showError("Manual saving failed!")});
+  }
+
+  /**
+   * select a certain tool
+   * @param tool 
+   */
+  selectedTool(tool: Tool) {
+    console.log(`Selected tool: ${tool}`);
+
+    // it is a real tool, not a button
+    const toolCandidates = this.tools.filter(t => t.value == tool);
+
+    if (toolCandidates.length == 1) {
+
+      // get the tool state
+      const toolState = toolCandidates[0];
+
+      if (![Tool.EXPORT, Tool.IMPORT, Tool.ISSUE].includes(toolState.value)) {
+        // toggle active value
+        const newToolState = !toolState.active;
+
+        // disable all other tools (enforce only one active)
+        this.tools.forEach(t => t.active = false);
+        // set new state
+        toolState.active = newToolState;
+
+        // when we deactive tool: no tool active -> ativate default tool
+        if(toolState.active == false) {
+          this.tools.filter(t => t.value == Tool.DEFAULT)[0].active = true;
+        }
+      }
+    }
+
+    const activeTool = this.tools.filter(t => t.active)[0];
+
+    switch(activeTool.value) {
+      case Tool.DEFAULT:
+        this.setTool(null);
+        break;
+      case Tool.BRUSH:
+        this.setTool(this.brushToolComponent);
+        break;
+      case Tool.MULTI_SEL:
+        this.setTool(this.multiSelectComponent);
+        break;
+      case Tool.SEG:
+        this.setTool(this.flexSegTool);
+        break;
+      case Tool.TRACK:
+        this.setTool(this.trackingToolComponent);
+        break;
+    }
+
+  }
+
+  /**
+   * Click a header button
+   * @param tool 
+   */
+  clickHeaderButton(tool: Tool) {
+    switch(tool) {
+      case Tool.IMPORT:
+        this.openImportModal();
+        break;
+      case Tool.EXPORT:
+        this.omeroExport();
+        break;
+      case Tool.ISSUE:
+        window.open("https://github.com/hip-satomi/ObiWan-Microbi/issues", "_blank");
+        break;
+      default:
+        this.userQuestions.showError("Unknown header button!");
+        break;
+    }
   }
 }

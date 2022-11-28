@@ -2,7 +2,7 @@
   <ion-toolbar>
     <ion-title>
       <!-- show options to navigate back-->
-      <app-simple-navigation [project$]="project$" [dataset$]="dataset$"></app-simple-navigation>
+      <app-simple-navigation [project]="(project | async)" [dataset]="(dataset | async)"></app-simple-navigation>
     </ion-title>
   </ion-toolbar>
 </ion-header>
