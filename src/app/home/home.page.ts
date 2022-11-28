@@ -33,7 +33,6 @@ import { DataConnectorService } from '../services/data-connector.service';
 // imports for tracking
 import { GlobalTrackingModel } from '../models/tracking/model';
 import { Link } from '../models/tracking/data';
-import { Tool } from '../components/header/header.component';
 
 
 /**
@@ -56,6 +55,18 @@ class NoOmeroRoIError extends Error {
   constructor() {
     super("No Omero RoIs to import!")
   }
+}
+
+enum Tool {
+  DEFAULT,
+  BRUSH,
+  MULTI_SEL,
+  SEG,
+  IMPORT,
+  EXPORT,
+  TRACK,
+  ISSUE,
+  
 }
 
 @Component({
