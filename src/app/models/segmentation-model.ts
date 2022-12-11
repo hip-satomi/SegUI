@@ -790,8 +790,12 @@ export class SimpleSegmentationView
                     // we don't need empty segmentations
                     continue;
                 }
+
+                // get the label associated with the polygon id
+                const label = this.baseHolder.segmentationData.getLabelById(segData.getPolygonLabel(uuid));
+
                 // TODO: hard coded label here!
-                detections.push({label: 'cell', contour: poly.points, id: uuid});
+                detections.push({label: label.name, contour: poly.points, id: uuid});
             }
 
             const ss: SimpleSegmentation = {frame: frameId, detections};
