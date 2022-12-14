@@ -279,9 +279,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
     }
 
     onPress(event: any): boolean {
-        // prevent brushing behavior but do not prevent default behavior
-        this.brushActivated = false;
-        return false;
+        // prevent default behavior (option to delte for touch devices) as this was often opened accidentially while annotating
+        return true;
     }
 
     onPanStart(event: any): boolean {
