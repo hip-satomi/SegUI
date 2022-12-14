@@ -23,42 +23,26 @@ variables:
   DEPLOY_IMAGE: "jugit-registry.fz-juelich.de/satomi/segtrackui/nginx:latest"
 
 
-cache:
-  untracked: true
-  policy: push
-  key: ${CI_COMMIT_SHORT_SHA}
-  paths:
-    - node_modules/
-    - www/
-
-.pull_cached_node_modules:
-  cache:
-    untracked: true
-    key: ${CI_COMMIT_SHORT_SHA}
-    policy: pull
-
 stages:
-  - setup
-  - test
+  - testing
   - versioning
   - publish
 
 install:
-  stage: setup
+  stage: testing
   script:
     - npm install -g @angular/cli @ionic/cli 
-    - npm install
+    - npm ci
     - ionic build
 
 
 test:
-  stage: test
-  extends: .pull_cached_node_modules
+  stage: testing
   before_script:
     - echo $CI_BUILDS_DIR
     - echo $PROJECT_FULL_PATH
     - npm install -g @angular/cli @ionic/cli
-    - npm install
+    - npm ci
   script:
     - npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage
   coverage: '/Lines \W+: (\d+\.\d+)%.*/'
