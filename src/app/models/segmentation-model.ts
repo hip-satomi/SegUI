@@ -407,6 +407,15 @@ export class GlobalSegmentationModel extends SynchronizedObject<GlobalSegmentati
     }
 
     /**
+     * Checks whether label with name already exists
+     * @param labelName the name of the label
+     * @returns true if label exists and false otherwise
+     */
+    hasLabel(labelName: string): boolean {
+        return this.labels.filter(label => label.name == labelName).length > 0
+    }
+
+    /**
      * Creates a global segmentation model for an image stack
      * @param destroySignal distroy signal to stop processing pipelines when necessary (e.g. when another model is used)
      * @param numSegmentationLayers number of frames in the image stack
@@ -781,8 +790,12 @@ export class SimpleSegmentationView
                     // we don't need empty segmentations
                     continue;
                 }
+
+                // get the label associated with the polygon id
+                const label = this.baseHolder.segmentationData.getLabelById(segData.getPolygonLabel(uuid));
+
                 // TODO: hard coded label here!
-                detections.push({label: 'cell', contour: poly.points, id: uuid});
+                detections.push({label: label.name, contour: poly.points, id: uuid});
             }
 
             const ss: SimpleSegmentation = {frame: frameId, detections};

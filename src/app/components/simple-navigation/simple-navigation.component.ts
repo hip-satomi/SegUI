@@ -9,8 +9,8 @@ import { Dataset, Project } from 'src/app/services/omero-api.service';
 })
 export class SimpleNavigationComponent implements OnInit {
 
-  @Input() project$: Observable<Project>;
-  @Input() dataset$: Observable<Dataset>;
+  @Input() project: Project;
+  @Input() dataset: Dataset;
 
   constructor() { }
 

@@ -13,7 +13,7 @@
 #
 # For more information, see: https://docs.gitlab.com/ee/ci/yaml/README.html#stages
 
-image: $CI_REGISTRY/satomi/segtrackui/node:12.18
+image: timbru31/node-chrome:12-slim
 variables:
   FF_USE_FASTZIP: "true"
   # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
@@ -23,46 +23,26 @@ variables:
   DEPLOY_IMAGE: "jugit-registry.fz-juelich.de/satomi/segtrackui/nginx:latest"
 
 
-cache:
-  untracked: true
-  policy: push
-  key: ${CI_COMMIT_SHORT_SHA}
-  paths:
-    - node_modules/
-    - www/
-
-.pull_cached_node_modules:
-  cache:
-    untracked: true
-    key: ${CI_COMMIT_SHORT_SHA}
-    policy: pull
-
 stages:
-  - setup
-  - test
+  - testing
   - versioning
   - publish
 
 install:
-  stage: setup
+  stage: testing
   script:
-    - npm install -g @angular/cli @ionic/cli
-    - npm install
+    - npm install -g @angular/cli @ionic/cli 
+    - npm ci
     - ionic build
 
 
 test:
-  stage: test
-  extends: .pull_cached_node_modules
+  stage: testing
   before_script:
     - echo $CI_BUILDS_DIR
     - echo $PROJECT_FULL_PATH
-    - apt-get update
-    - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-    - apt install -y ./google-chrome*.deb;
-    - export CHROME_BIN=/usr/bin/google-chrome
     - npm install -g @angular/cli @ionic/cli
-    - npm install
+    - npm ci
   script:
     - npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage
   coverage: '/Lines \W+: (\d+\.\d+)%.*/'

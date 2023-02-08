@@ -22,6 +22,7 @@ import { CookieService } from 'ngx-cookie-service';
 import { IonicStorageModule } from '@ionic/storage-angular';
 
 import { Drivers, Storage } from '@ionic/storage';
+import { FormsModule } from '@angular/forms';
 @Injectable({providedIn: 'root'})
 export class MyHammerConfig extends HammerGestureConfig  {
   overrides = {
@@ -34,6 +35,7 @@ export class MyHammerConfig extends HammerGestureConfig  {
   declarations: [AppComponent],
   entryComponents: [],
   imports: [BrowserModule, IonicModule.forRoot(),
+            FormsModule,
             AppRoutingModule,
             AngularResizedEventModule,
             HammerModule,
