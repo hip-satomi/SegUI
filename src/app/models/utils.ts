@@ -204,7 +204,7 @@ export class UIUtils {
    * @param points the list of polygon border
    * @param p index in the global polygon list
    */
-  static drawSingle(points: Point[], active: boolean, ctx, color: string) {
+  static drawSingle(points: Point[], active: boolean, ctx, color: string, pattern=[]) {
     ctx.globalCompositeOperation = 'source-over'; //'destination-over';
     ctx.fillStyle = 'rgb(255,255,255)';
     ctx.strokeStyle = color;
@@ -213,8 +213,11 @@ export class UIUtils {
 
     // create the path for polygon
     ctx.beginPath();
+    const oldLineDash = ctx.getLineDash();
+    if (pattern.length > 0)
+      ctx.setLineDash(pattern);
     for (const point of points) {
-      if (active) {
+      if (active && pattern.length == 0) {
         ctx.fillRect(point[0] - 1, point[1] - 1, 2, 2);
         ctx.strokeRect(point[0] - 1, point[1] - 1, 2, 2);
       }
@@ -231,6 +234,7 @@ export class UIUtils {
     }
     ctx.fill();
     ctx.stroke();
+    ctx.setLineDash(oldLineDash);
   }
 
   static drawCircle(ctx, center: [number, number], radius: number, color) {

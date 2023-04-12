@@ -249,12 +249,13 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
         // 3. Draw all other detections
         if (this.showOverlay) {
             // draw
-            this.segUI.drawPolygonsAdv(ctx, false,
+            this.segUI.drawPolygonsPatterned(ctx, true,
                 // filter only polygons with visible label
                 (p: [string, Polygon]) => {
                     return this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(p[0])].visible
                 },
-                ({uuid, poly}) => this.getPolyColor(uuid, poly)
+                ({uuid, poly}) => this.getPolyColor(uuid, poly),
+                [1,1]
             );
         }
     }
