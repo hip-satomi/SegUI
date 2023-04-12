@@ -443,6 +443,23 @@ export class SegmentationUI implements UIInteraction, Drawer {
     }
 
     /**
+     * Draws polygons onto canvas with active having pattern contour
+     * @param ctx canvas context
+     * @param markActive mark the active polygon (by drawing points with squares around them)
+     * @param polyFilter filter function to display only specific polygons
+     * @param polyColor function to compute the polygon color
+     */
+    drawPolygonsPatterned(ctx, markActive = true, polyFilter: (p: [string, Polygon]) => boolean = p => true, polyColor: ({uuid, poly}) => string = ({uuid, poly}) => poly.getColor(), pattern=[1,1]) {
+        for (const [index, polygon] of Array.from(this.segModel.segmentationData.getPolygonEntries()).filter(polyFilter)) {
+            if (markActive) {
+                UIUtils.drawSingle(polygon.points, index === this.segModel.activePolygonId, ctx, polyColor({uuid: index, poly: polygon}), pattern);
+            } else {
+                UIUtils.drawSingle(polygon.points, false, ctx, polyColor({uuid: index, poly: polygon}));
+            }
+        }
+    }
+
+    /**
      * Draws the image onto the canvas context
      * 
      * If the image is not yet loaded. It starts loading the image and delays the drawing.
