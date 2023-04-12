@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
 
 export class BrushState {
   brushSize: number = 2;
-  simplificationTolerance: number = 0.2;
+  simplificationTolerance: number = 0.1;
   showOverlay = true;
   overlapMode = "prevent";
 };
