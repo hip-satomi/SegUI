@@ -1,7 +1,7 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { asyncScheduler, of, Subject } from 'rxjs';
 import { switchMap, tap, throttleTime } from 'rxjs/operators';
-import { ChangeLabelActivityAction, ChangePolygonPoints, JointAction, RemovePolygon, SelectPolygon} from 'src/app/models/action';
+import { ChangeLabelActivityAction, ChangePolygonLabel, ChangePolygonPoints, JointAction, RemovePolygon, SelectPolygon} from 'src/app/models/action';
 import { Drawer, Pencil, Tool } from 'src/app/models/drawing';
 import { MaxErrorApproxCircle, Point, Polygon, Rectangle } from 'src/app/models/geometry';
 import { GlobalSegmentationModel, LocalSegmentationModel } from 'src/app/models/segmentation-model';
@@ -52,6 +52,9 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
 
     /** Current mouse/touch pos */
     pointerPos: Position;
+
+    /** Always saves the current mouse position */
+    currentPointerPos: Position;
 
     /** Brush is actively drawing */
     brushActivated = false;
@@ -142,10 +145,22 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             const match = event.key.match(/(\d)/g);
             if (match) {
                 // compensate '1' index start ('1' maps to 0)
-                const index = Number.parseInt(match[0]) - 1
+                const index = Math.max(Number.parseInt(match[0]) - 1, 0)
                 if(index < this.globalSegModel?.labels.length && !this.globalSegModel?.labels[index].active) {
-                // activate the indexed label
-                this.globalSegModel?.addAction(new ChangeLabelActivityAction(this.globalSegModel.labels[index].id, true));
+
+                    const newLabelId = this.globalSegModel.labels[index].id;
+
+                    // activate the indexed label
+                    this.globalSegModel?.addAction(new ChangeLabelActivityAction(newLabelId, true));
+
+                    // change current active polygon label to the newly selected
+                    const aP = this.localSegModel.activePolygonId;
+                    if (aP !== undefined && this.localSegModel.getPolygonLabelId(aP) != newLabelId && this.currentPolygon?.isInside([this.currentPointerPos.x, this.currentPointerPos.y])) {
+                        // if: 1. we have an active polygon
+                        //     2. its label is different from the selected
+                        //     3. our mouse is inside the contour
+                        this.localSegModel?.addAction(new ChangePolygonLabel(aP, newLabelId))
+                    }
                 }
             }
         }
@@ -518,6 +533,8 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
             // when the control key is down, we do not consume the event
             return false;
         } else {
+            // track the current pointer position
+            this.currentPointerPos = Utils.screenPosToModelPos(Utils.getMousePosMouse(this.canvasElement, event), this.ctx);
             // we consume the event
             return true;
         }
