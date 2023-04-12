@@ -31,7 +31,7 @@ stages:
 install:
   stage: testing
   script:
-    - npm install -g @angular/cli @ionic/cli 
+    - npm install -g @angular/cli@12.2.18 @ionic/cli@6.20.9
     - npm ci
     - ionic build
 
@@ -41,7 +41,7 @@ test:
   before_script:
     - echo $CI_BUILDS_DIR
     - echo $PROJECT_FULL_PATH
-    - npm install -g @angular/cli @ionic/cli
+    - npm install -g @angular/cli@12.2.18 @ionic/cli@6.20.9
     - npm ci
   script:
     - npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI --code-coverage

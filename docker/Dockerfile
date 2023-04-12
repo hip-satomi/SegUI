@@ -11,7 +11,7 @@ COPY ./*.json ./app/
 
 RUN cd app && npm ci
 
-RUN cd app && npm install -g @angular/cli @ionic/cli
+RUN cd app && npm install -g @angular/cli@12.2.18 @ionic/cli@6.20.9
 RUN cd app && ls
 RUN cd app && ionic build --prod -- --aot --outputHashing=all
 
