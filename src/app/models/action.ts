@@ -39,6 +39,7 @@ enum ActionTypes {
     ChangeLabelVisibilityAction = "ChangeLabelVisibilityAction",
     ChangeLabelColorAction = "ChangeLabelColorAction",
     DeleteLabelAction = "DeleteLabelAction",
+    ChangePolygonLabel = "ChangePolygonLabel",
 
     // tracking actions
     AddLinkAction = "AddLinkAction",
@@ -700,6 +701,33 @@ export class ChangeLabelColorAction extends Action<SegCollData> {
     }
 }
 
+/**
+ * Action to change to color of a label
+ */
+@Serializable()
+export class ChangePolygonLabel extends Action<SegmentationData> {
+    @JsonProperty() labelId: number;
+    @JsonProperty() polygonId: string;
+
+    /**
+     * 
+     * @param labelId label id
+     * @param color new color code
+     */
+    constructor(polygonId: string, labelId: number) {
+        super(ActionTypes.ChangePolygonLabel);
+        this.polygonId = polygonId;
+        this.labelId = labelId;
+    }
+
+    /**
+     * Apply the new color to the label
+     * @param data 
+     */
+    perform(data: SegmentationData): void {
+        data.labels.set(this.polygonId, this.labelId);
+    }
+}
 /*************************
  **** Tracking Actions ***
  *************************
@@ -807,6 +835,7 @@ export class ForceTrackEndAction extends Action<TrackingData> {
         [ActionTypes.ChangeLabelVisibilityAction, ChangeLabelVisibilityAction],
         [ActionTypes.ChangeLabelColorAction, ChangeLabelColorAction],
         [ActionTypes.DeleteLabelAction, DeleteLabelAction],
+        [ActionTypes.ChangePolygonLabel, ChangePolygonLabel],
 
         // Tracking Actions
         [ActionTypes.AddLinkAction, AddLinkAction],
