@@ -637,7 +637,7 @@ export class HomePage implements Drawer, UIInteraction{
                         // create new segmentation
                         // and force an update on the server
                         return this.createSegmentationConnector(imageSetId, urls).pipe(
-                          tap(() => srsc.update().subscribe())
+                          tap((srsc) => { srsc.update().subscribe() })
                         );
                       } else {
                         // TODO: Navigate to parent
