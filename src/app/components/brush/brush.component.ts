@@ -255,7 +255,7 @@ export class BrushComponent extends Tool implements Drawer, OnInit {
                     return this.globalSegModel.segmentationData.labels[this.localSegModel.segmentationData.getPolygonLabel(p[0])].visible
                 },
                 ({uuid, poly}) => this.getPolyColor(uuid, poly),
-                [1,1]
+                [0.5,0.5]
             );
         }
     }
