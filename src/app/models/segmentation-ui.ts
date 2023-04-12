@@ -449,9 +449,15 @@ export class SegmentationUI implements UIInteraction, Drawer {
      * @param polyFilter filter function to display only specific polygons
      * @param polyColor function to compute the polygon color
      */
-    drawPolygonsPatterned(ctx, markActive = true, polyFilter: (p: [string, Polygon]) => boolean = p => true, polyColor: ({uuid, poly}) => string = ({uuid, poly}) => poly.getColor(), pattern=[1,1]) {
+    drawPolygonsPatterned(ctx, markActive = true, polyFilter: (p: [string, Polygon]) => boolean = p => true, polyColor: ({uuid, poly}) => string = ({uuid, poly}) => poly.getColor(), active_pattern=[.5,.5]) {
         for (const [index, polygon] of Array.from(this.segModel.segmentationData.getPolygonEntries()).filter(polyFilter)) {
             if (markActive) {
+                // select contour pattern for active polygon
+                let pattern = [];
+                if (index === this.segModel.activePolygonId) {
+                    pattern = active_pattern;
+                }
+    
                 UIUtils.drawSingle(polygon.points, index === this.segModel.activePolygonId, ctx, polyColor({uuid: index, poly: polygon}), pattern);
             } else {
                 UIUtils.drawSingle(polygon.points, false, ctx, polyColor({uuid: index, poly: polygon}));
