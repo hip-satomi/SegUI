@@ -52,3 +52,18 @@
 .over-loading {
   z-index: 50123 !important;
 }
+
+// fix popovers according to https://github.com/ionic-team/ionic-framework/issues/27599#issuecomment-1577694061
+[popover].popover-viewport {
+  display: initial;
+  position: initial;
+  margin: initial;
+  border: initial;
+  background: initial;
+  padding: initial;
+  width: initial;
+  height: initial;
+  overflow: initial;
+  inset: initial;
+  color: initial;
+}
