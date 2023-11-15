@@ -267,6 +267,7 @@ export class AIConfigService {
       }),
       switchMap((config) => {
         // store config
+        this.config$.next(config);
         return from(this.storeConfig(config)).pipe(
           map(() => config)
         );
@@ -289,14 +290,20 @@ export class AIConfigService {
       take(1),
       map(config => {
         if(config.hasLine(line.id)) {
+          line = config.getLineById(line.id);
           if(line.hasService(service.id)) {
             line.deleteServiceById(service.id);
           }
         }
         return config;
       }),
-      switchMap((config) => from(this.storeConfig(config))),
-      // inform that storage has changed
+      switchMap((config) => {
+        // store config
+        this.config$.next(config);
+        return from(this.storeConfig(config)).pipe(
+          map(() => config)
+        );
+      }),      // inform that storage has changed
       tap(() => this.storageChanged$.next(1))
     ).subscribe(
       () => this.userQuestion.showInfo(`Delete service '${service.name}' in line '${line.name}'`)
